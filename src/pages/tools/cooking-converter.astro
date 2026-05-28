@@ -1,0 +1,108 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Cooking Unit Converter" description="Convert cooking measurements: cups, tablespoons, teaspoons, ounces, grams, liters and more. Free kitchen converter." category="utility" icon="🍳">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+        <input type="number" id="ckAmt" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg" value="1" min="0" step="0.01" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+        <select id="ckFrom" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-sm">
+          <optgroup label="Volume">
+            <option value="tsp">Teaspoon (tsp)</option>
+            <option value="tbsp">Tablespoon (tbsp)</option>
+            <option value="floz">Fluid Ounce (fl oz)</option>
+            <option value="cup" selected>Cup</option>
+            <option value="pint">Pint</option>
+            <option value="quart">Quart</option>
+            <option value="gallon">Gallon</option>
+            <option value="ml">Milliliter (ml)</option>
+            <option value="liter">Liter (L)</option>
+          </optgroup>
+          <optgroup label="Weight">
+            <option value="oz">Ounce (oz)</option>
+            <option value="lb">Pound (lb)</option>
+            <option value="g">Gram (g)</option>
+            <option value="kg">Kilogram (kg)</option>
+          </optgroup>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+        <select id="ckTo" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-sm">
+          <optgroup label="Volume">
+            <option value="tsp">Teaspoon (tsp)</option>
+            <option value="tbsp" selected>Tablespoon (tbsp)</option>
+            <option value="floz">Fluid Ounce (fl oz)</option>
+            <option value="cup">Cup</option>
+            <option value="pint">Pint</option>
+            <option value="quart">Quart</option>
+            <option value="gallon">Gallon</option>
+            <option value="ml">Milliliter (ml)</option>
+            <option value="liter">Liter (L)</option>
+          </optgroup>
+          <optgroup label="Weight">
+            <option value="oz">Ounce (oz)</option>
+            <option value="lb">Pound (lb)</option>
+            <option value="g">Gram (g)</option>
+            <option value="kg">Kilogram (kg)</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="p-6 bg-blue-50 border border-blue-200 rounded-lg text-center mb-6">
+      <div class="text-sm text-blue-600 mb-1">Result</div>
+      <div class="text-3xl font-bold text-blue-800" id="ckResult">16</div>
+    </div>
+    <h3 class="text-sm font-medium text-gray-700 mb-2">Quick Reference</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 cup</span> = 16 tbsp</div>
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 cup</span> = 236.6 ml</div>
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 tbsp</span> = 3 tsp</div>
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 oz</span> = 28.35 g</div>
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 lb</span> = 453.6 g</div>
+      <div class="p-2 bg-gray-50 rounded-lg"><span class="font-medium">1 liter</span> = 4.23 cups</div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const amtIn = document.getElementById('ckAmt') as HTMLInputElement;
+  const fromSel = document.getElementById('ckFrom') as HTMLSelectElement;
+  const toSel = document.getElementById('ckTo') as HTMLSelectElement;
+  const resultEl = document.getElementById('ckResult')!;
+
+  const toMl: Record<string, number> = { tsp: 4.929, tbsp: 14.787, floz: 29.574, cup: 236.588, pint: 473.176, quart: 946.353, gallon: 3785.41, ml: 1, liter: 1000 };
+  const toG: Record<string, number> = { oz: 28.3495, lb: 453.592, g: 1, kg: 1000 };
+
+  function convert() {
+    const amt = parseFloat(amtIn.value) || 0;
+    const from = fromSel.value;
+    const to = toSel.value;
+
+    const fromVol = toMl[from] !== undefined;
+    const toVol = toMl[to] !== undefined;
+    const fromWt = toG[from] !== undefined;
+    const toWt = toG[to] !== undefined;
+
+    let result: number;
+    if (fromVol && toVol) {
+      result = amt * toMl[from] / toMl[to];
+    } else if (fromWt && toWt) {
+      result = amt * toG[from] / toG[to];
+    } else {
+      resultEl.textContent = 'Cannot convert volume to weight';
+      return;
+    }
+
+    resultEl.textContent = result < 0.01 ? result.toExponential(2) : result % 1 === 0 ? String(result) : result.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  [amtIn].forEach(el => el.addEventListener('input', convert));
+  [fromSel, toSel].forEach(el => el.addEventListener('change', convert));
+  convert();
+</script>

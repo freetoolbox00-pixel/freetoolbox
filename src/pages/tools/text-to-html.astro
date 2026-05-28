@@ -1,0 +1,207 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Text to HTML Converter"
+  description="Convert plain text to HTML with line breaks, paragraphs, clickable links, and mailto links. Also strip HTML tags to plain text. Free online tool."
+  category="text"
+  icon="<>"
+>
+  <div>
+    <!-- Mode Toggle -->
+    <div class="flex gap-1 mb-4">
+      <button id="modeToHtml" class="conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors">Text → HTML</button>
+      <button id="modeToText" class="conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">HTML → Text</button>
+    </div>
+
+    <!-- Input -->
+    <div class="mb-4">
+      <label id="convInputLabel" class="block text-sm font-medium text-gray-700 mb-1">Plain Text Input</label>
+      <textarea id="convInput" rows="8" placeholder="Paste your plain text here..." class="w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y font-mono"></textarea>
+    </div>
+
+    <!-- Options (Text → HTML mode) -->
+    <div id="convOptions" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="optLineBreaks" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        Line breaks → &lt;br&gt;
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="optParagraphs" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        Paragraphs → &lt;p&gt;
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="optUrls" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        URLs → &lt;a&gt; links
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="optEmails" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        Emails → mailto:
+      </label>
+    </div>
+
+    <!-- Convert Button -->
+    <div class="flex gap-2 mb-4">
+      <button id="convBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Convert</button>
+    </div>
+
+    <!-- HTML Output -->
+    <div class="flex items-center justify-between mb-1">
+      <label class="block text-sm font-medium text-gray-700">HTML Output</label>
+      <button id="convCopy" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy</button>
+    </div>
+    <textarea id="convOutput" rows="6" readonly class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-y font-mono mb-4"></textarea>
+
+    <!-- Preview -->
+    <div id="previewSection">
+      <label class="block text-sm font-medium text-gray-700 mb-1">HTML Preview</label>
+      <div id="convPreview" class="p-4 bg-white border border-gray-200 rounded-lg min-h-[80px] text-sm prose prose-sm max-w-none"></div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('convInput') as HTMLTextAreaElement;
+    const output = document.getElementById('convOutput') as HTMLTextAreaElement;
+    const preview = document.getElementById('convPreview')!;
+    const inputLabel = document.getElementById('convInputLabel')!;
+    const optionsDiv = document.getElementById('convOptions')!;
+    const previewSection = document.getElementById('previewSection')!;
+
+    const optLineBreaks = document.getElementById('optLineBreaks') as HTMLInputElement;
+    const optParagraphs = document.getElementById('optParagraphs') as HTMLInputElement;
+    const optUrls = document.getElementById('optUrls') as HTMLInputElement;
+    const optEmails = document.getElementById('optEmails') as HTMLInputElement;
+
+    let mode: 'toHtml' | 'toText' = 'toHtml';
+
+    function escapeHtml(text: string): string {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function textToHtml(text: string): string {
+      let html = escapeHtml(text);
+
+      // URLs to links
+      if (optUrls.checked) {
+        html = html.replace(
+          /(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" target="_blank" rel="noopener">$1</a>'
+        );
+      }
+
+      // Emails to mailto
+      if (optEmails.checked) {
+        html = html.replace(
+          /([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g,
+          '<a href="mailto:$1">$1</a>'
+        );
+      }
+
+      // Paragraphs (double newlines)
+      if (optParagraphs.checked) {
+        const paragraphs = html.split(/\n\s*\n/);
+        if (paragraphs.length > 1) {
+          html = paragraphs
+            .map(p => {
+              const trimmed = p.trim();
+              if (!trimmed) return '';
+              // Handle line breaks within paragraphs
+              const inner = optLineBreaks.checked
+                ? trimmed.replace(/\n/g, '<br>\n')
+                : trimmed;
+              return `<p>${inner}</p>`;
+            })
+            .filter(p => p.length > 0)
+            .join('\n\n');
+          return html;
+        }
+      }
+
+      // Line breaks
+      if (optLineBreaks.checked) {
+        html = html.replace(/\n/g, '<br>\n');
+      }
+
+      return html;
+    }
+
+    function htmlToText(html: string): string {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      // Replace <br> with newlines
+      temp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+      // Replace <p> with double newlines
+      temp.querySelectorAll('p').forEach(p => {
+        p.insertAdjacentText('afterend', '\n\n');
+      });
+      return (temp.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function convert(): void {
+      const text = input.value;
+      if (!text) {
+        output.value = '';
+        preview.innerHTML = '';
+        return;
+      }
+
+      if (mode === 'toHtml') {
+        const html = textToHtml(text);
+        output.value = html;
+        preview.innerHTML = html;
+      } else {
+        const plain = htmlToText(text);
+        output.value = plain;
+        preview.textContent = plain;
+      }
+    }
+
+    // Mode switching
+    document.getElementById('modeToHtml')!.addEventListener('click', () => {
+      mode = 'toHtml';
+      document.getElementById('modeToHtml')!.className = 'conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors';
+      document.getElementById('modeToText')!.className = 'conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors';
+      inputLabel.textContent = 'Plain Text Input';
+      input.placeholder = 'Paste your plain text here...';
+      optionsDiv.classList.remove('hidden');
+      previewSection.querySelector('label')!.textContent = 'HTML Preview';
+    });
+
+    document.getElementById('modeToText')!.addEventListener('click', () => {
+      mode = 'toText';
+      document.getElementById('modeToText')!.className = 'conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors';
+      document.getElementById('modeToHtml')!.className = 'conv-mode px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors';
+      inputLabel.textContent = 'HTML Input';
+      input.placeholder = 'Paste your HTML here...';
+      optionsDiv.classList.add('hidden');
+      previewSection.querySelector('label')!.textContent = 'Text Preview';
+    });
+
+    document.getElementById('convBtn')!.addEventListener('click', convert);
+
+    document.getElementById('convCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.value);
+      const btn = document.getElementById('convCopy')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Text to HTML Converter</h2>
+    <p>Convert plain text to properly formatted HTML. Automatically converts line breaks to &lt;br&gt; tags, double line breaks to &lt;p&gt; paragraphs, URLs to clickable links, and email addresses to mailto links. Also works in reverse to strip HTML tags and get clean plain text.</p>
+    <h3>Conversion Options</h3>
+    <ul>
+      <li><strong>Line Breaks to &lt;br&gt;</strong> - Convert single newlines to HTML break tags</li>
+      <li><strong>Paragraphs to &lt;p&gt;</strong> - Wrap double-newline separated blocks in paragraph tags</li>
+      <li><strong>URLs to Links</strong> - Make URLs clickable with anchor tags</li>
+      <li><strong>Emails to Mailto</strong> - Convert email addresses to mailto links</li>
+      <li><strong>Reverse Mode</strong> - Strip HTML tags and get clean plain text</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

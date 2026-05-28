@@ -1,0 +1,160 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Text Diff Checker"
+  description="Compare two texts and highlight the differences. Side-by-side diff view with additions, deletions and modifications. Free online diff tool."
+  category="text"
+  icon="±"
+>
+  <div>
+    <!-- Input Areas -->
+    <div class="grid gap-4 lg:grid-cols-2 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Original Text</label>
+        <textarea id="diffOld" rows="10" placeholder="Paste original text here..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Modified Text</label>
+        <textarea id="diffNew" rows="10" placeholder="Paste modified text here..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <button id="compareBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Compare</button>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="ignoreCase" class="accent-blue-600" /> Ignore case
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="ignoreWhitespace" class="accent-blue-600" /> Ignore whitespace
+      </label>
+      <button id="swapTexts" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-sm rounded-lg">↔ Swap</button>
+    </div>
+
+    <!-- Stats -->
+    <div id="diffStats" class="flex gap-4 mb-4 text-sm hidden">
+      <span class="text-green-600 font-medium">+ <span id="addCount">0</span> added</span>
+      <span class="text-red-600 font-medium">- <span id="delCount">0</span> removed</span>
+      <span class="text-gray-500"><span id="sameCount">0</span> unchanged</span>
+    </div>
+
+    <!-- Diff Output -->
+    <div id="diffOutput" class="border border-gray-200 rounded-lg overflow-hidden">
+      <div class="p-4 text-sm text-gray-400 text-center">Click "Compare" to see differences</div>
+    </div>
+  </div>
+
+  <script>
+    function lcs(a: string[], b: string[]): boolean[][] {
+      const m = a.length, n = b.length;
+      const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+      for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+          dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+      const result: { type: 'same' | 'add' | 'del'; line: string }[] = [];
+      let i = m, j = n;
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && a[i-1] === b[j-1]) {
+          result.unshift({ type: 'same', line: a[i-1] });
+          i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+          result.unshift({ type: 'add', line: b[j-1] });
+          j--;
+        } else {
+          result.unshift({ type: 'del', line: a[i-1] });
+          i--;
+        }
+      }
+      return result as any;
+    }
+
+    function escapeHtml(s: string): string {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function compare(): void {
+      let oldText = (document.getElementById('diffOld') as HTMLTextAreaElement).value;
+      let newText = (document.getElementById('diffNew') as HTMLTextAreaElement).value;
+
+      if ((document.getElementById('ignoreCase') as HTMLInputElement).checked) {
+        oldText = oldText.toLowerCase();
+        newText = newText.toLowerCase();
+      }
+
+      const oldLines = oldText.split('\n');
+      const newLines = newText.split('\n');
+
+      let processOld = oldLines;
+      let processNew = newLines;
+      if ((document.getElementById('ignoreWhitespace') as HTMLInputElement).checked) {
+        processOld = oldLines.map(l => l.trim());
+        processNew = newLines.map(l => l.trim());
+      }
+
+      // Simple diff using LCS
+      const m = processOld.length, n = processNew.length;
+      const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+      for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+          dp[i][j] = processOld[i-1] === processNew[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+      const result: { type: string; line: string }[] = [];
+      let i = m, j = n;
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && processOld[i-1] === processNew[j-1]) {
+          result.unshift({ type: 'same', line: oldLines[i-1] });
+          i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+          result.unshift({ type: 'add', line: newLines[j-1] });
+          j--;
+        } else {
+          result.unshift({ type: 'del', line: oldLines[i-1] });
+          i--;
+        }
+      }
+
+      let adds = 0, dels = 0, same = 0;
+      const html = result.map((r, idx) => {
+        const bg = r.type === 'add' ? 'bg-green-50 border-l-4 border-green-400' :
+                   r.type === 'del' ? 'bg-red-50 border-l-4 border-red-400' : '';
+        const prefix = r.type === 'add' ? '+' : r.type === 'del' ? '-' : ' ';
+        const color = r.type === 'add' ? 'text-green-700' : r.type === 'del' ? 'text-red-700' : 'text-gray-600';
+        if (r.type === 'add') adds++;
+        else if (r.type === 'del') dels++;
+        else same++;
+        return `<div class="flex font-mono text-xs ${bg} ${color}"><span class="w-8 text-right pr-2 text-gray-400 select-none">${idx + 1}</span><span class="w-4 select-none">${prefix}</span><span class="flex-1 whitespace-pre-wrap">${escapeHtml(r.line) || '&nbsp;'}</span></div>`;
+      }).join('');
+
+      document.getElementById('diffOutput')!.innerHTML = html || '<div class="p-4 text-center text-green-600 font-medium">Texts are identical!</div>';
+      document.getElementById('diffStats')!.classList.remove('hidden');
+      document.getElementById('addCount')!.textContent = adds.toString();
+      document.getElementById('delCount')!.textContent = dels.toString();
+      document.getElementById('sameCount')!.textContent = same.toString();
+    }
+
+    document.getElementById('compareBtn')!.addEventListener('click', compare);
+
+    document.getElementById('swapTexts')!.addEventListener('click', () => {
+      const old = document.getElementById('diffOld') as HTMLTextAreaElement;
+      const n = document.getElementById('diffNew') as HTMLTextAreaElement;
+      [old.value, n.value] = [n.value, old.value];
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Text Diff Checker Online</h2>
+    <p>Compare two pieces of text and see the differences highlighted. Shows additions in green and deletions in red, with line-by-line comparison.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Line-by-line diff</strong> - Clear visual comparison of changes</li>
+      <li><strong>Ignore case</strong> - Compare without case sensitivity</li>
+      <li><strong>Ignore whitespace</strong> - Focus on content changes only</li>
+      <li><strong>Statistics</strong> - Count of added, removed and unchanged lines</li>
+    </ul>
+    <h3>Use Cases</h3>
+    <p>Compare code versions, check document revisions, verify configuration changes, review text edits before and after.</p>
+  </Fragment>
+</ToolLayout>

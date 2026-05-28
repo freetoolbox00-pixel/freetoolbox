@@ -1,0 +1,168 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Meta Tag Generator"
+  description="Generate HTML meta tags for SEO, Open Graph and Twitter Cards. Preview how your page appears in Google and social media. Free meta tag generator."
+  category="seo"
+  icon="<m>"
+>
+  <div>
+    <!-- Form -->
+    <div class="space-y-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Page Title <span class="text-gray-400">(50-60 chars ideal)</span></label>
+        <input type="text" id="metaTitle" placeholder="My Awesome Page Title" maxlength="70" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div class="text-xs text-gray-400 mt-1"><span id="titleCount">0</span>/60 characters</div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(150-160 chars ideal)</span></label>
+        <textarea id="metaDesc" rows="2" placeholder="A compelling description of your page..." maxlength="200" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+        <div class="text-xs text-gray-400 mt-1"><span id="descCount">0</span>/160 characters</div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+          <input type="url" id="metaUrl" placeholder="https://example.com/page" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Image URL (OG)</label>
+          <input type="url" id="metaImage" placeholder="https://example.com/image.jpg" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+          <input type="text" id="metaKeywords" placeholder="keyword1, keyword2" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Author</label>
+          <input type="text" id="metaAuthor" placeholder="Your Name" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Robots</label>
+          <select id="metaRobots" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="index, follow">index, follow</option>
+            <option value="noindex, follow">noindex, follow</option>
+            <option value="index, nofollow">index, nofollow</option>
+            <option value="noindex, nofollow">noindex, nofollow</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-4">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="ogEnabled" checked class="accent-blue-600" /> Open Graph
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="twEnabled" checked class="accent-blue-600" /> Twitter Card
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="canonEnabled" class="accent-blue-600" /> Canonical URL
+        </label>
+      </div>
+    </div>
+
+    <!-- Google Preview -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Google Preview</h3>
+      <div class="p-4 bg-white border border-gray-200 rounded-lg max-w-xl">
+        <div id="previewUrl" class="text-xs text-green-700 truncate">https://example.com</div>
+        <div id="previewTitle" class="text-lg text-blue-700 hover:underline cursor-pointer truncate">Page Title</div>
+        <div id="previewDesc" class="text-sm text-gray-600 line-clamp-2">Page description appears here...</div>
+      </div>
+    </div>
+
+    <!-- Generated Code -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-medium text-gray-700">Generated Meta Tags</h3>
+        <button id="copyMeta" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded">Copy HTML</button>
+      </div>
+      <pre id="metaOutput" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-xs overflow-auto max-h-[400px] whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    function escHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    function generate(): void {
+      const title = (document.getElementById('metaTitle') as HTMLInputElement).value;
+      const desc = (document.getElementById('metaDesc') as HTMLTextAreaElement).value;
+      const url = (document.getElementById('metaUrl') as HTMLInputElement).value;
+      const image = (document.getElementById('metaImage') as HTMLInputElement).value;
+      const keywords = (document.getElementById('metaKeywords') as HTMLInputElement).value;
+      const author = (document.getElementById('metaAuthor') as HTMLInputElement).value;
+      const robots = (document.getElementById('metaRobots') as HTMLSelectElement).value;
+      const og = (document.getElementById('ogEnabled') as HTMLInputElement).checked;
+      const tw = (document.getElementById('twEnabled') as HTMLInputElement).checked;
+      const canon = (document.getElementById('canonEnabled') as HTMLInputElement).checked;
+
+      // Char counts
+      document.getElementById('titleCount')!.textContent = title.length.toString();
+      document.getElementById('descCount')!.textContent = desc.length.toString();
+      document.getElementById('titleCount')!.className = title.length > 60 ? 'text-red-500' : '';
+      document.getElementById('descCount')!.className = desc.length > 160 ? 'text-red-500' : '';
+
+      // Preview
+      document.getElementById('previewUrl')!.textContent = url || 'https://example.com';
+      document.getElementById('previewTitle')!.textContent = title || 'Page Title';
+      document.getElementById('previewDesc')!.textContent = desc || 'Page description appears here...';
+
+      // Build HTML
+      let html = `<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n`;
+      if (title) html += `<title>${escHtml(title)}</title>\n`;
+      if (desc) html += `<meta name="description" content="${escHtml(desc)}">\n`;
+      if (keywords) html += `<meta name="keywords" content="${escHtml(keywords)}">\n`;
+      if (author) html += `<meta name="author" content="${escHtml(author)}">\n`;
+      html += `<meta name="robots" content="${robots}">\n`;
+      if (canon && url) html += `<link rel="canonical" href="${escHtml(url)}">\n`;
+
+      if (og) {
+        html += `\n<!-- Open Graph -->\n`;
+        if (title) html += `<meta property="og:title" content="${escHtml(title)}">\n`;
+        if (desc) html += `<meta property="og:description" content="${escHtml(desc)}">\n`;
+        if (url) html += `<meta property="og:url" content="${escHtml(url)}">\n`;
+        if (image) html += `<meta property="og:image" content="${escHtml(image)}">\n`;
+        html += `<meta property="og:type" content="website">\n`;
+      }
+
+      if (tw) {
+        html += `\n<!-- Twitter Card -->\n`;
+        html += `<meta name="twitter:card" content="summary_large_image">\n`;
+        if (title) html += `<meta name="twitter:title" content="${escHtml(title)}">\n`;
+        if (desc) html += `<meta name="twitter:description" content="${escHtml(desc)}">\n`;
+        if (image) html += `<meta name="twitter:image" content="${escHtml(image)}">\n`;
+      }
+
+      document.getElementById('metaOutput')!.textContent = html;
+    }
+
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+      el.addEventListener('input', generate);
+      el.addEventListener('change', generate);
+    });
+
+    document.getElementById('copyMeta')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('metaOutput')!.textContent || '');
+      const btn = document.getElementById('copyMeta')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy HTML', 1500);
+    });
+
+    generate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Meta Tag Generator</h2>
+    <p>Generate complete HTML meta tags for SEO optimization, Open Graph (Facebook, LinkedIn) and Twitter Cards. Preview how your page will appear in Google search results.</p>
+    <h3>What Are Meta Tags?</h3>
+    <p>Meta tags are HTML elements that provide metadata about a web page. Search engines use them to understand page content, and social media platforms use Open Graph and Twitter Card tags to create rich link previews.</p>
+    <h3>Best Practices</h3>
+    <ul>
+      <li><strong>Title</strong> - 50-60 characters, include primary keyword</li>
+      <li><strong>Description</strong> - 150-160 characters, compelling and unique</li>
+      <li><strong>OG Image</strong> - 1200x630 pixels recommended</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

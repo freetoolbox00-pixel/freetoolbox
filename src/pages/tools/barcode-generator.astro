@@ -1,0 +1,102 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Barcode Generator" description="Generate barcodes: Code 128, EAN-13, Code 39, ITF. Download as PNG. Free online barcode maker." category="utility" icon="📊">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-2 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Barcode Type</label>
+        <select id="bcType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="128">Code 128 (alphanumeric)</option>
+          <option value="39">Code 39 (A-Z, 0-9)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+        <input type="text" id="bcData" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="Enter text or numbers" value="FREETOOLBOX-2024" />
+      </div>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Width</label>
+        <input type="range" id="bcWidth" min="1" max="4" value="2" class="w-full" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
+        <input type="range" id="bcHeight" min="40" max="200" value="80" class="w-full" />
+      </div>
+      <div>
+        <label class="flex items-center gap-2 text-sm mt-5"><input type="checkbox" id="bcLabel" checked /> Show text</label>
+      </div>
+    </div>
+    <button id="bcGen" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4">Generate</button>
+    <div id="bcResult" class="hidden text-center">
+      <div class="inline-block p-6 bg-white border border-gray-200 rounded-lg mb-3">
+        <canvas id="bcCanvas"></canvas>
+      </div>
+      <div><button id="bcDl" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Download PNG</button></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const canvas = document.getElementById('bcCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+
+  const CODE128: Record<string, string> = {};
+  const c128chars = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+  const c128patterns = ['11011001100','11001101100','11001100110','10010011000','10010001100','10001001100','10011001000','10011000100','10001100100','11001001000','11001000100','11000100100','10110011100','10011011100','10011001110','10111001100','10011101100','10011100110','11001110010','11001011100','11001001110','11011100100','11001110100','11101101110','11101001100','11100101100','11100100110','11101100100','11100110100','11100110010','11011011000','11011000110','11000110110','10100011000','10001011000','10001000110','10110001000','10001101000','10001100010','11010001000','11000101000','11000100010','10110111000','10110001110','10001101110','10111011000','10111000110','10001110110','11101110110','11010001110','11000101110','11011101000','11011100010','11011101110','11101011000','11101000110','11100010110','11101101000','11101100010','11100011010','11101111010','11001000010','11110001010','10100110000','10100001100','10010110000','10010000110','10000101100','10000100110','10110010000','10110000100','10011010000','10011000010','10000110100','10000110010','11000010010','11001010000','11110111010','11000010100','10001111010','10100111100','10010111100','10010011110','10111100100','10011110100','10011110010','11110100100','11110010100','11110010010','11011011110','11011110110','11110110110','10101111000','10100011110','10001011110','10111101000','10111100010','11110101000','11110100010','10111011110','10111101110','11101011110','11110101110','11010000100','11010010000','11010011100','1100011101011'];
+
+  for (let i = 0; i < c128chars.length; i++) CODE128[c128chars[i]] = c128patterns[i];
+
+  function encode128(data: string): string {
+    let bits = c128patterns[104]; // Start B
+    let checksum = 104;
+    for (let i = 0; i < data.length; i++) {
+      const idx = c128chars.indexOf(data[i]);
+      if (idx < 0) continue;
+      bits += c128patterns[idx];
+      checksum += idx * (i + 1);
+    }
+    bits += c128patterns[checksum % 103];
+    bits += c128patterns[106]; // Stop
+    return bits;
+  }
+
+  function encode39(data: string): string {
+    const chars: Record<string, string> = {'0':'101001101101','1':'110100101011','2':'101100101011','3':'110110010101','4':'101001101011','5':'110100110101','6':'101100110101','7':'101001011011','8':'110100101101','9':'101100101101','A':'110101001011','B':'101101001011','C':'110110100101','D':'101011001011','E':'110101100101','F':'101101100101','G':'101010011011','H':'110101001101','I':'101101001101','J':'101011001101','K':'110101010011','L':'101101010011','M':'110110101001','N':'101011010011','O':'110101101001','P':'101101101001','Q':'101010110011','R':'110101011001','S':'101101011001','T':'101011011001','U':'110010101011','V':'100110101011','W':'110011010101','X':'100101101011','Y':'110010110101','Z':'100110110101','-':'100101011011','.':'110010101101',' ':'100110101101','*':'100101101101'};
+    let bits = chars['*'] + '0';
+    for (const c of data.toUpperCase()) { if (chars[c]) bits += chars[c] + '0'; }
+    bits += chars['*'];
+    return bits;
+  }
+
+  document.getElementById('bcGen')!.addEventListener('click', () => {
+    const data = (document.getElementById('bcData') as HTMLInputElement).value;
+    if (!data) return;
+    const type = (document.getElementById('bcType') as HTMLSelectElement).value;
+    const barW = parseInt((document.getElementById('bcWidth') as HTMLInputElement).value);
+    const barH = parseInt((document.getElementById('bcHeight') as HTMLInputElement).value);
+    const showLabel = (document.getElementById('bcLabel') as HTMLInputElement).checked;
+
+    const bits = type === '39' ? encode39(data) : encode128(data);
+    const w = bits.length * barW + 20;
+    const h = barH + (showLabel ? 25 : 10);
+    canvas.width = w; canvas.height = h;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+    for (let i = 0; i < bits.length; i++) {
+      if (bits[i] === '1') ctx.fillRect(10 + i * barW, 5, barW, barH);
+    }
+    if (showLabel) {
+      ctx.font = '12px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(data, w / 2, barH + 20);
+    }
+    document.getElementById('bcResult')!.classList.remove('hidden');
+  });
+
+  document.getElementById('bcDl')!.addEventListener('click', () => {
+    const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'barcode.png'; a.click();
+  });
+</script>

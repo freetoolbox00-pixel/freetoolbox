@@ -1,0 +1,119 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="PDF Page Reorder"
+  description="Reorder, rotate and delete pages in a PDF. Drag and drop to rearrange. Free online PDF organizer — 100% client-side."
+  category="pdf"
+  icon="🔀"
+>
+  <div>
+    <div id="prDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📄</div>
+      <div class="text-sm text-gray-600 font-medium">Drop a PDF file here or click to upload</div>
+      <input type="file" id="prFile" accept=".pdf" class="hidden" />
+    </div>
+
+    <div id="prPanel" class="hidden">
+      <div class="flex gap-4 mb-4">
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="prPages">0</span> pages</div>
+        <div class="text-sm text-gray-500 self-center">Drag pages to reorder. Click × to remove.</div>
+      </div>
+
+      <div id="prGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-6"></div>
+
+      <div class="flex gap-3">
+        <button id="prSave" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Save PDF</button>
+        <button id="prReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('prDrop')!;
+  const fileIn = document.getElementById('prFile') as HTMLInputElement;
+  const panel = document.getElementById('prPanel')!;
+  const pagesEl = document.getElementById('prPages')!;
+  const grid = document.getElementById('prGrid')!;
+  const saveBtn = document.getElementById('prSave') as HTMLButtonElement;
+  const resetBtn = document.getElementById('prReset')!;
+
+  let pdfBytes: ArrayBuffer | null = null;
+  let pageOrder: number[] = [];
+  let dragIdx = -1;
+
+  async function loadPdf(file: File) {
+    pdfBytes = await file.arrayBuffer();
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+    const n = doc.getPageCount();
+    pageOrder = Array.from({ length: n }, (_, i) => i);
+    pagesEl.textContent = String(n);
+    panel.classList.remove('hidden');
+    drop.classList.add('hidden');
+    renderGrid();
+  }
+
+  function renderGrid() {
+    grid.innerHTML = '';
+    pageOrder.forEach((pg, idx) => {
+      const card = document.createElement('div');
+      card.className = 'relative bg-gray-100 rounded-lg border border-gray-200 p-2 text-center cursor-grab active:cursor-grabbing hover:border-blue-400 transition-colors';
+      card.draggable = true;
+      card.dataset.idx = String(idx);
+      card.innerHTML = `<div class="text-3xl mb-1">📄</div><div class="text-xs font-medium text-gray-700">Page ${pg + 1}</div><button class="pr-rm absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600" data-idx="${idx}">&times;</button>`;
+
+      card.addEventListener('dragstart', () => { dragIdx = idx; card.classList.add('opacity-40'); });
+      card.addEventListener('dragend', () => { dragIdx = -1; card.classList.remove('opacity-40'); });
+      card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('border-blue-500'); });
+      card.addEventListener('dragleave', () => card.classList.remove('border-blue-500'));
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('border-blue-500');
+        if (dragIdx < 0 || dragIdx === idx) return;
+        const moved = pageOrder.splice(dragIdx, 1)[0];
+        pageOrder.splice(idx, 0, moved);
+        pagesEl.textContent = String(pageOrder.length);
+        renderGrid();
+      });
+
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('.pr-rm').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const i = Number((b as HTMLElement).dataset.idx);
+      pageOrder.splice(i, 1);
+      pagesEl.textContent = String(pageOrder.length);
+      renderGrid();
+    }));
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    if (!pdfBytes || !pageOrder.length) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    const { PDFDocument } = await import('pdf-lib');
+    const src = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+    const doc = await PDFDocument.create();
+    const pages = await doc.copyPages(src, pageOrder);
+    pages.forEach(p => doc.addPage(p));
+    const bytes = await doc.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'reordered.pdf';
+    a.click();
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save PDF';
+  });
+
+  resetBtn.addEventListener('click', () => { pdfBytes = null; pageOrder = []; panel.classList.add('hidden'); drop.classList.remove('hidden'); fileIn.value = ''; });
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50'); const f = e.dataTransfer?.files[0]; if (f?.type === 'application/pdf') loadPdf(f); });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadPdf(fileIn.files[0]); });
+</script>

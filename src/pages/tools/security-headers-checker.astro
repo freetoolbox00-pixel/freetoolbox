@@ -1,0 +1,77 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Security Headers Checker" description="Check which security headers your website uses. Learn which headers to add for better protection." category="security" icon="🔎">
+  <div>
+    <div class="mb-6">
+      <p class="text-sm text-gray-600 mb-4">Enter your website's response headers to analyze security posture. Paste headers from browser DevTools (Network → Headers).</p>
+      <textarea id="shInput" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="content-type: text/html&#10;x-frame-options: DENY&#10;strict-transport-security: max-age=31536000&#10;content-security-policy: default-src 'self'"></textarea>
+    </div>
+    <button id="shCheck" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-6">Analyze Headers</button>
+    <div id="shResult" class="hidden">
+      <div class="flex items-center gap-3 mb-4">
+        <div id="shScore" class="text-3xl font-bold"></div>
+        <div id="shGrade" class="px-3 py-1 rounded text-sm font-bold"></div>
+      </div>
+      <div id="shList" class="space-y-3"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const input = document.getElementById('shInput') as HTMLTextAreaElement;
+  const checkBtn = document.getElementById('shCheck')!;
+  const resultEl = document.getElementById('shResult')!;
+  const scoreEl = document.getElementById('shScore')!;
+  const gradeEl = document.getElementById('shGrade')!;
+  const listEl = document.getElementById('shList')!;
+
+  const HEADERS = [
+    { name: 'Strict-Transport-Security', weight: 15, desc: 'Forces HTTPS connections. Prevents protocol downgrade attacks.', fix: 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload' },
+    { name: 'Content-Security-Policy', weight: 20, desc: 'Prevents XSS, clickjacking and code injection. Most important security header.', fix: "Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" },
+    { name: 'X-Frame-Options', weight: 10, desc: 'Prevents clickjacking by controlling iframe embedding.', fix: 'X-Frame-Options: DENY' },
+    { name: 'X-Content-Type-Options', weight: 10, desc: 'Prevents MIME type sniffing attacks.', fix: 'X-Content-Type-Options: nosniff' },
+    { name: 'Referrer-Policy', weight: 10, desc: 'Controls what referrer info is sent with requests.', fix: 'Referrer-Policy: strict-origin-when-cross-origin' },
+    { name: 'Permissions-Policy', weight: 10, desc: 'Controls browser features like camera, microphone, geolocation.', fix: 'Permissions-Policy: camera=(), microphone=(), geolocation=()' },
+    { name: 'X-XSS-Protection', weight: 5, desc: 'Legacy XSS filter. Still useful for older browsers.', fix: 'X-XSS-Protection: 1; mode=block' },
+    { name: 'Cross-Origin-Opener-Policy', weight: 5, desc: 'Isolates browsing context from cross-origin documents.', fix: 'Cross-Origin-Opener-Policy: same-origin' },
+    { name: 'Cross-Origin-Resource-Policy', weight: 5, desc: 'Prevents other sites from loading your resources.', fix: 'Cross-Origin-Resource-Policy: same-origin' },
+    { name: 'Cross-Origin-Embedder-Policy', weight: 5, desc: 'Controls cross-origin resource loading.', fix: 'Cross-Origin-Embedder-Policy: require-corp' },
+    { name: 'Cache-Control', weight: 5, desc: 'Controls caching behavior. Important for sensitive pages.', fix: 'Cache-Control: no-store, no-cache, must-revalidate' },
+  ];
+
+  checkBtn.addEventListener('click', () => {
+    const raw = input.value.trim().toLowerCase();
+    if (!raw) return;
+
+    const headerMap = new Set(raw.split('\n').map(l => l.split(':')[0].trim()));
+    let score = 0;
+
+    const results = HEADERS.map(h => {
+      const found = headerMap.has(h.name.toLowerCase());
+      if (found) score += h.weight;
+      return { ...h, found };
+    });
+
+    scoreEl.textContent = `${score}/100`;
+    if (score >= 80) { gradeEl.textContent = 'A'; gradeEl.className = 'px-3 py-1 rounded text-sm font-bold bg-green-100 text-green-700'; }
+    else if (score >= 60) { gradeEl.textContent = 'B'; gradeEl.className = 'px-3 py-1 rounded text-sm font-bold bg-blue-100 text-blue-700'; }
+    else if (score >= 40) { gradeEl.textContent = 'C'; gradeEl.className = 'px-3 py-1 rounded text-sm font-bold bg-yellow-100 text-yellow-700'; }
+    else if (score >= 20) { gradeEl.textContent = 'D'; gradeEl.className = 'px-3 py-1 rounded text-sm font-bold bg-orange-100 text-orange-700'; }
+    else { gradeEl.textContent = 'F'; gradeEl.className = 'px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700'; }
+
+    listEl.innerHTML = results.map(r => `
+      <div class="p-3 rounded-lg border ${r.found ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-medium text-sm ${r.found ? 'text-green-800' : 'text-red-800'}">${r.found ? '✓' : '✗'} ${r.name}</span>
+          <span class="text-xs px-2 py-0.5 rounded ${r.found ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">${r.weight} pts</span>
+        </div>
+        <div class="text-xs text-gray-600">${r.desc}</div>
+        ${!r.found ? `<code class="block mt-2 text-xs bg-gray-100 p-2 rounded font-mono text-gray-700">${r.fix}</code>` : ''}
+      </div>
+    `).join('');
+
+    resultEl.classList.remove('hidden');
+  });
+</script>

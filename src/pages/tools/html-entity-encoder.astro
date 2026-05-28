@@ -1,0 +1,106 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="HTML Entity Encoder / Decoder"
+  description="Encode special characters to HTML entities or decode entities back to characters. Prevent XSS and display special characters. Free HTML encoder."
+  category="developer"
+  icon="&lt;&gt;"
+>
+  <div>
+    <!-- Mode Toggle -->
+    <div class="flex gap-2 mb-4">
+      <button id="htmlEncMode" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">Encode</button>
+      <button id="htmlDecMode" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Decode</button>
+    </div>
+
+    <!-- Input -->
+    <div class="mb-4">
+      <label id="htmlLabel" class="block text-sm font-medium text-gray-700 mb-1">Text to encode</label>
+      <textarea id="htmlInput" rows="5" placeholder='<div class="hello">Hello & "World"</div>' class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button id="htmlConvert" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Convert</button>
+      <button id="htmlCopy" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy</button>
+      <button id="htmlSwap" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">↕ Swap</button>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Result</label>
+      <pre id="htmlOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[120px] whitespace-pre-wrap break-all"></pre>
+    </div>
+
+    <!-- Common Entities Reference -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Common HTML Entities</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm font-mono">
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;lt;</span> → &lt;</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;gt;</span> → &gt;</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;amp;</span> → &amp;</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;quot;</span> → "</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;apos;</span> → '</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;nbsp;</span> → (space)</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;copy;</span> → ©</div>
+        <div class="p-2 bg-gray-50 rounded"><span class="text-gray-400">&amp;reg;</span> → ®</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let encoding = true;
+    const input = document.getElementById('htmlInput') as HTMLTextAreaElement;
+    const output = document.getElementById('htmlOutput')!;
+
+    function setMode(enc: boolean): void {
+      encoding = enc;
+      document.getElementById('htmlEncMode')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${enc ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('htmlDecMode')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${!enc ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('htmlLabel')!.textContent = enc ? 'Text to encode' : 'Entities to decode';
+    }
+
+    function encodeEntities(str: string): string {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function decodeEntities(str: string): string {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = str;
+      return ta.value;
+    }
+
+    function convert(): void {
+      const text = input.value;
+      if (!text) { output.textContent = ''; return; }
+      output.textContent = encoding ? encodeEntities(text) : decodeEntities(text);
+    }
+
+    document.getElementById('htmlEncMode')!.addEventListener('click', () => setMode(true));
+    document.getElementById('htmlDecMode')!.addEventListener('click', () => setMode(false));
+    document.getElementById('htmlConvert')!.addEventListener('click', convert);
+    input.addEventListener('input', convert);
+
+    document.getElementById('htmlCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.textContent || '');
+    });
+
+    document.getElementById('htmlSwap')!.addEventListener('click', () => {
+      input.value = output.textContent || '';
+      setMode(!encoding);
+      convert();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free HTML Entity Encoder and Decoder</h2>
+    <p>Convert special characters like &lt; &gt; &amp; " to their HTML entity equivalents, or decode HTML entities back to readable characters. Essential for preventing XSS attacks and displaying code in HTML.</p>
+    <h3>Why Encode HTML Entities?</h3>
+    <ul>
+      <li><strong>Security</strong> - Prevent Cross-Site Scripting (XSS) attacks by encoding user input</li>
+      <li><strong>Display</strong> - Show HTML code as text on web pages</li>
+      <li><strong>Compatibility</strong> - Ensure special characters render correctly in all browsers</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

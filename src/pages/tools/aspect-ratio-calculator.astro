@@ -1,0 +1,147 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Aspect Ratio Calculator"
+  description="Calculate aspect ratios, resize dimensions proportionally and find common screen resolutions. Free aspect ratio calculator for images and video."
+  category="utility"
+  icon="▢"
+>
+  <div>
+    <!-- Calculator -->
+    <div class="grid gap-6 lg:grid-cols-2 mb-6">
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">Calculate Ratio</h3>
+        <div class="flex items-center gap-2 mb-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Width</label>
+            <input type="number" id="arW1" value="1920" class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <span class="mt-5 text-gray-400 text-lg">×</span>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Height</label>
+            <input type="number" id="arH1" value="1080" class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+        <div class="p-3 bg-blue-50 rounded-lg text-center">
+          <span class="text-sm text-gray-600">Aspect Ratio:</span>
+          <span id="arResult" class="text-2xl font-bold text-blue-600 ml-2">16:9</span>
+          <div id="arDecimal" class="text-xs text-gray-500 mt-1">1.778</div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">Resize Proportionally</h3>
+        <div class="flex items-center gap-2 mb-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">New Width</label>
+            <input type="number" id="arW2" placeholder="1280" class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <span class="mt-5 text-gray-400">or</span>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">New Height</label>
+            <input type="number" id="arH2" placeholder="720" class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+        <div class="p-3 bg-green-50 rounded-lg text-center">
+          <span class="text-sm text-gray-600">New Size:</span>
+          <span id="arResize" class="text-xl font-bold text-green-600 ml-2">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Preview -->
+    <div class="mb-6 flex justify-center">
+      <div id="arPreview" class="border-2 border-blue-400 bg-blue-50 flex items-center justify-center text-blue-600 font-mono text-sm" style="width:320px;height:180px">
+        16:9
+      </div>
+    </div>
+
+    <!-- Common Ratios -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Common Aspect Ratios</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="16" data-h="9"><strong>16:9</strong> <span class="text-xs text-gray-400">HD/4K Video</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="4" data-h="3"><strong>4:3</strong> <span class="text-xs text-gray-400">Classic TV</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="1" data-h="1"><strong>1:1</strong> <span class="text-xs text-gray-400">Instagram</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="9" data-h="16"><strong>9:16</strong> <span class="text-xs text-gray-400">TikTok/Reels</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="21" data-h="9"><strong>21:9</strong> <span class="text-xs text-gray-400">Ultrawide</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="3" data-h="2"><strong>3:2</strong> <span class="text-xs text-gray-400">DSLR Photo</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="5" data-h="4"><strong>5:4</strong> <span class="text-xs text-gray-400">Monitor</span></button>
+        <button class="ar-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-w="2" data-h="3"><strong>2:3</strong> <span class="text-xs text-gray-400">Portrait Photo</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+
+    function calculate(): void {
+      const w = parseInt((document.getElementById('arW1') as HTMLInputElement).value) || 0;
+      const h = parseInt((document.getElementById('arH1') as HTMLInputElement).value) || 0;
+      if (w <= 0 || h <= 0) return;
+
+      const g = gcd(w, h);
+      const rw = w / g, rh = h / g;
+      document.getElementById('arResult')!.textContent = `${rw}:${rh}`;
+      document.getElementById('arDecimal')!.textContent = (w / h).toFixed(3);
+
+      // Preview
+      const preview = document.getElementById('arPreview')!;
+      const maxW = 320, maxH = 200;
+      let pw = maxW, ph = Math.round(maxW * (h / w));
+      if (ph > maxH) { ph = maxH; pw = Math.round(maxH * (w / h)); }
+      preview.style.width = pw + 'px';
+      preview.style.height = ph + 'px';
+      preview.textContent = `${rw}:${rh}`;
+    }
+
+    function resize(): void {
+      const w1 = parseInt((document.getElementById('arW1') as HTMLInputElement).value) || 0;
+      const h1 = parseInt((document.getElementById('arH1') as HTMLInputElement).value) || 0;
+      const w2 = (document.getElementById('arW2') as HTMLInputElement).value;
+      const h2 = (document.getElementById('arH2') as HTMLInputElement).value;
+      if (w1 <= 0 || h1 <= 0) return;
+
+      const ratio = w1 / h1;
+      let resultText = '—';
+      if (w2 && parseInt(w2) > 0) {
+        const nw = parseInt(w2);
+        const nh = Math.round(nw / ratio);
+        resultText = `${nw} × ${nh}`;
+      } else if (h2 && parseInt(h2) > 0) {
+        const nh = parseInt(h2);
+        const nw = Math.round(nh * ratio);
+        resultText = `${nw} × ${nh}`;
+      }
+      document.getElementById('arResize')!.textContent = resultText;
+    }
+
+    ['arW1', 'arH1'].forEach(id => document.getElementById(id)!.addEventListener('input', () => { calculate(); resize(); }));
+    ['arW2', 'arH2'].forEach(id => document.getElementById(id)!.addEventListener('input', resize));
+
+    document.querySelectorAll('.ar-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const el = btn as HTMLElement;
+        (document.getElementById('arW1') as HTMLInputElement).value = el.dataset.w!;
+        (document.getElementById('arH1') as HTMLInputElement).value = el.dataset.h!;
+        calculate();
+      });
+    });
+
+    calculate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Aspect Ratio Calculator</h2>
+    <p>Calculate aspect ratios for images, videos and screens. Resize dimensions proportionally while maintaining the correct ratio. Includes presets for common formats.</p>
+    <h3>Common Aspect Ratios</h3>
+    <ul>
+      <li><strong>16:9</strong> - Standard for HD video, YouTube, TV</li>
+      <li><strong>9:16</strong> - Vertical video: TikTok, Instagram Reels, YouTube Shorts</li>
+      <li><strong>1:1</strong> - Square: Instagram posts, profile pictures</li>
+      <li><strong>4:3</strong> - Classic TV, iPad displays</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

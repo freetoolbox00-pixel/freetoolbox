@@ -1,0 +1,83 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Username Generator" description="Generate unique usernames for social media, gaming, email. Multiple styles and customization." category="utility" icon="👤">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Style</label>
+        <select id="ugStyle" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="cool">Cool</option>
+          <option value="gaming">Gaming</option>
+          <option value="professional">Professional</option>
+          <option value="funny">Funny</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Include your name</label>
+        <input type="text" id="ugName" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Optional" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Count</label>
+        <input type="number" id="ugCount" min="5" max="50" value="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+    </div>
+    <div class="flex gap-2 mb-4">
+      <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="ugNums" checked /> Numbers</label>
+      <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="ugUnder" checked /> Underscores</label>
+    </div>
+    <button id="ugGen" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4">Generate</button>
+    <div id="ugList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+  </div>
+</ToolLayout>
+
+<script>
+  const styleSel = document.getElementById('ugStyle') as HTMLSelectElement;
+  const nameIn = document.getElementById('ugName') as HTMLInputElement;
+  const countIn = document.getElementById('ugCount') as HTMLInputElement;
+  const numsCheck = document.getElementById('ugNums') as HTMLInputElement;
+  const underCheck = document.getElementById('ugUnder') as HTMLInputElement;
+  const genBtn = document.getElementById('ugGen')!;
+  const listEl = document.getElementById('ugList')!;
+
+  const adj = ['Shadow','Dark','Swift','Cyber','Neo','Ultra','Mega','Pixel','Frost','Storm','Blaze','Void','Neon','Zephyr','Astral','Lunar','Solar','Turbo','Hyper','Alpha','Beta','Omega'];
+  const nouns = ['Wolf','Hawk','Phoenix','Dragon','Knight','Ninja','Wizard','Tiger','Viper','Raven','Ghost','Blade','Spark','Arrow','Flame','Ice','Thunder','Apex','Core','Byte'];
+  const funny_adj = ['Chunky','Dizzy','Fluffy','Grumpy','Sneaky','Wobbly','Crispy','Goofy','Peppy','Zany','Fuzzy','Bouncy'];
+  const funny_noun = ['Potato','Muffin','Waffle','Nugget','Pickle','Noodle','Burrito','Taco','Pretzel','Cookie','Donut','Pancake'];
+  const pro_pre = ['dev','design','code','tech','data','web','app','cloud','smart','lead'];
+  const pro_suf = ['pro','hub','lab','works','craft','mind','base','flow','zone','logic'];
+
+  function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+  function rnum() { return String(Math.floor(Math.random() * 999)); }
+
+  function generate(): string {
+    const style = styleSel.value;
+    const name = nameIn.value.trim();
+    const nums = numsCheck.checked;
+    const under = underCheck.checked;
+    const sep = under ? '_' : '';
+    let u = '';
+
+    if (style === 'cool') u = pick(adj) + sep + (name || pick(nouns));
+    else if (style === 'gaming') u = 'x' + pick(adj) + sep + (name || pick(nouns)) + 'x';
+    else if (style === 'professional') u = (name || pick(pro_pre)) + sep + pick(pro_suf);
+    else if (style === 'funny') u = pick(funny_adj) + sep + (name || pick(funny_noun));
+    else u = pick([...adj,...funny_adj]) + sep + pick([...nouns,...funny_noun]);
+
+    if (nums) u += rnum();
+    return u;
+  }
+
+  genBtn.addEventListener('click', () => {
+    const n = Math.min(50, Math.max(5, parseInt(countIn.value) || 10));
+    const usernames = Array.from({ length: n }, generate);
+    listEl.innerHTML = usernames.map(u => `
+      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 cursor-pointer group" onclick="navigator.clipboard.writeText('${u}');this.querySelector('.ug-c').textContent='✓';setTimeout(()=>this.querySelector('.ug-c').textContent='Copy',1000)">
+        <span class="font-mono text-sm">${u}</span>
+        <span class="ug-c text-xs text-blue-600 opacity-0 group-hover:opacity-100">Copy</span>
+      </div>
+    `).join('');
+  });
+</script>

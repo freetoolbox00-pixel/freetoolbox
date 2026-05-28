@@ -1,0 +1,108 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Typing Speed Test" description="Test your typing speed and accuracy. Measure WPM, CPM and error rate. Free online typing test." category="utility" icon="⌨️">
+  <div>
+    <div class="flex gap-3 mb-4">
+      <button class="tt-dur px-4 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium" data-sec="30">30s</button>
+      <button class="tt-dur px-4 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-sec="60">60s</button>
+      <button class="tt-dur px-4 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-sec="120">2m</button>
+    </div>
+    <div id="ttText" class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-lg leading-relaxed font-mono mb-4 select-none min-h-[120px]"></div>
+    <input type="text" id="ttInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg font-mono focus:border-blue-500 focus:outline-none mb-4" placeholder="Start typing here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    <div class="grid grid-cols-4 gap-3 mb-4">
+      <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Time</div><div class="text-2xl font-bold text-gray-900" id="ttTime">30</div></div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">WPM</div><div class="text-2xl font-bold text-blue-600" id="ttWpm">0</div></div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">CPM</div><div class="text-2xl font-bold text-gray-900" id="ttCpm">0</div></div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Accuracy</div><div class="text-2xl font-bold text-green-600" id="ttAcc">100%</div></div>
+    </div>
+    <button id="ttReset" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Restart</button>
+  </div>
+</ToolLayout>
+
+<script>
+  const WORDS = 'the be to of and a in that have I it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us'.split(' ');
+
+  const textEl = document.getElementById('ttText')!;
+  const inputEl = document.getElementById('ttInput') as HTMLInputElement;
+  const timeEl = document.getElementById('ttTime')!;
+  const wpmEl = document.getElementById('ttWpm')!;
+  const cpmEl = document.getElementById('ttCpm')!;
+  const accEl = document.getElementById('ttAcc')!;
+  const resetBtn = document.getElementById('ttReset')!;
+
+  let words: string[] = [];
+  let duration = 30;
+  let started = false;
+  let timer: number | null = null;
+  let startTime = 0;
+  let currentWord = 0;
+  let correct = 0;
+  let errors = 0;
+
+  function genWords(n: number): string[] {
+    return Array.from({ length: n }, () => WORDS[Math.floor(Math.random() * WORDS.length)]);
+  }
+
+  function render() {
+    words = genWords(80);
+    currentWord = 0; correct = 0; errors = 0; started = false;
+    if (timer) clearInterval(timer);
+    timer = null;
+    timeEl.textContent = String(duration);
+    wpmEl.textContent = '0'; cpmEl.textContent = '0'; accEl.textContent = '100%';
+    inputEl.value = ''; inputEl.disabled = false; inputEl.focus();
+    textEl.innerHTML = words.map((w, i) => `<span class="tt-w ${i === 0 ? 'bg-blue-100 rounded px-0.5' : ''}" data-i="${i}">${w}</span>`).join(' ');
+  }
+
+  inputEl.addEventListener('input', () => {
+    if (!started) {
+      started = true;
+      startTime = Date.now();
+      timer = window.setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const left = Math.max(0, duration - elapsed);
+        timeEl.textContent = String(left);
+        const mins = elapsed / 60;
+        if (mins > 0) { wpmEl.textContent = String(Math.round(correct / mins)); cpmEl.textContent = String(Math.round(correct * 5 / mins)); }
+        if (left <= 0) { clearInterval(timer!); inputEl.disabled = true; }
+      }, 200);
+    }
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      const typed = inputEl.value.trim();
+      if (!typed) return;
+      const spans = textEl.querySelectorAll('.tt-w');
+      const span = spans[currentWord] as HTMLElement;
+      if (typed === words[currentWord]) {
+        span.classList.add('text-green-600');
+        correct++;
+      } else {
+        span.classList.add('text-red-500', 'line-through');
+        errors++;
+      }
+      span.classList.remove('bg-blue-100');
+      currentWord++;
+      if (currentWord < words.length) {
+        (spans[currentWord] as HTMLElement).classList.add('bg-blue-100');
+      }
+      inputEl.value = '';
+      const total = correct + errors;
+      accEl.textContent = total > 0 ? Math.round((correct / total) * 100) + '%' : '100%';
+    }
+  });
+
+  document.querySelectorAll('.tt-dur').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.tt-dur').forEach(b => { b.className = 'tt-dur px-4 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400'; });
+    (btn as HTMLElement).className = 'tt-dur px-4 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium';
+    duration = parseInt((btn as HTMLElement).dataset.sec!);
+    render();
+  }));
+
+  resetBtn.addEventListener('click', render);
+  render();
+</script>

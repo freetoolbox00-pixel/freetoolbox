@@ -1,0 +1,167 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image to PDF"
+  description="Convert images to PDF. Combine multiple images into one PDF document. Free online converter — no upload, 100% client-side."
+  category="pdf"
+  icon="🖼️"
+>
+  <div>
+    <div id="ipDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop images here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">PNG, JPG, WebP — multiple files, drag to reorder</div>
+      <input type="file" id="ipFile" accept="image/*" multiple class="hidden" />
+    </div>
+
+    <div id="ipPanel" class="hidden">
+      <div class="grid gap-4 sm:grid-cols-3 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page size</label>
+          <select id="ipSize" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="a4">A4</option>
+            <option value="letter">Letter</option>
+            <option value="fit">Fit to image</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Orientation</label>
+          <select id="ipOrient" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="auto">Auto</option>
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Margin</label>
+          <select id="ipMargin" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="0">None</option>
+            <option value="20" selected>Small</option>
+            <option value="40">Medium</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="ipList" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4"></div>
+
+      <div class="flex gap-3">
+        <button id="ipConvert" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Convert to PDF</button>
+        <button id="ipClear" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Clear</button>
+        <span id="ipCount" class="self-center text-sm text-gray-500"></span>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('ipDrop')!;
+  const fileIn = document.getElementById('ipFile') as HTMLInputElement;
+  const panel = document.getElementById('ipPanel')!;
+  const listEl = document.getElementById('ipList')!;
+  const sizeSel = document.getElementById('ipSize') as HTMLSelectElement;
+  const orientSel = document.getElementById('ipOrient') as HTMLSelectElement;
+  const marginSel = document.getElementById('ipMargin') as HTMLSelectElement;
+  const convertBtn = document.getElementById('ipConvert') as HTMLButtonElement;
+  const clearBtn = document.getElementById('ipClear')!;
+  const countEl = document.getElementById('ipCount')!;
+
+  let images: { file: File; url: string }[] = [];
+
+  function addFiles(fl: FileList | File[]) {
+    for (const f of Array.from(fl)) {
+      if (!f.type.startsWith('image/')) continue;
+      images.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    render();
+  }
+
+  function render() {
+    if (!images.length) { panel.classList.add('hidden'); return; }
+    panel.classList.remove('hidden');
+    countEl.textContent = `${images.length} image(s)`;
+    listEl.innerHTML = '';
+    images.forEach((img, i) => {
+      const div = document.createElement('div');
+      div.className = 'relative group';
+      div.innerHTML = `<img src="${img.url}" class="w-full aspect-square object-cover rounded-lg border border-gray-200" /><div class="absolute top-0 left-0 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-tl-lg rounded-br-lg">${i + 1}</div><button class="ip-rm absolute top-0 right-0 bg-red-500 text-white w-5 h-5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity" data-i="${i}">&times;</button>`;
+      listEl.appendChild(div);
+    });
+    listEl.querySelectorAll('.ip-rm').forEach(b => b.addEventListener('click', () => {
+      images.splice(Number((b as HTMLElement).dataset.i), 1);
+      render();
+    }));
+  }
+
+  function loadImg(url: string): Promise<HTMLImageElement> {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('Load failed'));
+      img.src = url;
+    });
+  }
+
+  convertBtn.addEventListener('click', async () => {
+    if (!images.length) return;
+    convertBtn.disabled = true;
+    convertBtn.textContent = 'Converting...';
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const margin = parseInt(marginSel.value);
+    const sizes: Record<string, [number, number]> = { a4: [595.28, 841.89], letter: [612, 792] };
+
+    for (const img of images) {
+      const el = await loadImg(img.url);
+      const canvas = document.createElement('canvas');
+      canvas.width = el.naturalWidth;
+      canvas.height = el.naturalHeight;
+      canvas.getContext('2d')!.drawImage(el, 0, 0);
+      const jpgData = await new Promise<Uint8Array>((res) => {
+        canvas.toBlob(b => b!.arrayBuffer().then(a => res(new Uint8Array(a))), 'image/jpeg', 0.92);
+      });
+
+      const pdfImg = await doc.embedJpg(jpgData);
+      let pw: number, ph: number;
+      if (sizeSel.value === 'fit') {
+        pw = el.naturalWidth;
+        ph = el.naturalHeight;
+      } else {
+        [pw, ph] = sizes[sizeSel.value] || sizes.a4;
+        const orient = orientSel.value;
+        if (orient === 'landscape' || (orient === 'auto' && el.naturalWidth > el.naturalHeight)) {
+          [pw, ph] = [ph, pw];
+        }
+      }
+      const page = doc.addPage([pw, ph]);
+      const iw = pw - margin * 2;
+      const ih = ph - margin * 2;
+      const scale = Math.min(iw / pdfImg.width, ih / pdfImg.height);
+      const dw = pdfImg.width * scale;
+      const dh = pdfImg.height * scale;
+      page.drawImage(pdfImg, {
+        x: margin + (iw - dw) / 2,
+        y: margin + (ih - dh) / 2,
+        width: dw,
+        height: dh,
+      });
+    }
+
+    const bytes = await doc.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'images.pdf';
+    a.click();
+    convertBtn.disabled = false;
+    convertBtn.textContent = 'Convert to PDF';
+  });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50'); if (e.dataTransfer?.files) addFiles(e.dataTransfer.files); });
+  fileIn.addEventListener('change', () => { if (fileIn.files) addFiles(fileIn.files); fileIn.value = ''; });
+  clearBtn.addEventListener('click', () => { images = []; render(); });
+</script>

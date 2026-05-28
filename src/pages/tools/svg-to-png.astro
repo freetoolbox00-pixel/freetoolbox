@@ -1,0 +1,190 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="SVG to PNG Converter"
+  description="Convert SVG files to PNG images with custom resolution. Free online SVG to PNG converter — 100% client-side."
+  category="utility"
+  icon="🔄"
+>
+  <div>
+    <div id="spDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🎨</div>
+      <div class="text-sm text-gray-600 font-medium">Drop an SVG file here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">Or paste SVG code below</div>
+      <input type="file" id="spFile" accept=".svg,image/svg+xml" class="hidden" />
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Or paste SVG code</label>
+      <textarea id="spCode" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono resize-y" placeholder="<svg ...>...</svg>"></textarea>
+      <button id="spPaste" class="mt-2 px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Load from code</button>
+    </div>
+
+    <div id="spPanel" class="hidden">
+      <div class="flex gap-4 mb-4 flex-wrap">
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium">Original: <span id="spOrigSize">0×0</span></div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Scale</label>
+          <select id="spScale" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="1">1x</option>
+            <option value="2" selected>2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Output size</label>
+          <div id="spOutSize" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-mono">0 × 0</div>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Background</label>
+          <select id="spBg" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="transparent">Transparent</option>
+            <option value="#ffffff">White</option>
+            <option value="#000000">Black</option>
+            <option value="custom">Custom color</option>
+          </select>
+        </div>
+        <div id="spCustomWrap" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Custom color</label>
+          <input type="color" id="spCustomColor" value="#ffffff" class="w-full h-10 rounded-lg border border-gray-300 cursor-pointer" />
+        </div>
+      </div>
+
+      <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div class="text-sm font-medium text-gray-700 mb-2">Preview</div>
+        <div class="flex justify-center" style="background: repeating-conic-gradient(#d1d5db 0% 25%, transparent 0% 50%) 50% / 16px 16px;">
+          <img id="spPreview" class="max-w-full max-h-64" />
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="spConvert" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Download PNG</button>
+        <button id="spReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('spDrop')!;
+  const fileIn = document.getElementById('spFile') as HTMLInputElement;
+  const codeArea = document.getElementById('spCode') as HTMLTextAreaElement;
+  const pasteBtn = document.getElementById('spPaste')!;
+  const panel = document.getElementById('spPanel')!;
+  const origSizeEl = document.getElementById('spOrigSize')!;
+  const scaleSel = document.getElementById('spScale') as HTMLSelectElement;
+  const outSizeEl = document.getElementById('spOutSize')!;
+  const bgSel = document.getElementById('spBg') as HTMLSelectElement;
+  const customWrap = document.getElementById('spCustomWrap')!;
+  const customColor = document.getElementById('spCustomColor') as HTMLInputElement;
+  const preview = document.getElementById('spPreview') as HTMLImageElement;
+  const convertBtn = document.getElementById('spConvert')!;
+  const resetBtn = document.getElementById('spReset')!;
+
+  let svgUrl = '';
+  let svgW = 0;
+  let svgH = 0;
+
+  function loadSvg(svgText: string) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svg = doc.querySelector('svg');
+    if (!svg) { alert('Invalid SVG'); return; }
+
+    let w = parseFloat(svg.getAttribute('width') || '0');
+    let h = parseFloat(svg.getAttribute('height') || '0');
+    const vb = svg.getAttribute('viewBox');
+    if ((!w || !h) && vb) {
+      const parts = vb.split(/[\s,]+/).map(Number);
+      if (parts.length === 4) { w = parts[2]; h = parts[3]; }
+    }
+    if (!w || !h) { w = 300; h = 150; }
+
+    if (!svg.getAttribute('width')) svg.setAttribute('width', String(w));
+    if (!svg.getAttribute('height')) svg.setAttribute('height', String(h));
+
+    svgW = w;
+    svgH = h;
+    origSizeEl.textContent = `${Math.round(w)}×${Math.round(h)}`;
+
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
+    if (svgUrl) URL.revokeObjectURL(svgUrl);
+    svgUrl = URL.createObjectURL(blob);
+    preview.src = svgUrl;
+
+    panel.classList.remove('hidden');
+    updateOutSize();
+  }
+
+  function updateOutSize() {
+    const s = parseFloat(scaleSel.value);
+    outSizeEl.textContent = `${Math.round(svgW * s)} × ${Math.round(svgH * s)}`;
+  }
+
+  scaleSel.addEventListener('change', updateOutSize);
+  bgSel.addEventListener('change', () => {
+    customWrap.classList.toggle('hidden', bgSel.value !== 'custom');
+  });
+
+  convertBtn.addEventListener('click', () => {
+    if (!svgUrl) return;
+    const s = parseFloat(scaleSel.value);
+    const cw = Math.round(svgW * s);
+    const ch = Math.round(svgH * s);
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d')!;
+
+    const bg = bgSel.value === 'custom' ? customColor.value : bgSel.value;
+    if (bg !== 'transparent') {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, cw, ch);
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, cw, ch);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'converted.png';
+        a.click();
+      }, 'image/png');
+    };
+    img.src = svgUrl;
+  });
+
+  resetBtn.addEventListener('click', () => {
+    panel.classList.add('hidden');
+    if (svgUrl) URL.revokeObjectURL(svgUrl);
+    svgUrl = '';
+    codeArea.value = '';
+    fileIn.value = '';
+  });
+
+  pasteBtn.addEventListener('click', () => {
+    const code = codeArea.value.trim();
+    if (code) loadSvg(code);
+  });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50');
+    const f = e.dataTransfer?.files[0];
+    if (f) f.text().then(loadSvg);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) fileIn.files[0].text().then(loadSvg); });
+</script>

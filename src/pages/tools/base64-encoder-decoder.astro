@@ -1,0 +1,152 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Base64 Encoder / Decoder"
+  description="Encode text to Base64 or decode Base64 to text online. Supports UTF-8. Free Base64 converter tool."
+  category="developer"
+  icon="B64"
+>
+  <div>
+    <!-- Mode Toggle -->
+    <div class="flex gap-2 mb-4">
+      <button id="encodeMode" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">
+        Encode
+      </button>
+      <button id="decodeMode" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+        Decode
+      </button>
+    </div>
+
+    <!-- Input -->
+    <div class="mb-4">
+      <label id="inputLabel" class="block text-sm font-medium text-gray-700 mb-1">Text to encode</label>
+      <textarea
+        id="b64Input"
+        rows="6"
+        placeholder="Enter text to encode..."
+        class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+      ></textarea>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex gap-2 mb-4">
+      <button id="convertBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+        Convert
+      </button>
+      <button id="copyB64" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">
+        Copy Output
+      </button>
+      <button id="swapBtn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">
+        ↕ Swap
+      </button>
+      <button id="clearB64" class="px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+        Clear
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div id="b64Status" class="mb-4 hidden">
+      <div id="b64StatusMsg" class="p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Result</label>
+      <pre id="b64Output" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[150px] whitespace-pre-wrap break-all"></pre>
+    </div>
+
+    <!-- Byte count -->
+    <div class="mt-2 text-sm text-gray-500">
+      Input: <strong id="inputBytes">0</strong> bytes → Output: <strong id="outputBytes">0</strong> bytes
+    </div>
+  </div>
+
+  <script>
+    let isEncoding = true;
+    const input = document.getElementById('b64Input') as HTMLTextAreaElement;
+    const output = document.getElementById('b64Output')!;
+    const statusEl = document.getElementById('b64Status')!;
+    const statusMsg = document.getElementById('b64StatusMsg')!;
+    const inputLabel = document.getElementById('inputLabel')!;
+    const encodeBtn = document.getElementById('encodeMode')!;
+    const decodeBtn = document.getElementById('decodeMode')!;
+
+    function setMode(encode: boolean): void {
+      isEncoding = encode;
+      encodeBtn.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${encode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      decodeBtn.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${!encode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      inputLabel.textContent = encode ? 'Text to encode' : 'Base64 to decode';
+      input.placeholder = encode ? 'Enter text to encode...' : 'Enter Base64 string to decode...';
+    }
+
+    function showStatus(msg: string, type: 'success' | 'error'): void {
+      statusEl.classList.remove('hidden');
+      statusMsg.textContent = msg;
+      statusMsg.className = `p-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`;
+    }
+
+    function convert(): void {
+      const text = input.value;
+      if (!text) { output.textContent = ''; return; }
+      try {
+        let result: string;
+        if (isEncoding) {
+          result = btoa(unescape(encodeURIComponent(text)));
+          showStatus(`Encoded successfully (${result.length} chars)`, 'success');
+        } else {
+          result = decodeURIComponent(escape(atob(text.replace(/\s/g, ''))));
+          showStatus('Decoded successfully', 'success');
+        }
+        output.textContent = result;
+        document.getElementById('inputBytes')!.textContent = new Blob([text]).size.toString();
+        document.getElementById('outputBytes')!.textContent = new Blob([result]).size.toString();
+      } catch (e: any) {
+        showStatus(`Error: ${e.message}`, 'error');
+      }
+    }
+
+    encodeBtn.addEventListener('click', () => setMode(true));
+    decodeBtn.addEventListener('click', () => setMode(false));
+    document.getElementById('convertBtn')!.addEventListener('click', convert);
+
+    document.getElementById('swapBtn')!.addEventListener('click', () => {
+      const out = output.textContent || '';
+      input.value = out;
+      output.textContent = '';
+      setMode(!isEncoding);
+      convert();
+    });
+
+    document.getElementById('copyB64')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.textContent || '');
+      showStatus('Copied!', 'success');
+    });
+
+    document.getElementById('clearB64')!.addEventListener('click', () => {
+      input.value = '';
+      output.textContent = '';
+      statusEl.classList.add('hidden');
+      document.getElementById('inputBytes')!.textContent = '0';
+      document.getElementById('outputBytes')!.textContent = '0';
+    });
+
+    // Auto-convert on input
+    input.addEventListener('input', convert);
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Base64 Encoder and Decoder</h2>
+    <p>Convert text to Base64 encoding or decode Base64 strings back to readable text. Supports full UTF-8 characters including emojis and international text.</p>
+    <h3>What is Base64?</h3>
+    <p>Base64 is a binary-to-text encoding scheme that represents binary data as printable ASCII characters. It's commonly used in email attachments, data URLs, API authentication tokens, and embedding images in CSS/HTML.</p>
+    <h3>Common Uses</h3>
+    <ul>
+      <li><strong>API Authentication</strong> - HTTP Basic Auth uses Base64-encoded credentials</li>
+      <li><strong>Data URLs</strong> - Embed small images directly in HTML/CSS</li>
+      <li><strong>Email</strong> - MIME encoding for attachments</li>
+      <li><strong>JWT Tokens</strong> - Payload is Base64URL encoded</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

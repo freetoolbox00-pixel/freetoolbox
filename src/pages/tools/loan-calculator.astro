@@ -1,0 +1,155 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Loan Calculator"
+  description="Free online loan calculator. Calculate monthly payments, total interest, and view a full amortization schedule for any loan amount, rate, and term."
+  category="utility"
+  icon="💰"
+>
+  <div>
+    <!-- Inputs -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Loan Amount ($)</label>
+        <input type="number" id="loanAmount" value="25000" min="0" step="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Annual Interest Rate (%)</label>
+        <input type="number" id="loanRate" value="6.5" min="0" max="100" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Loan Term</label>
+        <div class="flex gap-2">
+          <input type="number" id="loanTerm" value="5" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          <select id="loanTermUnit" class="px-2 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Monthly Payment</div>
+        <div id="monthlyPayment" class="text-2xl font-bold text-blue-600">$0.00</div>
+      </div>
+      <div class="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Total Interest</div>
+        <div id="totalInterest" class="text-2xl font-bold text-green-600">$0.00</div>
+      </div>
+      <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Total Cost</div>
+        <div id="totalCost" class="text-2xl font-bold text-purple-600">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Visual Breakdown -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Principal vs Interest Breakdown</h3>
+      <div class="flex items-center gap-3 mb-2">
+        <div class="flex-1">
+          <div class="flex h-8 rounded-lg overflow-hidden">
+            <div id="principalBar" class="bg-blue-500 transition-all duration-300" style="width:50%"></div>
+            <div id="interestBar" class="bg-orange-400 transition-all duration-300" style="width:50%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between text-xs">
+        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-500 rounded inline-block"></span> Principal: <span id="principalPct" class="font-medium">50%</span></div>
+        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-orange-400 rounded inline-block"></span> Interest: <span id="interestPct" class="font-medium">50%</span></div>
+      </div>
+    </div>
+
+    <!-- Amortization Table -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Amortization Schedule</h3>
+      <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Payment</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Principal</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Interest</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Balance</th>
+            </tr>
+          </thead>
+          <tbody id="amortTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fmt(n: number): string {
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calculate(): void {
+      const principal = parseFloat((document.getElementById('loanAmount') as HTMLInputElement).value) || 0;
+      const annualRate = parseFloat((document.getElementById('loanRate') as HTMLInputElement).value) || 0;
+      const termVal = parseFloat((document.getElementById('loanTerm') as HTMLInputElement).value) || 0;
+      const termUnit = (document.getElementById('loanTermUnit') as HTMLSelectElement).value;
+
+      const months = termUnit === 'years' ? Math.round(termVal * 12) : Math.round(termVal);
+      const monthlyRate = annualRate / 100 / 12;
+
+      let monthly = 0;
+      if (months > 0 && principal > 0) {
+        if (monthlyRate === 0) {
+          monthly = principal / months;
+        } else {
+          monthly = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+        }
+      }
+
+      const totalPaid = monthly * months;
+      const totalInt = totalPaid - principal;
+
+      document.getElementById('monthlyPayment')!.textContent = fmt(monthly);
+      document.getElementById('totalInterest')!.textContent = fmt(totalInt);
+      document.getElementById('totalCost')!.textContent = fmt(totalPaid);
+
+      // Bar chart
+      const pPct = totalPaid > 0 ? (principal / totalPaid) * 100 : 50;
+      const iPct = 100 - pPct;
+      (document.getElementById('principalBar') as HTMLElement).style.width = pPct + '%';
+      (document.getElementById('interestBar') as HTMLElement).style.width = iPct + '%';
+      document.getElementById('principalPct')!.textContent = pPct.toFixed(1) + '%';
+      document.getElementById('interestPct')!.textContent = iPct.toFixed(1) + '%';
+
+      // Amortization table
+      const tbody = document.getElementById('amortTable')!;
+      let rows = '';
+      let balance = principal;
+      for (let i = 1; i <= months; i++) {
+        const intPay = balance * monthlyRate;
+        const princPay = monthly - intPay;
+        balance = Math.max(0, balance - princPay);
+        if (i === months) balance = 0;
+        rows += `<tr class="${i % 2 === 0 ? 'bg-gray-50' : ''}">
+          <td class="px-3 py-1.5 text-gray-600">${i}</td>
+          <td class="px-3 py-1.5 text-right">${fmt(monthly)}</td>
+          <td class="px-3 py-1.5 text-right text-blue-600">${fmt(princPay)}</td>
+          <td class="px-3 py-1.5 text-right text-orange-500">${fmt(intPay)}</td>
+          <td class="px-3 py-1.5 text-right font-medium">${fmt(balance)}</td>
+        </tr>`;
+      }
+      tbody.innerHTML = rows;
+    }
+
+    ['loanAmount', 'loanRate', 'loanTerm', 'loanTermUnit'].forEach(id =>
+      document.getElementById(id)!.addEventListener('input', calculate)
+    );
+    calculate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Loan Calculator</h2>
+    <p>Calculate your monthly loan payments, total interest paid, and view a complete amortization schedule. Works for auto loans, personal loans, student loans, and more. Enter your loan amount, interest rate, and term to see a full payment breakdown instantly.</p>
+  </Fragment>
+</ToolLayout>

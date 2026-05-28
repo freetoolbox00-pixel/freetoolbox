@@ -1,0 +1,143 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Text Encryption / Decryption"
+  description="Encrypt and decrypt text with AES-256 encryption using a password. Secure client-side encryption. Free online text encryptor."
+  category="utility"
+  icon="🔐"
+>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button id="encMode" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Encrypt</button>
+      <button id="decMode" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Decrypt</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+      <input type="password" id="encPassword" placeholder="Enter encryption password" class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p class="text-xs text-gray-400 mt-1">Remember this password — you need it to decrypt</p>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2 mb-4">
+      <div>
+        <label id="encLabel" class="block text-sm font-medium text-gray-700 mb-1">Text to encrypt</label>
+        <textarea id="encInput" rows="8" placeholder="Enter text to encrypt..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Result</label>
+          <button id="copyEnc" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+        </div>
+        <pre id="encOutput" class="w-full p-4 font-mono text-xs bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[200px] whitespace-pre-wrap break-all"></pre>
+      </div>
+    </div>
+
+    <div class="flex gap-2">
+      <button id="encBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Encrypt</button>
+    </div>
+
+    <div id="encStatus" class="mt-4 hidden">
+      <div id="encStatusMsg" class="p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+  </div>
+
+  <script>
+    let encrypting = true;
+
+    async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptText(text: string, password: string): Promise<string> {
+      const enc = new TextEncoder();
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(password, salt);
+      const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(text));
+      const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+      combined.set(salt, 0);
+      combined.set(iv, salt.length);
+      combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+      return btoa(String.fromCharCode(...combined));
+    }
+
+    async function decryptText(ciphertext: string, password: string): Promise<string> {
+      const combined = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
+      const salt = combined.slice(0, 16);
+      const iv = combined.slice(16, 28);
+      const data = combined.slice(28);
+      const key = await deriveKey(password, salt);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+      return new TextDecoder().decode(decrypted);
+    }
+
+    function showStatus(msg: string, type: 'success' | 'error'): void {
+      document.getElementById('encStatus')!.classList.remove('hidden');
+      const el = document.getElementById('encStatusMsg')!;
+      el.textContent = msg;
+      el.className = `p-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`;
+    }
+
+    document.getElementById('encMode')!.addEventListener('click', () => {
+      encrypting = true;
+      document.getElementById('encMode')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('decMode')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('encLabel')!.textContent = 'Text to encrypt';
+      document.getElementById('encBtn')!.textContent = 'Encrypt';
+    });
+
+    document.getElementById('decMode')!.addEventListener('click', () => {
+      encrypting = false;
+      document.getElementById('decMode')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('encMode')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('encLabel')!.textContent = 'Encrypted text to decrypt';
+      document.getElementById('encBtn')!.textContent = 'Decrypt';
+    });
+
+    document.getElementById('encBtn')!.addEventListener('click', async () => {
+      const text = (document.getElementById('encInput') as HTMLTextAreaElement).value;
+      const password = (document.getElementById('encPassword') as HTMLInputElement).value;
+      if (!text || !password) { showStatus('Enter both text and password', 'error'); return; }
+
+      try {
+        if (encrypting) {
+          const result = await encryptText(text, password);
+          document.getElementById('encOutput')!.textContent = result;
+          showStatus(`Encrypted (${result.length} chars, AES-256-GCM)`, 'success');
+        } else {
+          const result = await decryptText(text.trim(), password);
+          document.getElementById('encOutput')!.textContent = result;
+          showStatus('Decrypted successfully', 'success');
+        }
+      } catch (e: any) {
+        showStatus(encrypting ? 'Encryption failed: ' + e.message : 'Decryption failed — wrong password or corrupted data', 'error');
+      }
+    });
+
+    document.getElementById('copyEnc')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('encOutput')!.textContent || '');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Text Encryption Tool</h2>
+    <p>Encrypt text with AES-256-GCM encryption using a password. All processing happens locally in your browser — nothing is sent to any server. Uses PBKDF2 key derivation with 100,000 iterations.</p>
+    <h3>How It Works</h3>
+    <ul>
+      <li><strong>Encryption</strong> - AES-256-GCM (military-grade) with random salt and IV</li>
+      <li><strong>Key derivation</strong> - PBKDF2 with SHA-256 and 100,000 iterations</li>
+      <li><strong>Output</strong> - Base64-encoded ciphertext (salt + IV + encrypted data)</li>
+      <li><strong>Privacy</strong> - Everything runs in your browser, zero server contact</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

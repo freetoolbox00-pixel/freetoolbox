@@ -1,0 +1,148 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Image to ASCII Art" description="Convert any image to ASCII art text. Adjustable width and character set. Copy or download your ASCII artwork." category="utility" icon="🎭">
+  <div>
+    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-4 cursor-pointer hover:border-blue-400 transition-colors" id="ascDrop">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-gray-600 font-medium">Drop an image here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP</div>
+      <input type="file" id="ascFile" accept="image/*" class="hidden" />
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-3 mb-4">
+      <div>
+        <label class="block text-xs text-gray-600 mb-1">Width (chars)</label>
+        <input type="range" id="ascWidth" min="40" max="200" value="100" class="w-full" />
+        <div class="text-xs text-gray-400 text-center" id="ascWVal">100</div>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-600 mb-1">Character Set</label>
+        <select id="ascChars" class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm">
+          <option value="standard">Standard</option>
+          <option value="simple">Simple</option>
+          <option value="blocks">Blocks</option>
+          <option value="detailed">Detailed</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-600 mb-1">Invert Colors</label>
+        <label class="flex items-center gap-2 mt-1">
+          <input type="checkbox" id="ascInvert" class="rounded" />
+          <span class="text-sm">Invert</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="ascResult" class="hidden">
+      <div class="flex justify-between mb-2">
+        <span class="text-sm text-gray-500" id="ascInfo">—</span>
+        <div class="flex gap-2">
+          <button id="ascCopy" class="text-xs text-blue-600 hover:underline">Copy</button>
+          <button id="ascDl" class="text-xs text-blue-600 hover:underline">Download .txt</button>
+        </div>
+      </div>
+      <pre id="ascOutput" class="p-3 bg-gray-900 text-green-400 rounded-lg text-[6px] leading-[7px] sm:text-[8px] sm:leading-[9px] overflow-x-auto font-mono select-all max-h-[500px] overflow-y-auto"></pre>
+    </div>
+
+    <canvas id="ascCanvas" class="hidden"></canvas>
+  </div>
+</ToolLayout>
+
+<script>
+  const CHARSETS: Record<string, string> = {
+    standard: ' .:-=+*#%@',
+    simple: ' .*#@',
+    blocks: ' ░▒▓█',
+    detailed: ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
+  };
+
+  const dropZone = document.getElementById('ascDrop')!;
+  const fileIn = document.getElementById('ascFile') as HTMLInputElement;
+  const canvas = document.getElementById('ascCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+
+  let currentImg: HTMLImageElement | null = null;
+
+  dropZone.addEventListener('click', () => fileIn.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
+  dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+
+  fileIn.addEventListener('change', () => {
+    if (fileIn.files?.[0]) loadImage(fileIn.files[0]);
+  });
+
+  function loadImage(file: File) {
+    const img = new Image();
+    img.onload = () => {
+      currentImg = img;
+      convert();
+    };
+    img.src = URL.createObjectURL(file);
+  }
+
+  function convert() {
+    if (!currentImg) return;
+
+    const width = parseInt((document.getElementById('ascWidth') as HTMLInputElement).value);
+    const charsetKey = (document.getElementById('ascChars') as HTMLSelectElement).value;
+    const invert = (document.getElementById('ascInvert') as HTMLInputElement).checked;
+    const charset = CHARSETS[charsetKey];
+
+    const aspect = currentImg.height / currentImg.width;
+    const height = Math.round(width * aspect * 0.5);
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(currentImg, 0, 0, width, height);
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
+
+    let ascii = '';
+    for (let y = 0; y < height; y++) {
+      let row = '';
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        let brightness = (pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114) / 255;
+        if (invert) brightness = 1 - brightness;
+        const charIdx = Math.floor(brightness * (charset.length - 1));
+        row += charset[charIdx];
+      }
+      ascii += row + '\n';
+    }
+
+    document.getElementById('ascOutput')!.textContent = ascii;
+    document.getElementById('ascInfo')!.textContent = `${width}×${height} chars`;
+    document.getElementById('ascResult')!.classList.remove('hidden');
+  }
+
+  document.getElementById('ascWidth')!.addEventListener('input', (e) => {
+    document.getElementById('ascWVal')!.textContent = (e.target as HTMLInputElement).value;
+    convert();
+  });
+  document.getElementById('ascChars')!.addEventListener('change', convert);
+  document.getElementById('ascInvert')!.addEventListener('change', convert);
+
+  document.getElementById('ascCopy')!.addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('ascOutput')!.textContent || '');
+    const btn = document.getElementById('ascCopy')!;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+
+  document.getElementById('ascDl')!.addEventListener('click', () => {
+    const text = document.getElementById('ascOutput')!.textContent || '';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ascii-art.txt';
+    a.click();
+  });
+</script>

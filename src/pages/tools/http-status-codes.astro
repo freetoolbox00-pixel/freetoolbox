@@ -1,0 +1,200 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="HTTP Status Codes Reference"
+  description="Complete searchable list of all HTTP status codes with descriptions and common usage. Filter by category, search by number or name, click to copy. Free HTTP status code reference."
+  category="developer"
+  icon="🔢"
+>
+  <div>
+    <!-- Search & Filter -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <input type="text" id="searchInput" placeholder="Search by code or name..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+      <select id="categoryFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
+        <option value="all">All Categories</option>
+        <option value="1">1xx Informational</option>
+        <option value="2">2xx Success</option>
+        <option value="3">3xx Redirection</option>
+        <option value="4">4xx Client Error</option>
+        <option value="5">5xx Server Error</option>
+      </select>
+    </div>
+
+    <!-- Stats -->
+    <div class="mb-4 text-sm text-gray-500">
+      Showing <span id="resultCount">0</span> status codes
+    </div>
+
+    <!-- Status Code List -->
+    <div id="codeList" class="space-y-2"></div>
+
+    <!-- Copy notification -->
+    <div id="copyNotif" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+      Copied!
+    </div>
+  </div>
+
+  <script>
+    interface StatusCode {
+      code: number;
+      name: string;
+      description: string;
+      common: boolean;
+    }
+
+    const statusCodes: StatusCode[] = [
+      // 1xx Informational
+      { code: 100, name: "Continue", description: "Server received request headers, client should proceed to send body.", common: false },
+      { code: 101, name: "Switching Protocols", description: "Server is switching protocols as requested by client (e.g., to WebSocket).", common: true },
+      { code: 102, name: "Processing", description: "Server received and is processing the request, but no response is available yet (WebDAV).", common: false },
+      { code: 103, name: "Early Hints", description: "Used to return some response headers before final HTTP message. Allows preloading resources.", common: false },
+
+      // 2xx Success
+      { code: 200, name: "OK", description: "Standard response for successful HTTP requests. The actual response depends on the method used.", common: true },
+      { code: 201, name: "Created", description: "Request fulfilled and a new resource has been created. Common after POST requests.", common: true },
+      { code: 202, name: "Accepted", description: "Request accepted for processing, but processing has not been completed.", common: false },
+      { code: 203, name: "Non-Authoritative Information", description: "Server successfully processed the request but is returning information from another source.", common: false },
+      { code: 204, name: "No Content", description: "Server successfully processed the request but is not returning any content. Common for DELETE.", common: true },
+      { code: 205, name: "Reset Content", description: "Server successfully processed the request, asks the requester to reset its document view.", common: false },
+      { code: 206, name: "Partial Content", description: "Server is delivering only part of the resource due to a range header sent by the client.", common: true },
+      { code: 207, name: "Multi-Status", description: "Message body contains multiple status codes for multiple sub-requests (WebDAV).", common: false },
+      { code: 208, name: "Already Reported", description: "Members of a DAV binding have already been enumerated and are not included again.", common: false },
+      { code: 226, name: "IM Used", description: "Server has fulfilled a GET request and the response is a representation of one or more instance-manipulations.", common: false },
+
+      // 3xx Redirection
+      { code: 300, name: "Multiple Choices", description: "Multiple options for the resource from which the client may choose.", common: false },
+      { code: 301, name: "Moved Permanently", description: "Resource has been permanently moved to a new URL. Search engines update their links.", common: true },
+      { code: 302, name: "Found", description: "Resource temporarily resides under a different URL. Client should continue to use original URL.", common: true },
+      { code: 303, name: "See Other", description: "Response can be found under a different URI and should be retrieved using GET.", common: false },
+      { code: 304, name: "Not Modified", description: "Resource has not been modified since last requested. Client can use cached version.", common: true },
+      { code: 305, name: "Use Proxy", description: "Requested resource must be accessed through the proxy given in the Location header (deprecated).", common: false },
+      { code: 307, name: "Temporary Redirect", description: "Request should be repeated with another URI, but future requests should still use the original URI.", common: true },
+      { code: 308, name: "Permanent Redirect", description: "Request and all future requests should be repeated using another URI. Method and body not changed.", common: true },
+
+      // 4xx Client Error
+      { code: 400, name: "Bad Request", description: "Server cannot process the request due to a client error (malformed syntax, invalid framing).", common: true },
+      { code: 401, name: "Unauthorized", description: "Authentication is required and has failed or has not been provided. Must include WWW-Authenticate header.", common: true },
+      { code: 402, name: "Payment Required", description: "Reserved for future use. Some APIs use this for rate limiting or requiring payment.", common: false },
+      { code: 403, name: "Forbidden", description: "Server understood the request but refuses to authorize it. Unlike 401, re-authenticating will not help.", common: true },
+      { code: 404, name: "Not Found", description: "Requested resource could not be found on the server. Most recognized HTTP error code.", common: true },
+      { code: 405, name: "Method Not Allowed", description: "Request method is not supported for the requested resource (e.g., GET on a POST-only endpoint).", common: true },
+      { code: 406, name: "Not Acceptable", description: "Requested resource can only generate content not acceptable according to Accept headers.", common: false },
+      { code: 407, name: "Proxy Authentication Required", description: "Client must first authenticate itself with the proxy.", common: false },
+      { code: 408, name: "Request Timeout", description: "Server timed out waiting for the request. Client may repeat without modifications.", common: true },
+      { code: 409, name: "Conflict", description: "Request could not be processed because of conflict in the current state of the resource.", common: true },
+      { code: 410, name: "Gone", description: "Resource is no longer available and will not be available again. Should be de-indexed.", common: false },
+      { code: 411, name: "Length Required", description: "Request did not specify the length of its content, which is required by the resource.", common: false },
+      { code: 412, name: "Precondition Failed", description: "Server does not meet one of the preconditions specified in the request headers.", common: false },
+      { code: 413, name: "Payload Too Large", description: "Request entity is larger than the server is willing or able to process.", common: true },
+      { code: 414, name: "URI Too Long", description: "URI provided was too long for the server to process.", common: false },
+      { code: 415, name: "Unsupported Media Type", description: "Request entity has a media type which the server does not support.", common: true },
+      { code: 416, name: "Range Not Satisfiable", description: "Client has asked for a portion of the file but server cannot supply that portion.", common: false },
+      { code: 417, name: "Expectation Failed", description: "Server cannot meet the requirements of the Expect request-header field.", common: false },
+      { code: 418, name: "I'm a Teapot", description: "April Fools joke from RFC 2324. Server refuses to brew coffee because it is a teapot.", common: false },
+      { code: 421, name: "Misdirected Request", description: "Request was directed at a server that is not able to produce a response.", common: false },
+      { code: 422, name: "Unprocessable Entity", description: "Request was well-formed but unable to be followed due to semantic errors (WebDAV).", common: true },
+      { code: 423, name: "Locked", description: "Resource that is being accessed is locked (WebDAV).", common: false },
+      { code: 424, name: "Failed Dependency", description: "Request failed because it depended on another request that failed (WebDAV).", common: false },
+      { code: 425, name: "Too Early", description: "Server is unwilling to risk processing a request that might be replayed.", common: false },
+      { code: 426, name: "Upgrade Required", description: "Client should switch to a different protocol such as TLS/1.3.", common: false },
+      { code: 428, name: "Precondition Required", description: "Origin server requires the request to be conditional to prevent lost updates.", common: false },
+      { code: 429, name: "Too Many Requests", description: "User has sent too many requests in a given amount of time (rate limiting).", common: true },
+      { code: 431, name: "Request Header Fields Too Large", description: "Server is unwilling to process the request because header fields are too large.", common: false },
+      { code: 451, name: "Unavailable For Legal Reasons", description: "Resource is unavailable due to legal demands (censorship, court order).", common: false },
+
+      // 5xx Server Error
+      { code: 500, name: "Internal Server Error", description: "Generic error message when server encounters an unexpected condition.", common: true },
+      { code: 501, name: "Not Implemented", description: "Server does not recognize the request method or lacks the ability to fulfil it.", common: false },
+      { code: 502, name: "Bad Gateway", description: "Server acting as a gateway received an invalid response from the upstream server.", common: true },
+      { code: 503, name: "Service Unavailable", description: "Server is currently unavailable (overloaded or down for maintenance).", common: true },
+      { code: 504, name: "Gateway Timeout", description: "Server acting as a gateway did not receive a timely response from the upstream server.", common: true },
+      { code: 505, name: "HTTP Version Not Supported", description: "Server does not support the HTTP protocol version used in the request.", common: false },
+      { code: 506, name: "Variant Also Negotiates", description: "Transparent content negotiation results in a circular reference.", common: false },
+      { code: 507, name: "Insufficient Storage", description: "Server is unable to store the representation needed to complete the request (WebDAV).", common: false },
+      { code: 508, name: "Loop Detected", description: "Server detected an infinite loop while processing the request (WebDAV).", common: false },
+      { code: 510, name: "Not Extended", description: "Further extensions to the request are required for the server to fulfil it.", common: false },
+      { code: 511, name: "Network Authentication Required", description: "Client needs to authenticate to gain network access (captive portals).", common: false },
+    ];
+
+    const categoryColors: Record<string, string> = {
+      "1": "bg-blue-100 text-blue-800 border-blue-200",
+      "2": "bg-green-100 text-green-800 border-green-200",
+      "3": "bg-yellow-100 text-yellow-800 border-yellow-200",
+      "4": "bg-red-100 text-red-800 border-red-200",
+      "5": "bg-purple-100 text-purple-800 border-purple-200",
+    };
+
+    const categoryNames: Record<string, string> = {
+      "1": "Informational",
+      "2": "Success",
+      "3": "Redirection",
+      "4": "Client Error",
+      "5": "Server Error",
+    };
+
+    const searchInput = document.getElementById("searchInput") as HTMLInputElement;
+    const categoryFilter = document.getElementById("categoryFilter") as HTMLSelectElement;
+    const codeList = document.getElementById("codeList")!;
+    const resultCount = document.getElementById("resultCount")!;
+    const copyNotif = document.getElementById("copyNotif")!;
+
+    function showNotif(text: string): void {
+      copyNotif.textContent = text;
+      copyNotif.style.opacity = "1";
+      setTimeout(() => { copyNotif.style.opacity = "0"; }, 1500);
+    }
+
+    function renderCodes(): void {
+      const query = searchInput.value.toLowerCase().trim();
+      const cat = categoryFilter.value;
+
+      const filtered = statusCodes.filter(sc => {
+        const matchesCat = cat === "all" || sc.code.toString().startsWith(cat);
+        const matchesSearch = !query ||
+          sc.code.toString().includes(query) ||
+          sc.name.toLowerCase().includes(query) ||
+          sc.description.toLowerCase().includes(query);
+        return matchesCat && matchesSearch;
+      });
+
+      resultCount.textContent = filtered.length.toString();
+
+      codeList.innerHTML = filtered.map(sc => {
+        const catKey = sc.code.toString()[0];
+        const colors = categoryColors[catKey] || "";
+        const commonBadge = sc.common ? `<span class="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium">Common</span>` : "";
+        return `
+          <div class="code-item p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${sc.common ? 'border-l-4 border-l-blue-500' : ''}" data-code="${sc.code}" data-name="${sc.name}">
+            <div class="flex items-center flex-wrap gap-2 mb-1">
+              <span class="inline-block px-2.5 py-1 rounded text-sm font-mono font-bold ${colors}">${sc.code}</span>
+              <span class="font-semibold text-gray-900">${sc.name}</span>
+              <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded">${categoryNames[catKey]}</span>
+              ${commonBadge}
+            </div>
+            <p class="text-sm text-gray-600 mt-1">${sc.description}</p>
+          </div>`;
+      }).join("");
+
+      codeList.querySelectorAll(".code-item").forEach(item => {
+        item.addEventListener("click", async () => {
+          const code = (item as HTMLElement).dataset.code;
+          const name = (item as HTMLElement).dataset.name;
+          const text = `HTTP ${code} ${name}`;
+          await navigator.clipboard.writeText(text);
+          showNotif(`Copied: ${text}`);
+        });
+      });
+    }
+
+    searchInput.addEventListener("input", renderCodes);
+    categoryFilter.addEventListener("change", renderCodes);
+    renderCodes();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free HTTP Status Codes Reference</h2>
+    <p>Complete searchable reference of all HTTP status codes from 1xx to 5xx. Quickly find any status code by number or name, filter by category, and click to copy. Commonly used codes are highlighted for easy identification.</p>
+  </Fragment>
+</ToolLayout>

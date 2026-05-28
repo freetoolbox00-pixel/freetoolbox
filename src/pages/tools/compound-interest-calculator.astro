@@ -1,0 +1,212 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Compound Interest Calculator"
+  description="Free compound interest calculator. Calculate investment growth with initial deposit, monthly contributions, and different compounding frequencies. Year-by-year breakdown included."
+  category="utility"
+  icon="📈"
+>
+  <div>
+    <!-- Inputs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Investment ($)</label>
+        <input type="number" id="initialAmount" value="10000" min="0" step="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Monthly Contribution ($)</label>
+        <input type="number" id="monthlyContrib" value="500" min="0" step="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Annual Interest Rate (%)</label>
+        <input type="number" id="interestRate" value="7" min="0" max="100" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Time Period (Years)</label>
+        <input type="number" id="timePeriod" value="20" min="1" max="100" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+    </div>
+
+    <!-- Compounding Frequency -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Compounding Frequency</label>
+      <div class="flex gap-2 flex-wrap">
+        <button data-freq="365" class="freq-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors">Daily</button>
+        <button data-freq="12" class="freq-btn px-3 py-2 text-sm border rounded-lg bg-blue-50 border-blue-300 text-blue-700 font-medium transition-colors">Monthly</button>
+        <button data-freq="4" class="freq-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors">Quarterly</button>
+        <button data-freq="1" class="freq-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors">Annually</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Final Balance</div>
+        <div id="finalBalance" class="text-2xl font-bold text-blue-600">$0</div>
+      </div>
+      <div class="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Total Contributions</div>
+        <div id="totalContributions" class="text-2xl font-bold text-green-600">$0</div>
+      </div>
+      <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Total Interest Earned</div>
+        <div id="totalInterest" class="text-2xl font-bold text-purple-600">$0</div>
+      </div>
+    </div>
+
+    <!-- Visual Breakdown -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Growth Breakdown</h3>
+      <div class="flex h-8 rounded-lg overflow-hidden mb-2">
+        <div id="contribBar" class="bg-green-500 transition-all duration-300"></div>
+        <div id="interestBar" class="bg-purple-500 transition-all duration-300"></div>
+      </div>
+      <div class="flex justify-between text-xs">
+        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded inline-block"></span> Contributions: <span id="contribPct" class="font-medium">0%</span></div>
+        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-purple-500 rounded inline-block"></span> Interest: <span id="interestPct" class="font-medium">0%</span></div>
+      </div>
+    </div>
+
+    <!-- Growth Chart (bar chart using divs) -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Growth Over Time</h3>
+      <div id="growthChart" class="flex items-end gap-1 h-48 overflow-x-auto"></div>
+    </div>
+
+    <!-- Year-by-Year Table -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Year-by-Year Breakdown</h3>
+      <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Year</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Contributions</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Interest</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Balance</th>
+            </tr>
+          </thead>
+          <tbody id="yearTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fmt = (n: number): string => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    let compFreq = 12;
+
+    function calculate(): void {
+      const initial = parseFloat((document.getElementById('initialAmount') as HTMLInputElement).value) || 0;
+      const monthly = parseFloat((document.getElementById('monthlyContrib') as HTMLInputElement).value) || 0;
+      const rate = parseFloat((document.getElementById('interestRate') as HTMLInputElement).value) || 0;
+      const years = parseInt((document.getElementById('timePeriod') as HTMLInputElement).value) || 0;
+
+      const r = rate / 100;
+      const n = compFreq;
+
+      interface YearData { year: number; contributions: number; interest: number; balance: number }
+      const yearData: YearData[] = [];
+
+      let balance = initial;
+      let totalContrib = initial;
+
+      for (let y = 1; y <= years; y++) {
+        const startBalance = balance;
+        // Simulate month by month for contributions
+        for (let m = 1; m <= 12; m++) {
+          balance += monthly;
+          totalContrib += monthly;
+          // Apply compounding based on frequency
+          if (n === 12) {
+            balance *= (1 + r / n);
+          } else if (n === 4 && m % 3 === 0) {
+            balance *= (1 + r / n);
+          } else if (n === 1 && m === 12) {
+            balance *= (1 + r / n);
+          } else if (n === 365) {
+            // For daily, approximate: apply daily rate for ~30 days per month
+            const dailyRate = r / 365;
+            balance *= Math.pow(1 + dailyRate, 30.44);
+          }
+        }
+        yearData.push({
+          year: y,
+          contributions: totalContrib,
+          interest: balance - totalContrib,
+          balance: balance
+        });
+      }
+
+      const totalInterest = balance - totalContrib;
+
+      document.getElementById('finalBalance')!.textContent = fmt(balance);
+      document.getElementById('totalContributions')!.textContent = fmt(totalContrib);
+      document.getElementById('totalInterest')!.textContent = fmt(totalInterest);
+
+      // Breakdown bar
+      const cPct = balance > 0 ? (totalContrib / balance) * 100 : 50;
+      const iPct = 100 - cPct;
+      (document.getElementById('contribBar') as HTMLElement).style.width = Math.max(0, cPct) + '%';
+      (document.getElementById('interestBar') as HTMLElement).style.width = Math.max(0, iPct) + '%';
+      document.getElementById('contribPct')!.textContent = cPct.toFixed(1) + '%';
+      document.getElementById('interestPct')!.textContent = iPct.toFixed(1) + '%';
+
+      // Growth chart
+      const maxBal = yearData.length > 0 ? yearData[yearData.length - 1].balance : 1;
+      let chartHtml = '';
+      const showEvery = years > 30 ? Math.ceil(years / 30) : 1;
+      for (let i = 0; i < yearData.length; i++) {
+        if (i % showEvery !== 0 && i !== yearData.length - 1) continue;
+        const d = yearData[i];
+        const hPct = maxBal > 0 ? (d.balance / maxBal) * 100 : 0;
+        const cH = maxBal > 0 ? (d.contributions / maxBal) * 100 : 0;
+        const iH = hPct - cH;
+        chartHtml += `<div class="flex flex-col items-center flex-1 min-w-[20px]">
+          <div class="w-full flex flex-col justify-end" style="height:180px">
+            <div class="bg-purple-400 rounded-t w-full" style="height:${Math.max(0, iH)}%"></div>
+            <div class="bg-green-400 w-full" style="height:${Math.max(0, cH)}%"></div>
+          </div>
+          <div class="text-[9px] text-gray-400 mt-1">${d.year}</div>
+        </div>`;
+      }
+      document.getElementById('growthChart')!.innerHTML = chartHtml;
+
+      // Year table
+      let rows = '';
+      for (const d of yearData) {
+        rows += `<tr class="${d.year % 2 === 0 ? 'bg-gray-50' : ''}">
+          <td class="px-3 py-1.5 text-gray-600">${d.year}</td>
+          <td class="px-3 py-1.5 text-right text-green-600">${fmt(d.contributions)}</td>
+          <td class="px-3 py-1.5 text-right text-purple-600">${fmt(d.interest)}</td>
+          <td class="px-3 py-1.5 text-right font-medium">${fmt(d.balance)}</td>
+        </tr>`;
+      }
+      document.getElementById('yearTable')!.innerHTML = rows;
+    }
+
+    // Frequency buttons
+    document.querySelectorAll('.freq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        compFreq = parseInt((btn as HTMLElement).dataset.freq || '12');
+        document.querySelectorAll('.freq-btn').forEach(b => {
+          b.className = 'freq-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors';
+        });
+        btn.className = 'freq-btn px-3 py-2 text-sm border rounded-lg bg-blue-50 border-blue-300 text-blue-700 font-medium transition-colors';
+        calculate();
+      });
+    });
+
+    ['initialAmount', 'monthlyContrib', 'interestRate', 'timePeriod'].forEach(id =>
+      document.getElementById(id)!.addEventListener('input', calculate)
+    );
+    calculate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Compound Interest Calculator</h2>
+    <p>See how your investments grow over time with compound interest. Enter your initial investment, monthly contributions, interest rate, and time period. Compare different compounding frequencies and view a detailed year-by-year breakdown of your investment growth, contributions, and interest earned.</p>
+  </Fragment>
+</ToolLayout>

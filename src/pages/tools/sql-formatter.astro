@@ -1,0 +1,134 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="SQL Formatter"
+  description="Format and beautify SQL queries online. Indent SELECT, JOIN, WHERE clauses for readability. Free SQL formatter and beautifier."
+  category="developer"
+  icon="SQL"
+>
+  <div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button id="formatSQL" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Format</button>
+      <button id="minifySQL" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors">Minify</button>
+      <button id="uppercaseSQL" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">Uppercase Keywords</button>
+      <button id="copySQL" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy</button>
+      <button id="clearSQL" class="px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear</button>
+    </div>
+
+    <div class="flex gap-4 mb-4">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Indent</label>
+        <select id="sqlIndent" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="2" selected>2 spaces</option>
+          <option value="4">4 spaces</option>
+          <option value="\t">Tab</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Input SQL</label>
+        <textarea id="sqlInput" rows="14" placeholder="SELECT u.id, u.name, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id WHERE o.total > 100 ORDER BY o.total DESC LIMIT 10;" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Output</label>
+        <pre id="sqlOutput" class="w-full p-4 font-mono text-sm bg-gray-900 text-green-400 rounded-lg overflow-auto min-h-[350px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SQL_KEYWORDS = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'JOIN', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'OUTER JOIN', 'FULL JOIN', 'CROSS JOIN', 'ON', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT', 'OFFSET', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM', 'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE', 'UNION', 'UNION ALL', 'EXCEPT', 'INTERSECT', 'IN', 'NOT IN', 'EXISTS', 'NOT EXISTS', 'BETWEEN', 'LIKE', 'IS NULL', 'IS NOT NULL', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AS', 'DISTINCT', 'INTO', 'WITH'];
+
+    const NEWLINE_BEFORE = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT', 'OFFSET', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'CROSS JOIN', 'JOIN', 'UNION', 'UNION ALL', 'SET', 'VALUES', 'ON'];
+
+    function formatSQL(sql: string): string {
+      const indentStr = (document.getElementById('sqlIndent') as HTMLSelectElement).value;
+      const tab = indentStr === '\\t' ? '\t' : ' '.repeat(parseInt(indentStr));
+
+      // Normalize whitespace
+      let s = sql.replace(/\s+/g, ' ').trim();
+
+      // Uppercase keywords
+      SQL_KEYWORDS.sort((a, b) => b.length - a.length).forEach(kw => {
+        const re = new RegExp('\\b' + kw.replace(/\s+/g, '\\s+') + '\\b', 'gi');
+        s = s.replace(re, kw);
+      });
+
+      // Add newlines before main keywords
+      NEWLINE_BEFORE.sort((a, b) => b.length - a.length).forEach(kw => {
+        const re = new RegExp('\\s+(' + kw.replace(/\s+/g, '\\s+') + ')\\b', 'gi');
+        s = s.replace(re, '\n$1');
+      });
+
+      // Indent sublines
+      const lines = s.split('\n');
+      let indent = 0;
+      return lines.map(line => {
+        const trimmed = line.trim();
+        const upper = trimmed.toUpperCase();
+        let currentIndent = indent;
+
+        if (upper.startsWith('AND ') || upper.startsWith('OR ') || upper.startsWith('ON ')) {
+          currentIndent = 1;
+        } else if (upper.startsWith('SELECT') || upper.startsWith('FROM') || upper.startsWith('WHERE') ||
+                   upper.startsWith('ORDER') || upper.startsWith('GROUP') || upper.startsWith('HAVING') ||
+                   upper.startsWith('LIMIT') || upper.startsWith('UNION')) {
+          currentIndent = 0;
+        } else if (upper.startsWith('INNER') || upper.startsWith('LEFT') || upper.startsWith('RIGHT') ||
+                   upper.startsWith('FULL') || upper.startsWith('CROSS') || upper.startsWith('JOIN')) {
+          currentIndent = 0;
+        }
+
+        return tab.repeat(currentIndent) + trimmed;
+      }).join('\n');
+    }
+
+    function minifySql(sql: string): string {
+      return sql.replace(/\s+/g, ' ').replace(/\s*([(),])\s*/g, '$1').trim();
+    }
+
+    function uppercaseKeywords(sql: string): string {
+      let s = sql;
+      SQL_KEYWORDS.sort((a, b) => b.length - a.length).forEach(kw => {
+        const re = new RegExp('\\b' + kw.replace(/\s+/g, '\\s+') + '\\b', 'gi');
+        s = s.replace(re, kw);
+      });
+      return s;
+    }
+
+    const sqlInput = document.getElementById('sqlInput') as HTMLTextAreaElement;
+    const sqlOutput = document.getElementById('sqlOutput')!;
+
+    document.getElementById('formatSQL')!.addEventListener('click', () => {
+      sqlOutput.textContent = formatSQL(sqlInput.value);
+    });
+    document.getElementById('minifySQL')!.addEventListener('click', () => {
+      sqlOutput.textContent = minifySql(sqlInput.value);
+    });
+    document.getElementById('uppercaseSQL')!.addEventListener('click', () => {
+      sqlOutput.textContent = uppercaseKeywords(sqlInput.value);
+    });
+    document.getElementById('copySQL')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(sqlOutput.textContent || '');
+    });
+    document.getElementById('clearSQL')!.addEventListener('click', () => {
+      sqlInput.value = '';
+      sqlOutput.textContent = '';
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free SQL Formatter Online</h2>
+    <p>Format, beautify and indent SQL queries for better readability. Supports SELECT, JOIN, WHERE and all standard SQL clauses. Minify SQL for production use.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Format</strong> - Indent and structure SQL queries</li>
+      <li><strong>Minify</strong> - Compress SQL to a single line</li>
+      <li><strong>Uppercase Keywords</strong> - Convert SQL keywords to uppercase</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

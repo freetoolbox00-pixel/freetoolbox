@@ -1,0 +1,398 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Schema Markup Generator"
+  description="Generate JSON-LD structured data for SEO. Create schema markup for Article, LocalBusiness, Product, FAQ, HowTo, Event, Person, Organization. Free schema generator."
+  category="seo"
+  icon="{}"
+>
+  <div>
+    <!-- Schema Type Selector -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Schema Type</label>
+      <select id="schemaType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="Article">Article</option>
+        <option value="LocalBusiness">Local Business</option>
+        <option value="Product">Product</option>
+        <option value="FAQPage">FAQ</option>
+        <option value="HowTo">HowTo</option>
+        <option value="Event">Event</option>
+        <option value="Person">Person</option>
+        <option value="Organization">Organization</option>
+      </select>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Form Fields -->
+      <div>
+        <div id="formFields" class="space-y-3"></div>
+        <div class="flex gap-2 mt-4">
+          <button id="generateBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Generate</button>
+          <button id="validateBtn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors">Validate</button>
+        </div>
+        <div id="validationResult" class="mt-3 text-sm hidden"></div>
+      </div>
+
+      <!-- JSON-LD Preview -->
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">JSON-LD Output</label>
+          <button id="copyBtn" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+        </div>
+        <pre id="jsonOutput" class="w-full p-4 font-mono text-xs bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[400px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+
+    <!-- FAQ / HowTo Repeater -->
+    <div id="repeaterSection" class="mt-6 hidden">
+      <div class="flex items-center justify-between mb-2">
+        <h3 id="repeaterTitle" class="text-sm font-medium text-gray-700">Items</h3>
+        <button id="addItemBtn" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors">+ Add Item</button>
+      </div>
+      <div id="repeaterItems" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    interface FieldDef {
+      id: string;
+      label: string;
+      type: 'text' | 'textarea' | 'url' | 'number' | 'date' | 'select';
+      placeholder?: string;
+      options?: string[];
+      required?: boolean;
+    }
+
+    const schemaFields: Record<string, FieldDef[]> = {
+      Article: [
+        { id: 'headline', label: 'Headline', type: 'text', placeholder: 'Article title', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'Brief description' },
+        { id: 'authorName', label: 'Author Name', type: 'text', placeholder: 'John Doe' },
+        { id: 'authorUrl', label: 'Author URL', type: 'url', placeholder: 'https://example.com/author' },
+        { id: 'publisherName', label: 'Publisher Name', type: 'text', placeholder: 'Example News' },
+        { id: 'publisherLogo', label: 'Publisher Logo URL', type: 'url', placeholder: 'https://example.com/logo.png' },
+        { id: 'datePublished', label: 'Date Published', type: 'date' },
+        { id: 'dateModified', label: 'Date Modified', type: 'date' },
+        { id: 'image', label: 'Image URL', type: 'url', placeholder: 'https://example.com/image.jpg' },
+        { id: 'url', label: 'Article URL', type: 'url', placeholder: 'https://example.com/article' },
+      ],
+      LocalBusiness: [
+        { id: 'name', label: 'Business Name', type: 'text', placeholder: 'My Business', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'What does this business do?' },
+        { id: 'image', label: 'Image URL', type: 'url', placeholder: 'https://example.com/photo.jpg' },
+        { id: 'telephone', label: 'Phone', type: 'text', placeholder: '+1-555-123-4567' },
+        { id: 'email', label: 'Email', type: 'text', placeholder: 'info@example.com' },
+        { id: 'url', label: 'Website', type: 'url', placeholder: 'https://example.com' },
+        { id: 'streetAddress', label: 'Street Address', type: 'text', placeholder: '123 Main St' },
+        { id: 'city', label: 'City', type: 'text', placeholder: 'New York' },
+        { id: 'state', label: 'State/Region', type: 'text', placeholder: 'NY' },
+        { id: 'postalCode', label: 'Postal Code', type: 'text', placeholder: '10001' },
+        { id: 'country', label: 'Country', type: 'text', placeholder: 'US' },
+        { id: 'priceRange', label: 'Price Range', type: 'text', placeholder: '$$' },
+      ],
+      Product: [
+        { id: 'name', label: 'Product Name', type: 'text', placeholder: 'Widget Pro', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'Product description' },
+        { id: 'image', label: 'Image URL', type: 'url', placeholder: 'https://example.com/product.jpg' },
+        { id: 'brand', label: 'Brand', type: 'text', placeholder: 'BrandName' },
+        { id: 'sku', label: 'SKU', type: 'text', placeholder: 'WP-001' },
+        { id: 'price', label: 'Price', type: 'number', placeholder: '29.99' },
+        { id: 'currency', label: 'Currency', type: 'text', placeholder: 'USD' },
+        { id: 'availability', label: 'Availability', type: 'select', options: ['InStock', 'OutOfStock', 'PreOrder', 'Discontinued'] },
+        { id: 'ratingValue', label: 'Rating (1-5)', type: 'number', placeholder: '4.5' },
+        { id: 'reviewCount', label: 'Review Count', type: 'number', placeholder: '120' },
+        { id: 'url', label: 'Product URL', type: 'url', placeholder: 'https://example.com/product' },
+      ],
+      FAQPage: [
+        { id: '_info', label: 'Add FAQ items below using the "Add Item" button', type: 'text', placeholder: '' },
+      ],
+      HowTo: [
+        { id: 'name', label: 'Title', type: 'text', placeholder: 'How to Do Something', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'Brief description of the guide' },
+        { id: 'totalTime', label: 'Total Time (ISO 8601)', type: 'text', placeholder: 'PT30M (30 minutes)' },
+        { id: 'estimatedCost', label: 'Estimated Cost', type: 'text', placeholder: '20 USD' },
+        { id: 'image', label: 'Image URL', type: 'url', placeholder: 'https://example.com/howto.jpg' },
+      ],
+      Event: [
+        { id: 'name', label: 'Event Name', type: 'text', placeholder: 'Annual Conference', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'Event description' },
+        { id: 'startDate', label: 'Start Date', type: 'date', required: true },
+        { id: 'endDate', label: 'End Date', type: 'date' },
+        { id: 'locationName', label: 'Venue Name', type: 'text', placeholder: 'Convention Center' },
+        { id: 'streetAddress', label: 'Street Address', type: 'text', placeholder: '123 Main St' },
+        { id: 'city', label: 'City', type: 'text', placeholder: 'New York' },
+        { id: 'country', label: 'Country', type: 'text', placeholder: 'US' },
+        { id: 'image', label: 'Image URL', type: 'url', placeholder: 'https://example.com/event.jpg' },
+        { id: 'url', label: 'Event URL', type: 'url', placeholder: 'https://example.com/event' },
+        { id: 'performerName', label: 'Performer/Speaker', type: 'text', placeholder: 'Jane Smith' },
+        { id: 'price', label: 'Ticket Price', type: 'number', placeholder: '49.99' },
+        { id: 'currency', label: 'Currency', type: 'text', placeholder: 'USD' },
+        { id: 'availability', label: 'Availability', type: 'select', options: ['InStock', 'SoldOut', 'PreOrder'] },
+      ],
+      Person: [
+        { id: 'name', label: 'Full Name', type: 'text', placeholder: 'John Doe', required: true },
+        { id: 'jobTitle', label: 'Job Title', type: 'text', placeholder: 'Software Engineer' },
+        { id: 'worksForName', label: 'Company', type: 'text', placeholder: 'Acme Inc' },
+        { id: 'worksForUrl', label: 'Company URL', type: 'url', placeholder: 'https://acme.com' },
+        { id: 'email', label: 'Email', type: 'text', placeholder: 'john@example.com' },
+        { id: 'telephone', label: 'Phone', type: 'text', placeholder: '+1-555-123-4567' },
+        { id: 'url', label: 'Personal Website', type: 'url', placeholder: 'https://johndoe.com' },
+        { id: 'image', label: 'Photo URL', type: 'url', placeholder: 'https://example.com/photo.jpg' },
+        { id: 'sameAs', label: 'Social Profiles (comma-separated)', type: 'textarea', placeholder: 'https://twitter.com/johndoe, https://linkedin.com/in/johndoe' },
+      ],
+      Organization: [
+        { id: 'name', label: 'Organization Name', type: 'text', placeholder: 'Acme Inc', required: true },
+        { id: 'description', label: 'Description', type: 'textarea', placeholder: 'About the organization' },
+        { id: 'url', label: 'Website', type: 'url', placeholder: 'https://acme.com' },
+        { id: 'logo', label: 'Logo URL', type: 'url', placeholder: 'https://acme.com/logo.png' },
+        { id: 'email', label: 'Contact Email', type: 'text', placeholder: 'info@acme.com' },
+        { id: 'telephone', label: 'Phone', type: 'text', placeholder: '+1-555-123-4567' },
+        { id: 'streetAddress', label: 'Street Address', type: 'text', placeholder: '123 Main St' },
+        { id: 'city', label: 'City', type: 'text', placeholder: 'New York' },
+        { id: 'state', label: 'State/Region', type: 'text', placeholder: 'NY' },
+        { id: 'postalCode', label: 'Postal Code', type: 'text', placeholder: '10001' },
+        { id: 'country', label: 'Country', type: 'text', placeholder: 'US' },
+        { id: 'sameAs', label: 'Social Profiles (comma-separated)', type: 'textarea', placeholder: 'https://twitter.com/acme, https://linkedin.com/company/acme' },
+        { id: 'foundingDate', label: 'Founding Date', type: 'date' },
+      ],
+    };
+
+    let repeaterItems: { q: string; a: string }[] = [];
+    let howToSteps: { name: string; text: string }[] = [];
+
+    function getVal(id: string): string {
+      const el = document.getElementById('field_' + id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      return el ? el.value.trim() : '';
+    }
+
+    function renderForm(): void {
+      const type = (document.getElementById('schemaType') as HTMLSelectElement).value;
+      const fields = schemaFields[type] || [];
+      const container = document.getElementById('formFields')!;
+      const repeater = document.getElementById('repeaterSection')!;
+      const repeaterTitle = document.getElementById('repeaterTitle')!;
+
+      let html = '';
+      for (const f of fields) {
+        if (f.id === '_info') {
+          html += `<p class="text-sm text-gray-500 italic">${f.label}</p>`;
+          continue;
+        }
+        html += `<div><label class="block text-xs text-gray-500 mb-1">${f.label}${f.required ? ' *' : ''}</label>`;
+        if (f.type === 'textarea') {
+          html += `<textarea id="field_${f.id}" rows="2" placeholder="${f.placeholder || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>`;
+        } else if (f.type === 'select') {
+          html += `<select id="field_${f.id}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">`;
+          for (const o of f.options || []) html += `<option value="${o}">${o}</option>`;
+          html += '</select>';
+        } else {
+          html += `<input type="${f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text'}" step="any" id="field_${f.id}" placeholder="${f.placeholder || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />`;
+        }
+        html += '</div>';
+      }
+      container.innerHTML = html;
+
+      if (type === 'FAQPage') {
+        repeater.classList.remove('hidden');
+        repeaterTitle.textContent = 'FAQ Items';
+        if (repeaterItems.length === 0) repeaterItems.push({ q: '', a: '' });
+        renderRepeater();
+      } else if (type === 'HowTo') {
+        repeater.classList.remove('hidden');
+        repeaterTitle.textContent = 'Steps';
+        if (howToSteps.length === 0) howToSteps.push({ name: '', text: '' });
+        renderHowToSteps();
+      } else {
+        repeater.classList.add('hidden');
+      }
+      generate();
+    }
+
+    function renderRepeater(): void {
+      const container = document.getElementById('repeaterItems')!;
+      let html = '';
+      repeaterItems.forEach((item, i) => {
+        html += `<div class="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+          <div class="flex justify-between items-center"><span class="text-xs font-medium text-gray-500">FAQ #${i + 1}</span>
+          <button class="remove-faq text-xs text-red-500 hover:text-red-700" data-idx="${i}">Remove</button></div>
+          <input type="text" class="faq-q w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-idx="${i}" placeholder="Question" value="${item.q.replace(/"/g, '&quot;')}" />
+          <textarea class="faq-a w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y" data-idx="${i}" rows="2" placeholder="Answer">${item.a}</textarea>
+        </div>`;
+      });
+      container.innerHTML = html;
+      container.querySelectorAll('.faq-q').forEach(el => el.addEventListener('input', (e) => { repeaterItems[+(e.target as HTMLElement).dataset.idx!].q = (e.target as HTMLInputElement).value; generate(); }));
+      container.querySelectorAll('.faq-a').forEach(el => el.addEventListener('input', (e) => { repeaterItems[+(e.target as HTMLElement).dataset.idx!].a = (e.target as HTMLTextAreaElement).value; generate(); }));
+      container.querySelectorAll('.remove-faq').forEach(el => el.addEventListener('click', (e) => { repeaterItems.splice(+(e.target as HTMLElement).dataset.idx!, 1); if (repeaterItems.length === 0) repeaterItems.push({ q: '', a: '' }); renderRepeater(); generate(); }));
+    }
+
+    function renderHowToSteps(): void {
+      const container = document.getElementById('repeaterItems')!;
+      let html = '';
+      howToSteps.forEach((step, i) => {
+        html += `<div class="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+          <div class="flex justify-between items-center"><span class="text-xs font-medium text-gray-500">Step ${i + 1}</span>
+          <button class="remove-step text-xs text-red-500 hover:text-red-700" data-idx="${i}">Remove</button></div>
+          <input type="text" class="step-name w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-idx="${i}" placeholder="Step title" value="${step.name.replace(/"/g, '&quot;')}" />
+          <textarea class="step-text w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y" data-idx="${i}" rows="2" placeholder="Step instructions">${step.text}</textarea>
+        </div>`;
+      });
+      container.innerHTML = html;
+      container.querySelectorAll('.step-name').forEach(el => el.addEventListener('input', (e) => { howToSteps[+(e.target as HTMLElement).dataset.idx!].name = (e.target as HTMLInputElement).value; generate(); }));
+      container.querySelectorAll('.step-text').forEach(el => el.addEventListener('input', (e) => { howToSteps[+(e.target as HTMLElement).dataset.idx!].text = (e.target as HTMLTextAreaElement).value; generate(); }));
+      container.querySelectorAll('.remove-step').forEach(el => el.addEventListener('click', (e) => { howToSteps.splice(+(e.target as HTMLElement).dataset.idx!, 1); if (howToSteps.length === 0) howToSteps.push({ name: '', text: '' }); renderHowToSteps(); generate(); }));
+    }
+
+    function buildSchema(): object {
+      const type = (document.getElementById('schemaType') as HTMLSelectElement).value;
+      const s: any = { '@context': 'https://schema.org', '@type': type };
+
+      if (type === 'Article') {
+        if (getVal('headline')) s.headline = getVal('headline');
+        if (getVal('description')) s.description = getVal('description');
+        if (getVal('authorName')) s.author = { '@type': 'Person', name: getVal('authorName'), ...(getVal('authorUrl') ? { url: getVal('authorUrl') } : {}) };
+        if (getVal('publisherName')) s.publisher = { '@type': 'Organization', name: getVal('publisherName'), ...(getVal('publisherLogo') ? { logo: { '@type': 'ImageObject', url: getVal('publisherLogo') } } : {}) };
+        if (getVal('datePublished')) s.datePublished = getVal('datePublished');
+        if (getVal('dateModified')) s.dateModified = getVal('dateModified');
+        if (getVal('image')) s.image = getVal('image');
+        if (getVal('url')) s.mainEntityOfPage = { '@type': 'WebPage', '@id': getVal('url') };
+      } else if (type === 'LocalBusiness') {
+        ['name', 'description', 'image', 'telephone', 'email', 'url', 'priceRange'].forEach(k => { if (getVal(k)) s[k] = getVal(k); });
+        if (getVal('streetAddress') || getVal('city')) {
+          s.address = { '@type': 'PostalAddress' };
+          ['streetAddress', 'postalCode'].forEach(k => { if (getVal(k)) s.address[k] = getVal(k); });
+          if (getVal('city')) s.address.addressLocality = getVal('city');
+          if (getVal('state')) s.address.addressRegion = getVal('state');
+          if (getVal('country')) s.address.addressCountry = getVal('country');
+        }
+      } else if (type === 'Product') {
+        ['name', 'description', 'image', 'sku'].forEach(k => { if (getVal(k)) s[k] = getVal(k); });
+        if (getVal('brand')) s.brand = { '@type': 'Brand', name: getVal('brand') };
+        if (getVal('price')) {
+          s.offers = { '@type': 'Offer', price: getVal('price'), priceCurrency: getVal('currency') || 'USD', availability: 'https://schema.org/' + (getVal('availability') || 'InStock') };
+          if (getVal('url')) s.offers.url = getVal('url');
+        }
+        if (getVal('ratingValue')) s.aggregateRating = { '@type': 'AggregateRating', ratingValue: getVal('ratingValue'), reviewCount: getVal('reviewCount') || '0' };
+      } else if (type === 'FAQPage') {
+        s.mainEntity = repeaterItems.filter(i => i.q && i.a).map(i => ({
+          '@type': 'Question', name: i.q,
+          acceptedAnswer: { '@type': 'Answer', text: i.a }
+        }));
+      } else if (type === 'HowTo') {
+        if (getVal('name')) s.name = getVal('name');
+        if (getVal('description')) s.description = getVal('description');
+        if (getVal('totalTime')) s.totalTime = getVal('totalTime');
+        if (getVal('estimatedCost')) s.estimatedCost = { '@type': 'MonetaryAmount', currency: 'USD', value: getVal('estimatedCost') };
+        if (getVal('image')) s.image = getVal('image');
+        s.step = howToSteps.filter(st => st.name || st.text).map((st, i) => ({
+          '@type': 'HowToStep', position: i + 1, name: st.name, text: st.text
+        }));
+      } else if (type === 'Event') {
+        ['name', 'description', 'image', 'url'].forEach(k => { if (getVal(k)) s[k] = getVal(k); });
+        if (getVal('startDate')) s.startDate = getVal('startDate');
+        if (getVal('endDate')) s.endDate = getVal('endDate');
+        if (getVal('locationName')) {
+          s.location = { '@type': 'Place', name: getVal('locationName') };
+          if (getVal('streetAddress') || getVal('city')) {
+            s.location.address = { '@type': 'PostalAddress' };
+            if (getVal('streetAddress')) s.location.address.streetAddress = getVal('streetAddress');
+            if (getVal('city')) s.location.address.addressLocality = getVal('city');
+            if (getVal('country')) s.location.address.addressCountry = getVal('country');
+          }
+        }
+        if (getVal('performerName')) s.performer = { '@type': 'Person', name: getVal('performerName') };
+        if (getVal('price')) {
+          s.offers = { '@type': 'Offer', price: getVal('price'), priceCurrency: getVal('currency') || 'USD', availability: 'https://schema.org/' + (getVal('availability') || 'InStock'), url: getVal('url') || '' };
+        }
+      } else if (type === 'Person') {
+        ['name', 'jobTitle', 'email', 'telephone', 'url', 'image'].forEach(k => { if (getVal(k)) s[k] = getVal(k); });
+        if (getVal('worksForName')) s.worksFor = { '@type': 'Organization', name: getVal('worksForName'), ...(getVal('worksForUrl') ? { url: getVal('worksForUrl') } : {}) };
+        if (getVal('sameAs')) s.sameAs = getVal('sameAs').split(',').map(u => u.trim()).filter(Boolean);
+      } else if (type === 'Organization') {
+        ['name', 'description', 'url', 'email', 'telephone'].forEach(k => { if (getVal(k)) s[k] = getVal(k); });
+        if (getVal('logo')) s.logo = getVal('logo');
+        if (getVal('foundingDate')) s.foundingDate = getVal('foundingDate');
+        if (getVal('streetAddress') || getVal('city')) {
+          s.address = { '@type': 'PostalAddress' };
+          if (getVal('streetAddress')) s.address.streetAddress = getVal('streetAddress');
+          if (getVal('city')) s.address.addressLocality = getVal('city');
+          if (getVal('state')) s.address.addressRegion = getVal('state');
+          if (getVal('postalCode')) s.address.postalCode = getVal('postalCode');
+          if (getVal('country')) s.address.addressCountry = getVal('country');
+        }
+        if (getVal('sameAs')) s.sameAs = getVal('sameAs').split(',').map(u => u.trim()).filter(Boolean);
+      }
+      return s;
+    }
+
+    function generate(): void {
+      const schema = buildSchema();
+      const script = `<script type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n<\/script>`;
+      document.getElementById('jsonOutput')!.textContent = script;
+    }
+
+    function validate(): void {
+      const result = document.getElementById('validationResult')!;
+      result.classList.remove('hidden');
+      const type = (document.getElementById('schemaType') as HTMLSelectElement).value;
+      const errors: string[] = [];
+
+      const fields = schemaFields[type] || [];
+      for (const f of fields) {
+        if (f.required && !getVal(f.id)) errors.push(`Missing required field: ${f.label}`);
+      }
+
+      if (type === 'FAQPage') {
+        const valid = repeaterItems.filter(i => i.q && i.a);
+        if (valid.length === 0) errors.push('At least one FAQ with question and answer is required');
+      }
+      if (type === 'HowTo') {
+        const valid = howToSteps.filter(s => s.name || s.text);
+        if (valid.length === 0) errors.push('At least one step is required');
+      }
+
+      if (errors.length === 0) {
+        result.className = 'mt-3 text-sm p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg';
+        result.textContent = 'Valid! No issues found. Schema is ready to use.';
+      } else {
+        result.className = 'mt-3 text-sm p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg';
+        result.innerHTML = errors.map(e => `<div>• ${e}</div>`).join('');
+      }
+    }
+
+    document.getElementById('schemaType')!.addEventListener('change', () => { repeaterItems = []; howToSteps = []; renderForm(); });
+    document.getElementById('generateBtn')!.addEventListener('click', generate);
+    document.getElementById('validateBtn')!.addEventListener('click', validate);
+    document.getElementById('addItemBtn')!.addEventListener('click', () => {
+      const type = (document.getElementById('schemaType') as HTMLSelectElement).value;
+      if (type === 'FAQPage') { repeaterItems.push({ q: '', a: '' }); renderRepeater(); }
+      else if (type === 'HowTo') { howToSteps.push({ name: '', text: '' }); renderHowToSteps(); }
+    });
+    document.getElementById('copyBtn')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('jsonOutput')!.textContent || '');
+      const btn = document.getElementById('copyBtn')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    document.getElementById('formFields')!.addEventListener('input', generate);
+    renderForm();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Schema Markup Generator</h2>
+    <p>Create JSON-LD structured data markup for your website to improve search engine visibility. Supports Article, LocalBusiness, Product, FAQ, HowTo, Event, Person, and Organization schema types recommended by Google.</p>
+    <h3>Supported Schema Types</h3>
+    <ul>
+      <li><strong>Article</strong> - News articles, blog posts, and editorial content</li>
+      <li><strong>LocalBusiness</strong> - Physical business locations with address and contact info</li>
+      <li><strong>Product</strong> - Products with pricing, availability, and reviews</li>
+      <li><strong>FAQ</strong> - Frequently asked questions with expandable answers in search</li>
+      <li><strong>HowTo</strong> - Step-by-step guides and tutorials</li>
+      <li><strong>Event</strong> - Events with dates, locations, and ticket info</li>
+      <li><strong>Person</strong> - People with biographical and contact information</li>
+      <li><strong>Organization</strong> - Companies and organizations</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

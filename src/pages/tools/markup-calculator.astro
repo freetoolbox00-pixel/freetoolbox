@@ -1,0 +1,110 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Markup & Margin Calculator" description="Calculate markup percentage, profit margin, cost and selling price. Essential business pricing tool." category="business" icon="💰">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Cost Price ($)</label>
+        <input type="number" id="mcCost" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg" value="50" min="0" step="0.01" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Selling Price ($)</label>
+        <input type="number" id="mcSell" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg" value="80" min="0" step="0.01" />
+      </div>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div class="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+        <div class="text-xs text-green-600 mb-1">Profit</div>
+        <div class="text-2xl font-bold text-green-700" id="mcProfit">$30.00</div>
+      </div>
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl text-center">
+        <div class="text-xs text-blue-600 mb-1">Markup %</div>
+        <div class="text-2xl font-bold text-blue-700" id="mcMarkup">60.00%</div>
+      </div>
+      <div class="p-4 bg-purple-50 border border-purple-200 rounded-xl text-center">
+        <div class="text-xs text-purple-600 mb-1">Margin %</div>
+        <div class="text-2xl font-bold text-purple-700" id="mcMargin">37.50%</div>
+      </div>
+      <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl text-center">
+        <div class="text-xs text-orange-600 mb-1">Multiplier</div>
+        <div class="text-2xl font-bold text-orange-700" id="mcMult">1.60x</div>
+      </div>
+    </div>
+
+    <div class="p-4 bg-gray-50 rounded-xl mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Quick: Set by Markup %</h3>
+      <div class="flex items-center gap-3">
+        <input type="range" id="mcSlider" min="0" max="200" value="60" class="flex-1" />
+        <span class="text-sm font-mono w-14 text-right" id="mcSliderVal">60%</span>
+      </div>
+    </div>
+
+    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+      <h3 class="text-sm font-medium text-yellow-700 mb-2">Markup vs Margin</h3>
+      <div class="text-xs text-yellow-800 space-y-1">
+        <div><strong>Markup</strong> = (Profit / Cost) × 100 — percentage added to cost</div>
+        <div><strong>Margin</strong> = (Profit / Selling Price) × 100 — percentage of selling price that is profit</div>
+        <div id="mcFormula" class="mt-2 font-mono text-yellow-900"></div>
+      </div>
+    </div>
+
+    <h3 class="text-sm font-medium text-gray-700 mt-6 mb-2">Common Markups</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+      <button class="mc-pre p-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-center" data-m="25">25% Markup</button>
+      <button class="mc-pre p-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-center" data-m="50">50% Markup</button>
+      <button class="mc-pre p-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-center" data-m="100">100% Markup</button>
+      <button class="mc-pre p-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-center" data-m="200">200% Markup</button>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const costIn = document.getElementById('mcCost') as HTMLInputElement;
+  const sellIn = document.getElementById('mcSell') as HTMLInputElement;
+  const slider = document.getElementById('mcSlider') as HTMLInputElement;
+  const sliderVal = document.getElementById('mcSliderVal')!;
+
+  function calc() {
+    const cost = parseFloat(costIn.value) || 0;
+    const sell = parseFloat(sellIn.value) || 0;
+    const profit = sell - cost;
+    const markup = cost > 0 ? (profit / cost) * 100 : 0;
+    const margin = sell > 0 ? (profit / sell) * 100 : 0;
+    const mult = cost > 0 ? sell / cost : 0;
+
+    document.getElementById('mcProfit')!.textContent = '$' + profit.toFixed(2);
+    document.getElementById('mcMarkup')!.textContent = markup.toFixed(2) + '%';
+    document.getElementById('mcMargin')!.textContent = margin.toFixed(2) + '%';
+    document.getElementById('mcMult')!.textContent = mult.toFixed(2) + 'x';
+    document.getElementById('mcFormula')!.textContent =
+      `$${cost.toFixed(2)} × ${mult.toFixed(2)} = $${sell.toFixed(2)} | Profit: $${profit.toFixed(2)}`;
+
+    slider.value = String(Math.round(markup));
+    sliderVal.textContent = Math.round(markup) + '%';
+  }
+
+  costIn.addEventListener('input', calc);
+  sellIn.addEventListener('input', calc);
+
+  slider.addEventListener('input', () => {
+    const m = parseFloat(slider.value);
+    sliderVal.textContent = m + '%';
+    const cost = parseFloat(costIn.value) || 0;
+    sellIn.value = (cost * (1 + m / 100)).toFixed(2);
+    calc();
+  });
+
+  document.querySelectorAll('.mc-pre').forEach(btn => btn.addEventListener('click', () => {
+    const m = parseFloat((btn as HTMLElement).dataset.m!);
+    slider.value = String(m);
+    sliderVal.textContent = m + '%';
+    const cost = parseFloat(costIn.value) || 0;
+    sellIn.value = (cost * (1 + m / 100)).toFixed(2);
+    calc();
+  }));
+
+  calc();
+</script>

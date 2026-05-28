@@ -1,0 +1,116 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Drawing Pad" description="Simple online drawing tool. Draw with mouse or touch. Choose colors, brush size. Download as PNG." category="utility" icon="🎨">
+  <div>
+    <div class="flex flex-wrap gap-2 mb-3">
+      <input type="color" id="dpColor" value="#000000" class="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer" />
+      <div class="flex items-center gap-1">
+        <label class="text-xs text-gray-500">Size:</label>
+        <input type="range" id="dpSize" min="1" max="50" value="3" class="w-24" />
+      </div>
+      <button id="dpEraser" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Eraser</button>
+      <button id="dpUndo" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Undo</button>
+      <button id="dpClear" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200">Clear</button>
+      <button id="dpDl" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Download</button>
+    </div>
+    <div class="flex flex-wrap gap-1 mb-3" id="dpPalette"></div>
+    <canvas id="dpCanvas" class="w-full border border-gray-200 rounded-lg cursor-crosshair" style="touch-action:none;"></canvas>
+  </div>
+</ToolLayout>
+
+<script>
+  const canvas = document.getElementById('dpCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const colorIn = document.getElementById('dpColor') as HTMLInputElement;
+  const sizeIn = document.getElementById('dpSize') as HTMLInputElement;
+
+  const colors = ['#000000','#ffffff','#ff0000','#ff6600','#ffcc00','#00cc00','#0066ff','#9933ff','#ff66cc','#663300','#cccccc','#666666'];
+  const palette = document.getElementById('dpPalette')!;
+  palette.innerHTML = colors.map(c => `<button class="w-7 h-7 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background:${c}" data-c="${c}"></button>`).join('');
+  palette.addEventListener('click', e => {
+    const btn = (e.target as HTMLElement).closest('button');
+    if (btn) { colorIn.value = btn.dataset.c!; isEraser = false; document.getElementById('dpEraser')!.className = 'px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200'; }
+  });
+
+  let isEraser = false;
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  let history: ImageData[] = [];
+
+  function resize() {
+    const saved = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 500;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(saved, 0, 0);
+  }
+
+  function saveState() {
+    if (history.length > 30) history.shift();
+    history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  }
+
+  function getPos(e: MouseEvent | TouchEvent): [number, number] {
+    const r = canvas.getBoundingClientRect();
+    if ('touches' in e) { return [e.touches[0].clientX - r.left, e.touches[0].clientY - r.top]; }
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  function startDraw(e: MouseEvent | TouchEvent) {
+    drawing = true;
+    [lastX, lastY] = getPos(e);
+    saveState();
+  }
+
+  function draw(e: MouseEvent | TouchEvent) {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = isEraser ? '#ffffff' : colorIn.value;
+    ctx.lineWidth = parseInt(sizeIn.value);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    lastX = x; lastY = y;
+  }
+
+  function stopDraw() { drawing = false; }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  canvas.addEventListener('touchstart', startDraw);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stopDraw);
+
+  document.getElementById('dpEraser')!.addEventListener('click', () => {
+    isEraser = !isEraser;
+    document.getElementById('dpEraser')!.className = isEraser ? 'px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm' : 'px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200';
+  });
+
+  document.getElementById('dpUndo')!.addEventListener('click', () => {
+    if (history.length) ctx.putImageData(history.pop()!, 0, 0);
+  });
+
+  document.getElementById('dpClear')!.addEventListener('click', () => {
+    saveState();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  });
+
+  document.getElementById('dpDl')!.addEventListener('click', () => {
+    const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'drawing.png'; a.click();
+  });
+
+  resize();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  window.addEventListener('resize', resize);
+</script>

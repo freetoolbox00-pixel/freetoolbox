@@ -1,0 +1,79 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Roman Numeral Converter" description="Convert between Roman numerals and Arabic numbers. Supports 1 to 3,999,999. Free online converter." category="utility" icon="🏛️">
+  <div>
+    <div class="grid gap-6 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Arabic Number</label>
+        <input type="number" id="rnNum" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" placeholder="e.g. 2024" min="1" max="3999999" />
+        <div class="text-center text-gray-400 my-2">↕</div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Roman Numeral</label>
+        <input type="text" id="rnRom" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono uppercase" placeholder="e.g. MMXXIV" />
+      </div>
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Reference</h3>
+        <div class="grid grid-cols-2 gap-1 text-sm">
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>I</span><span class="text-gray-500">1</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>V</span><span class="text-gray-500">5</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>X</span><span class="text-gray-500">10</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>L</span><span class="text-gray-500">50</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>C</span><span class="text-gray-500">100</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>D</span><span class="text-gray-500">500</span></div>
+          <div class="flex justify-between px-2 py-1 bg-gray-50 rounded"><span>M</span><span class="text-gray-500">1000</span></div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-700 mt-4 mb-2">Quick Convert</h3>
+        <div class="flex flex-wrap gap-1">
+          <button class="rn-q px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs" data-v="2024">2024</button>
+          <button class="rn-q px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs" data-v="1990">1990</button>
+          <button class="rn-q px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs" data-v="42">42</button>
+          <button class="rn-q px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs" data-v="100">100</button>
+          <button class="rn-q px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs" data-v="3999">3999</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const numIn = document.getElementById('rnNum') as HTMLInputElement;
+  const romIn = document.getElementById('rnRom') as HTMLInputElement;
+
+  const vals: [number, string][] = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+
+  function toRoman(n: number): string {
+    if (n < 1 || n > 3999999) return 'Out of range';
+    let r = '';
+    for (const [v, s] of vals) { while (n >= v) { r += s; n -= v; } }
+    return r;
+  }
+
+  function fromRoman(s: string): number {
+    const map: Record<string, number> = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 };
+    let total = 0;
+    const upper = s.toUpperCase();
+    for (let i = 0; i < upper.length; i++) {
+      const cur = map[upper[i]] || 0;
+      const next = map[upper[i + 1]] || 0;
+      if (cur < next) total -= cur;
+      else total += cur;
+    }
+    return total;
+  }
+
+  numIn.addEventListener('input', () => {
+    const n = parseInt(numIn.value);
+    if (!isNaN(n) && n > 0) romIn.value = toRoman(n);
+  });
+
+  romIn.addEventListener('input', () => {
+    const r = romIn.value.toUpperCase().trim();
+    if (/^[IVXLCDM]+$/.test(r)) numIn.value = String(fromRoman(r));
+  });
+
+  document.querySelectorAll('.rn-q').forEach(btn => btn.addEventListener('click', () => {
+    numIn.value = (btn as HTMLElement).dataset.v!;
+    numIn.dispatchEvent(new Event('input'));
+  }));
+</script>

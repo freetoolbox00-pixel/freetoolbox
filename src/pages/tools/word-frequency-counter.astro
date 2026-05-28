@@ -1,0 +1,151 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Word Frequency Counter"
+  description="Count word frequency in any text. Find most used words, bigrams and trigrams. Exclude common stop words. Free word frequency analyzer."
+  category="text"
+  icon="📊"
+>
+  <div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Text Input</label>
+      <textarea id="wfInput" rows="8" placeholder="Paste your text here to analyze word frequency..." class="w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="wfStop" checked class="accent-blue-600" /> Exclude stop words
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="wfCase" checked class="accent-blue-600" /> Case insensitive
+      </label>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Min length:</label>
+        <input type="number" id="wfMin" value="1" min="1" max="20" class="w-16 px-2 py-1 border rounded text-sm" />
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Show top:</label>
+        <input type="number" id="wfTop" value="25" min="5" max="200" class="w-16 px-2 py-1 border rounded text-sm" />
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="wfStats" class="hidden flex flex-wrap gap-3 mb-6">
+      <div class="px-3 py-1 bg-blue-50 rounded text-sm">Words: <strong id="wfTotal">0</strong></div>
+      <div class="px-3 py-1 bg-green-50 rounded text-sm">Unique: <strong id="wfUnique">0</strong></div>
+      <div class="px-3 py-1 bg-purple-50 rounded text-sm">Avg length: <strong id="wfAvg">0</strong></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button id="wfTab1" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Words</button>
+      <button id="wfTab2" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Bigrams</button>
+      <button id="wfTab3" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Trigrams</button>
+    </div>
+
+    <!-- Results -->
+    <div id="wfResults" class="hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 py-2 text-left text-gray-500 w-12">#</th>
+            <th class="px-3 py-2 text-left text-gray-500">Word</th>
+            <th class="px-3 py-2 text-right text-gray-500 w-20">Count</th>
+            <th class="px-3 py-2 text-right text-gray-500 w-20">%</th>
+            <th class="px-3 py-2 text-gray-500 w-40">Bar</th>
+          </tr>
+        </thead>
+        <tbody id="wfBody" class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const stopWords = new Set(['the','be','to','of','and','a','in','that','have','i','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us','is','are','was','were','been','being','had','has','did','does','am','may','might','must','shall','should','the']);
+
+    let currentTab = 'words';
+    let allWords: string[] = [];
+
+    function analyze(): void {
+      let text = (document.getElementById('wfInput') as HTMLTextAreaElement).value;
+      if (!text.trim()) { document.getElementById('wfStats')!.classList.add('hidden'); document.getElementById('wfResults')!.classList.add('hidden'); return; }
+
+      if ((document.getElementById('wfCase') as HTMLInputElement).checked) text = text.toLowerCase();
+      const words = text.match(/[\p{L}\p{N}'-]+/gu) || [];
+      const minLen = parseInt((document.getElementById('wfMin') as HTMLInputElement).value) || 1;
+      const excludeStop = (document.getElementById('wfStop') as HTMLInputElement).checked;
+
+      allWords = words.filter(w => {
+        if (w.length < minLen) return false;
+        if (excludeStop && stopWords.has(w.toLowerCase())) return false;
+        return true;
+      });
+
+      document.getElementById('wfStats')!.classList.remove('hidden');
+      document.getElementById('wfResults')!.classList.remove('hidden');
+      document.getElementById('wfTotal')!.textContent = words.length.toLocaleString();
+      document.getElementById('wfUnique')!.textContent = new Set(allWords).size.toLocaleString();
+      const avgLen = allWords.length ? (allWords.reduce((s, w) => s + w.length, 0) / allWords.length).toFixed(1) : '0';
+      document.getElementById('wfAvg')!.textContent = avgLen;
+
+      renderTab();
+    }
+
+    function getNgrams(n: number): [string, number][] {
+      const freq: Record<string, number> = {};
+      for (let i = 0; i <= allWords.length - n; i++) {
+        const gram = allWords.slice(i, i + n).join(' ');
+        freq[gram] = (freq[gram] || 0) + 1;
+      }
+      return Object.entries(freq).sort((a, b) => b[1] - a[1]);
+    }
+
+    function renderTab(): void {
+      const top = parseInt((document.getElementById('wfTop') as HTMLInputElement).value) || 25;
+      let data: [string, number][];
+
+      if (currentTab === 'words') data = getNgrams(1);
+      else if (currentTab === 'bigrams') data = getNgrams(2);
+      else data = getNgrams(3);
+
+      const maxCount = data.length ? data[0][1] : 1;
+      const totalWords = allWords.length;
+
+      const body = document.getElementById('wfBody')!;
+      body.innerHTML = data.slice(0, top).map(([word, count], i) => {
+        const pct = ((count / totalWords) * 100).toFixed(1);
+        const barW = (count / maxCount) * 100;
+        return `<tr><td class="px-3 py-2 text-gray-400">${i + 1}</td><td class="px-3 py-2 font-mono">${word}</td><td class="px-3 py-2 text-right font-mono">${count}</td><td class="px-3 py-2 text-right text-gray-400">${pct}%</td><td class="px-3 py-2"><div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-blue-500 h-2 rounded-full" style="width:${barW}%"></div></div></td></tr>`;
+      }).join('');
+    }
+
+    function setTab(tab: string, btn1: string, btn2: string, btn3: string): void {
+      currentTab = tab;
+      document.getElementById('wfTab1')!.className = btn1;
+      document.getElementById('wfTab2')!.className = btn2;
+      document.getElementById('wfTab3')!.className = btn3;
+      renderTab();
+    }
+
+    const active = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+    const inactive = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+
+    document.getElementById('wfTab1')!.addEventListener('click', () => setTab('words', active, inactive, inactive));
+    document.getElementById('wfTab2')!.addEventListener('click', () => setTab('bigrams', inactive, active, inactive));
+    document.getElementById('wfTab3')!.addEventListener('click', () => setTab('trigrams', inactive, inactive, active));
+
+    (document.getElementById('wfInput') as HTMLTextAreaElement).addEventListener('input', analyze);
+    ['wfStop', 'wfCase', 'wfMin', 'wfTop'].forEach(id => {
+      document.getElementById(id)!.addEventListener('change', analyze);
+      document.getElementById(id)!.addEventListener('input', analyze);
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Word Frequency Counter</h2>
+    <p>Analyze word frequency in any text. Find the most commonly used words, bigrams (2-word phrases) and trigrams (3-word phrases). Filter out stop words, set minimum word length, and view visual bar charts.</p>
+  </Fragment>
+</ToolLayout>

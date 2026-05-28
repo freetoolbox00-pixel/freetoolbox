@@ -1,0 +1,159 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Open Graph Preview"
+  description="Preview how your page will look when shared on Facebook, Twitter/X, LinkedIn and Discord. Edit and generate Open Graph meta tags. Free OG preview tool."
+  category="seo"
+  icon="OG"
+>
+  <div>
+    <!-- Input Fields -->
+    <div class="space-y-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
+        <input type="text" id="ogTitle" value="My Amazing Page Title" maxlength="60" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div class="text-xs text-gray-400 mt-1"><span id="ogTitleLen">22</span>/60 characters</div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea id="ogDesc" rows="2" maxlength="200" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">This is a preview of how my page will appear when shared on social media.</textarea>
+        <div class="text-xs text-gray-400 mt-1"><span id="ogDescLen">77</span>/200 characters</div>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+          <input type="text" id="ogUrl" value="https://example.com/page" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Site Name</label>
+          <input type="text" id="ogSite" value="My Website" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+        <input type="text" id="ogImage" placeholder="https://example.com/image.jpg (1200x630 recommended)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+    </div>
+
+    <!-- Previews -->
+    <div class="space-y-6">
+      <!-- Facebook -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Facebook / LinkedIn Preview</h3>
+        <div class="max-w-lg border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+          <div id="fbImage" class="w-full h-[250px] bg-gray-200 flex items-center justify-center text-gray-400 text-sm">
+            No image set
+          </div>
+          <div class="p-3">
+            <div id="fbSite" class="text-xs text-gray-500 uppercase">example.com</div>
+            <div id="fbTitle" class="text-base font-semibold text-gray-900 mt-1 line-clamp-2">My Amazing Page Title</div>
+            <div id="fbDesc" class="text-sm text-gray-600 mt-1 line-clamp-2">This is a preview of how my page will appear when shared on social media.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Twitter -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Twitter/X Preview</h3>
+        <div class="max-w-lg border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+          <div id="twImage" class="w-full h-[250px] bg-gray-200 flex items-center justify-center text-gray-400 text-sm">
+            No image set
+          </div>
+          <div class="p-3">
+            <div id="twTitle" class="text-sm font-bold text-gray-900 line-clamp-2">My Amazing Page Title</div>
+            <div id="twDesc" class="text-sm text-gray-500 mt-1 line-clamp-2">This is a preview of how my page will appear when shared on social media.</div>
+            <div id="twUrl" class="text-xs text-gray-400 mt-1 flex items-center gap-1">🔗 example.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generated Meta Tags -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-semibold text-gray-900">Generated Meta Tags</h3>
+        <button id="copyOgTags" class="text-xs text-blue-600 hover:text-blue-800">Copy HTML</button>
+      </div>
+      <pre id="ogCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-xs overflow-auto whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    const fields = ['ogTitle', 'ogDesc', 'ogUrl', 'ogSite', 'ogImage'];
+
+    function getDomain(url: string): string {
+      try { return new URL(url).hostname; } catch { return url; }
+    }
+
+    function update(): void {
+      const title = (document.getElementById('ogTitle') as HTMLInputElement).value;
+      const desc = (document.getElementById('ogDesc') as HTMLTextAreaElement).value;
+      const url = (document.getElementById('ogUrl') as HTMLInputElement).value;
+      const site = (document.getElementById('ogSite') as HTMLInputElement).value;
+      const image = (document.getElementById('ogImage') as HTMLInputElement).value;
+      const domain = getDomain(url);
+
+      document.getElementById('ogTitleLen')!.textContent = title.length.toString();
+      document.getElementById('ogDescLen')!.textContent = desc.length.toString();
+
+      // Facebook preview
+      document.getElementById('fbTitle')!.textContent = title;
+      document.getElementById('fbDesc')!.textContent = desc;
+      document.getElementById('fbSite')!.textContent = domain.toUpperCase();
+      const fbImg = document.getElementById('fbImage')!;
+      if (image) { fbImg.innerHTML = `<img src="${image}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='Invalid image URL'" />`; }
+      else { fbImg.innerHTML = '<span class="text-gray-400">No image set</span>'; }
+
+      // Twitter preview
+      document.getElementById('twTitle')!.textContent = title;
+      document.getElementById('twDesc')!.textContent = desc;
+      document.getElementById('twUrl')!.textContent = `🔗 ${domain}`;
+      const twImg = document.getElementById('twImage')!;
+      if (image) { twImg.innerHTML = `<img src="${image}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='Invalid image URL'" />`; }
+      else { twImg.innerHTML = '<span class="text-gray-400">No image set</span>'; }
+
+      // Generate meta tags
+      let meta = `<!-- Open Graph / Facebook -->\n`;
+      meta += `<meta property="og:type" content="website">\n`;
+      meta += `<meta property="og:url" content="${url}">\n`;
+      meta += `<meta property="og:title" content="${title}">\n`;
+      meta += `<meta property="og:description" content="${desc}">\n`;
+      if (site) meta += `<meta property="og:site_name" content="${site}">\n`;
+      if (image) meta += `<meta property="og:image" content="${image}">\n`;
+      meta += `\n<!-- Twitter -->\n`;
+      meta += `<meta property="twitter:card" content="summary_large_image">\n`;
+      meta += `<meta property="twitter:url" content="${url}">\n`;
+      meta += `<meta property="twitter:title" content="${title}">\n`;
+      meta += `<meta property="twitter:description" content="${desc}">\n`;
+      if (image) meta += `<meta property="twitter:image" content="${image}">\n`;
+
+      document.getElementById('ogCode')!.textContent = meta;
+    }
+
+    fields.forEach(id => document.getElementById(id)!.addEventListener('input', update));
+
+    document.getElementById('copyOgTags')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('ogCode')!.textContent || '');
+      const btn = document.getElementById('copyOgTags')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy HTML', 1500);
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Open Graph Preview Tool</h2>
+    <p>Preview how your web pages will look when shared on social media. See Facebook, Twitter/X and LinkedIn card previews and generate the required meta tags.</p>
+    <h3>Why Open Graph Matters</h3>
+    <ul>
+      <li><strong>Better CTR</strong> - Rich previews with images get more clicks than plain links</li>
+      <li><strong>Brand control</strong> - Choose exactly what title, description and image appear</li>
+      <li><strong>SEO benefit</strong> - Social signals can indirectly improve search rankings</li>
+    </ul>
+    <h3>Recommended Image Size</h3>
+    <p>Use 1200×630 pixels for optimal display across all platforms. Keep important content centered as some platforms may crop edges.</p>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,303 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Markdown Table Generator"
+  description="Create Markdown tables visually with an editable grid. Set column alignment, import CSV/TSV data, and copy the generated Markdown syntax. Free online tool."
+  category="developer"
+  icon="📋"
+>
+  <div>
+    <!-- Table Size -->
+    <div class="flex flex-wrap gap-4 items-end mb-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Columns</label>
+        <input type="number" id="mdCols" value="3" min="1" max="20" class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Rows</label>
+        <input type="number" id="mdRows" value="3" min="1" max="50" class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <button id="mdResize" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Resize</button>
+      <button id="mdAddRow" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">+ Row</button>
+      <button id="mdAddCol" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">+ Column</button>
+    </div>
+
+    <!-- Import -->
+    <div class="flex gap-2 mb-4">
+      <button id="mdImportCsv" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-lg transition-colors border border-gray-300">Import CSV</button>
+      <button id="mdImportTsv" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-lg transition-colors border border-gray-300">Import TSV</button>
+      <textarea id="mdImportData" rows="1" placeholder="Paste CSV or TSV data here, then click Import..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+    </div>
+
+    <!-- Alignment Controls -->
+    <div id="mdAlignRow" class="flex gap-1 mb-2 flex-wrap"></div>
+
+    <!-- Editable Table -->
+    <div class="overflow-x-auto mb-4">
+      <table id="mdTable" class="w-full border-collapse border border-gray-300 text-sm">
+      </table>
+    </div>
+
+    <!-- Generate -->
+    <div class="flex gap-2 mb-4">
+      <button id="mdGenerate" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Generate Markdown</button>
+      <button id="mdClear" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Clear All</button>
+    </div>
+
+    <!-- Output -->
+    <div class="flex items-center justify-between mb-1">
+      <label class="block text-sm font-medium text-gray-700">Markdown Output</label>
+      <button id="mdCopy" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy</button>
+    </div>
+    <textarea id="mdOutput" rows="8" readonly class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-y font-mono"></textarea>
+  </div>
+
+  <script>
+    const table = document.getElementById('mdTable') as HTMLTableElement;
+    const alignRow = document.getElementById('mdAlignRow')!;
+    const output = document.getElementById('mdOutput') as HTMLTextAreaElement;
+
+    let colCount = 3;
+    let rowCount = 3;
+    let alignments: ('left' | 'center' | 'right')[] = [];
+
+    function buildTable(): void {
+      colCount = Math.max(1, Math.min(20, parseInt((document.getElementById('mdCols') as HTMLInputElement).value) || 3));
+      rowCount = Math.max(1, Math.min(50, parseInt((document.getElementById('mdRows') as HTMLInputElement).value) || 3));
+
+      // Preserve old alignments
+      while (alignments.length < colCount) alignments.push('left');
+      alignments = alignments.slice(0, colCount);
+
+      table.innerHTML = '';
+
+      // Header row
+      const thead = table.createTHead();
+      const headerRow = thead.insertRow();
+      for (let c = 0; c < colCount; c++) {
+        const th = document.createElement('th');
+        th.className = 'border border-gray-300 px-2 py-1 bg-blue-50 font-medium';
+        th.contentEditable = 'true';
+        th.textContent = `Header ${c + 1}`;
+        th.dataset.col = c.toString();
+        th.dataset.row = 'header';
+        headerRow.appendChild(th);
+      }
+
+      // Body rows
+      const tbody = table.createTBody();
+      for (let r = 0; r < rowCount; r++) {
+        const row = tbody.insertRow();
+        for (let c = 0; c < colCount; c++) {
+          const td = row.insertCell();
+          td.className = 'border border-gray-300 px-2 py-1';
+          td.contentEditable = 'true';
+          td.textContent = '';
+          td.dataset.col = c.toString();
+          td.dataset.row = r.toString();
+        }
+      }
+
+      buildAlignControls();
+    }
+
+    function buildAlignControls(): void {
+      alignRow.innerHTML = '';
+      for (let c = 0; c < colCount; c++) {
+        const grp = document.createElement('div');
+        grp.className = 'flex items-center gap-0.5 text-xs';
+
+        const label = document.createElement('span');
+        label.className = 'text-gray-500 mr-1';
+        label.textContent = `Col ${c + 1}:`;
+        grp.appendChild(label);
+
+        (['left', 'center', 'right'] as const).forEach(align => {
+          const btn = document.createElement('button');
+          btn.className = alignments[c] === align
+            ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white'
+            : 'px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600';
+          btn.textContent = align === 'left' ? '←' : align === 'center' ? '↔' : '→';
+          btn.title = align;
+          btn.addEventListener('click', () => {
+            alignments[c] = align;
+            buildAlignControls();
+          });
+          grp.appendChild(btn);
+        });
+
+        alignRow.appendChild(grp);
+      }
+    }
+
+    function getCellData(): string[][] {
+      const data: string[][] = [];
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const rowData: string[] = [];
+        row.querySelectorAll('th, td').forEach(cell => {
+          rowData.push((cell.textContent || '').trim());
+        });
+        data.push(rowData);
+      });
+      return data;
+    }
+
+    function generateMarkdown(): void {
+      const data = getCellData();
+      if (data.length < 1) return;
+
+      const headers = data[0];
+      const body = data.slice(1);
+
+      // Calculate column widths
+      const widths = headers.map((h, i) => {
+        let maxW = h.length;
+        for (const row of body) {
+          if (row[i] && row[i].length > maxW) maxW = row[i].length;
+        }
+        return Math.max(maxW, 3);
+      });
+
+      // Build separator
+      const sep = headers.map((_, i) => {
+        const w = widths[i];
+        const a = alignments[i] || 'left';
+        if (a === 'center') return ':' + '-'.repeat(w) + ':';
+        if (a === 'right') return '-'.repeat(w + 1) + ':';
+        return ':' + '-'.repeat(w + 1);
+      });
+
+      // Pad cells
+      const pad = (text: string, width: number, align: string): string => {
+        const diff = width - text.length;
+        if (align === 'center') {
+          const left = Math.floor(diff / 2);
+          return ' '.repeat(left) + text + ' '.repeat(diff - left);
+        }
+        if (align === 'right') return ' '.repeat(diff) + text;
+        return text + ' '.repeat(diff);
+      };
+
+      const headerLine = '| ' + headers.map((h, i) => pad(h, widths[i], alignments[i])).join(' | ') + ' |';
+      const sepLine = '| ' + sep.join(' | ') + ' |';
+      const bodyLines = body.map(row =>
+        '| ' + row.map((cell, i) => pad(cell || '', widths[i], alignments[i] || 'left')).join(' | ') + ' |'
+      );
+
+      output.value = [headerLine, sepLine, ...bodyLines].join('\n');
+    }
+
+    function importData(delimiter: string): void {
+      const raw = (document.getElementById('mdImportData') as HTMLTextAreaElement).value.trim();
+      if (!raw) return;
+
+      const lines = raw.split('\n').filter(l => l.trim().length > 0);
+      const parsed = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
+
+      const newCols = Math.max(...parsed.map(r => r.length));
+      const newRows = Math.max(1, parsed.length - 1); // first row = header
+
+      (document.getElementById('mdCols') as HTMLInputElement).value = newCols.toString();
+      (document.getElementById('mdRows') as HTMLInputElement).value = newRows.toString();
+      colCount = newCols;
+      rowCount = newRows;
+      alignments = Array(newCols).fill('left');
+
+      buildTable();
+
+      // Fill data
+      const cells = table.querySelectorAll('th, td');
+      let idx = 0;
+      for (const row of parsed) {
+        for (let c = 0; c < newCols; c++) {
+          if (idx < cells.length) {
+            cells[idx].textContent = row[c] || '';
+          }
+          idx++;
+        }
+      }
+    }
+
+    // Event listeners
+    document.getElementById('mdResize')!.addEventListener('click', buildTable);
+
+    document.getElementById('mdAddRow')!.addEventListener('click', () => {
+      rowCount++;
+      (document.getElementById('mdRows') as HTMLInputElement).value = rowCount.toString();
+      const tbody = table.querySelector('tbody') || table.createTBody();
+      const row = tbody.insertRow();
+      for (let c = 0; c < colCount; c++) {
+        const td = row.insertCell();
+        td.className = 'border border-gray-300 px-2 py-1';
+        td.contentEditable = 'true';
+        td.textContent = '';
+      }
+    });
+
+    document.getElementById('mdAddCol')!.addEventListener('click', () => {
+      colCount++;
+      (document.getElementById('mdCols') as HTMLInputElement).value = colCount.toString();
+      alignments.push('left');
+
+      // Add header cell
+      const headerRow = table.querySelector('thead tr');
+      if (headerRow) {
+        const th = document.createElement('th');
+        th.className = 'border border-gray-300 px-2 py-1 bg-blue-50 font-medium';
+        th.contentEditable = 'true';
+        th.textContent = `Header ${colCount}`;
+        headerRow.appendChild(th);
+      }
+
+      // Add body cells
+      const bodyRows = table.querySelectorAll('tbody tr');
+      bodyRows.forEach(row => {
+        const td = document.createElement('td');
+        td.className = 'border border-gray-300 px-2 py-1';
+        td.contentEditable = 'true';
+        td.textContent = '';
+        row.appendChild(td);
+      });
+
+      buildAlignControls();
+    });
+
+    document.getElementById('mdGenerate')!.addEventListener('click', generateMarkdown);
+
+    document.getElementById('mdClear')!.addEventListener('click', () => {
+      table.querySelectorAll('th, td').forEach(cell => {
+        cell.textContent = cell.tagName === 'TH' ? `Header ${parseInt(cell.getAttribute('data-col') || '0') + 1}` : '';
+      });
+      output.value = '';
+    });
+
+    document.getElementById('mdImportCsv')!.addEventListener('click', () => importData(','));
+    document.getElementById('mdImportTsv')!.addEventListener('click', () => importData('\t'));
+
+    document.getElementById('mdCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.value);
+      const btn = document.getElementById('mdCopy')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    // Initialize
+    buildTable();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Markdown Table Generator</h2>
+    <p>Create Markdown tables visually using an editable grid. Set the number of rows and columns, edit cell content directly, configure column alignment, and generate clean Markdown table syntax ready to paste into your documents.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Visual Editor</strong> - Click cells to edit content directly in the table</li>
+      <li><strong>Column Alignment</strong> - Set left, center, or right alignment per column</li>
+      <li><strong>Import CSV/TSV</strong> - Paste comma or tab-separated data and convert to a table</li>
+      <li><strong>Dynamic Sizing</strong> - Add rows and columns on the fly</li>
+      <li><strong>Clean Output</strong> - Generates properly padded and aligned Markdown syntax</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

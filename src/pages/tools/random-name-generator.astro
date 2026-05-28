@@ -1,0 +1,105 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Random Name Generator" description="Generate random names for characters, babies, pen names or fiction writing. First names, last names, full names." category="utility" icon="🎲">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+        <select id="rnGender" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="any">Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Name Type</label>
+        <select id="rnType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="full">Full Name</option>
+          <option value="first">First Name Only</option>
+          <option value="last">Last Name Only</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">How Many</label>
+        <select id="rnCount" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="1">1</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="rnGen" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4 text-lg">Generate Names</button>
+
+    <div id="rnResults" class="space-y-2 mb-4"></div>
+
+    <div class="flex justify-end">
+      <button id="rnCopy" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 hidden">Copy All</button>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const MALE = ['James','John','Robert','Michael','William','David','Richard','Joseph','Thomas','Christopher','Daniel','Matthew','Anthony','Mark','Steven','Andrew','Joshua','Kenneth','Kevin','Brian','George','Timothy','Ronald','Edward','Jason','Jeffrey','Ryan','Jacob','Nicholas','Eric','Benjamin','Samuel','Patrick','Alexander','Frank','Raymond','Jack','Dennis','Owen','Lucas','Henry','Nathan','Peter','Ethan','Logan','Dylan','Adrian','Leo','Caleb','Miles','Felix','Oscar','Hugo','Ivan','Max','Victor','Luke','Mason','Carter','Elijah'];
+  const FEMALE = ['Mary','Patricia','Jennifer','Linda','Barbara','Elizabeth','Susan','Jessica','Sarah','Karen','Lisa','Nancy','Betty','Margaret','Sandra','Ashley','Dorothy','Kimberly','Emily','Donna','Michelle','Carol','Amanda','Melissa','Deborah','Stephanie','Rebecca','Sharon','Laura','Cynthia','Kathleen','Amy','Angela','Shirley','Anna','Brenda','Emma','Nicole','Helen','Samantha','Katherine','Christine','Hannah','Rachel','Carolyn','Janet','Catherine','Maria','Heather','Diane','Olivia','Sophia','Isabella','Mia','Charlotte','Amelia','Harper','Evelyn','Abigail','Ella'];
+  const LAST = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Rodriguez','Martinez','Anderson','Taylor','Thomas','Moore','Jackson','Martin','Lee','Thompson','White','Harris','Clark','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott','Torres','Hill','Green','Adams','Baker','Nelson','Carter','Mitchell','Roberts','Turner','Phillips','Campbell','Parker','Evans','Edwards','Collins','Stewart','Morris','Rogers','Reed','Cook','Morgan','Bell','Murphy','Bailey','Rivera','Cooper','Howard','Ward','Cox','Peterson','Gray','Watson'];
+
+  function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function generate() {
+    const gender = (document.getElementById('rnGender') as HTMLSelectElement).value;
+    const type = (document.getElementById('rnType') as HTMLSelectElement).value;
+    const count = parseInt((document.getElementById('rnCount') as HTMLSelectElement).value);
+    const results: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      let firstName = '';
+      if (type !== 'last') {
+        if (gender === 'male') firstName = pick(MALE);
+        else if (gender === 'female') firstName = pick(FEMALE);
+        else firstName = Math.random() > 0.5 ? pick(MALE) : pick(FEMALE);
+      }
+
+      let lastName = '';
+      if (type !== 'first') lastName = pick(LAST);
+
+      if (type === 'full') results.push(`${firstName} ${lastName}`);
+      else if (type === 'first') results.push(firstName);
+      else results.push(lastName);
+    }
+
+    const container = document.getElementById('rnResults')!;
+    container.innerHTML = results.map((name, i) =>
+      `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <span class="font-medium text-gray-800">${name}</span>
+        <button class="rn-copy text-xs text-blue-600 hover:underline" data-name="${name}">Copy</button>
+      </div>`
+    ).join('');
+
+    document.getElementById('rnCopy')!.classList.remove('hidden');
+  }
+
+  document.getElementById('rnGen')!.addEventListener('click', generate);
+
+  document.getElementById('rnResults')!.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.rn-copy') as HTMLElement;
+    if (!btn) return;
+    navigator.clipboard.writeText(btn.dataset.name!);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1000);
+  });
+
+  document.getElementById('rnCopy')!.addEventListener('click', () => {
+    const names = Array.from(document.querySelectorAll('#rnResults .font-medium')).map(el => el.textContent).join('\n');
+    navigator.clipboard.writeText(names);
+    const btn = document.getElementById('rnCopy')!;
+    btn.textContent = 'Copied All!';
+    setTimeout(() => { btn.textContent = 'Copy All'; }, 1500);
+  });
+
+  generate();
+</script>

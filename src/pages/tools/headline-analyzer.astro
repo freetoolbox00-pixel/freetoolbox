@@ -1,0 +1,106 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Headline Analyzer" description="Analyze your headline for emotional impact, power words, length and readability. Score your title for SEO and engagement." category="seo" icon="📰">
+  <div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Enter your headline</label>
+      <input type="text" id="haInput" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg" placeholder="e.g. 10 Proven Ways to Boost Your Productivity Today" />
+    </div>
+    <button id="haCheck" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-6">Analyze</button>
+    <div id="haResult" class="hidden">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+          <div class="text-xs text-blue-600">Overall Score</div>
+          <div class="text-3xl font-bold" id="haScore">0</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center">
+          <div class="text-xs text-gray-500">Word Count</div>
+          <div class="text-xl font-bold" id="haWords">0</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center">
+          <div class="text-xs text-gray-500">Characters</div>
+          <div class="text-xl font-bold" id="haChars">0</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center">
+          <div class="text-xs text-gray-500">Type</div>
+          <div class="text-sm font-bold" id="haType">-</div>
+        </div>
+      </div>
+      <div class="space-y-3" id="haDetails"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const input = document.getElementById('haInput') as HTMLInputElement;
+  const checkBtn = document.getElementById('haCheck')!;
+  const resultEl = document.getElementById('haResult')!;
+
+  const POWER_WORDS = ['amazing','proven','secret','ultimate','essential','powerful','incredible','stunning','exclusive','guaranteed','breakthrough','revolutionary','free','best','easy','simple','fast','quick','instant','new','now','today','discover','boost','improve','master','hack','trick','mistake','avoid','never','always','must','need','want','love','hate','fear','shocking','surprising','unbelievable'];
+  const EMOTIONAL = ['love','hate','fear','joy','anger','surprise','trust','disgust','amazing','terrible','beautiful','horrible','wonderful','awful','fantastic','dreadful','brilliant','shocking','heartbreaking','inspiring'];
+  const NUMBERS_RE = /\b\d+\b/;
+
+  checkBtn.addEventListener('click', () => {
+    const h = input.value.trim();
+    if (!h) return;
+
+    const words = h.toLowerCase().split(/\s+/);
+    const wordCount = words.length;
+    const charCount = h.length;
+
+    let score = 40;
+    const details: { label: string; status: string; color: string; note: string }[] = [];
+
+    // Length check
+    if (wordCount >= 6 && wordCount <= 12) { score += 15; details.push({ label: 'Word Count', status: 'Good', color: 'green', note: `${wordCount} words (ideal: 6-12)` }); }
+    else if (wordCount < 6) { score += 5; details.push({ label: 'Word Count', status: 'Too Short', color: 'yellow', note: `${wordCount} words — aim for 6-12` }); }
+    else { score += 5; details.push({ label: 'Word Count', status: 'Too Long', color: 'yellow', note: `${wordCount} words — try to shorten` }); }
+
+    // Character count for SEO
+    if (charCount <= 60) { score += 10; details.push({ label: 'SEO Length', status: 'Good', color: 'green', note: `${charCount} chars (Google shows ~60)` }); }
+    else { score += 3; details.push({ label: 'SEO Length', status: 'Long', color: 'yellow', note: `${charCount} chars — may be truncated in search` }); }
+
+    // Power words
+    const pw = words.filter(w => POWER_WORDS.includes(w));
+    if (pw.length >= 2) { score += 15; details.push({ label: 'Power Words', status: 'Strong', color: 'green', note: `Found: ${pw.join(', ')}` }); }
+    else if (pw.length === 1) { score += 8; details.push({ label: 'Power Words', status: 'OK', color: 'blue', note: `Found: ${pw[0]}` }); }
+    else { details.push({ label: 'Power Words', status: 'None', color: 'red', note: 'Add power words for more impact' }); }
+
+    // Emotional words
+    const ew = words.filter(w => EMOTIONAL.includes(w));
+    if (ew.length > 0) { score += 10; details.push({ label: 'Emotional Appeal', status: 'Present', color: 'green', note: `Words: ${ew.join(', ')}` }); }
+    else { details.push({ label: 'Emotional Appeal', status: 'Missing', color: 'yellow', note: 'Add emotional words for engagement' }); }
+
+    // Numbers
+    if (NUMBERS_RE.test(h)) { score += 10; details.push({ label: 'Numbers', status: 'Present', color: 'green', note: 'Numbers increase click-through rate' }); }
+    else { details.push({ label: 'Numbers', status: 'Missing', color: 'yellow', note: 'Adding a number can boost CTR' }); }
+
+    // Type detection
+    let type = 'Statement';
+    if (h.endsWith('?')) type = 'Question';
+    else if (/^how\s/i.test(h)) type = 'How-to';
+    else if (/^\d+\s/i.test(h)) type = 'List/Listicle';
+    else if (/^(why|what|when|where|who)\s/i.test(h)) type = 'Question';
+    else if (/^(the\s)?(ultimate|complete|definitive)\s/i.test(h)) type = 'Guide';
+
+    score = Math.min(100, Math.max(0, score));
+
+    document.getElementById('haScore')!.textContent = String(score);
+    document.getElementById('haScore')!.className = 'text-3xl font-bold ' + (score >= 70 ? 'text-green-600' : score >= 50 ? 'text-yellow-600' : 'text-red-600');
+    document.getElementById('haWords')!.textContent = String(wordCount);
+    document.getElementById('haChars')!.textContent = String(charCount);
+    document.getElementById('haType')!.textContent = type;
+
+    const colors: Record<string, string> = { green: 'bg-green-50 border-green-200 text-green-700', blue: 'bg-blue-50 border-blue-200 text-blue-700', yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700', red: 'bg-red-50 border-red-200 text-red-700' };
+
+    document.getElementById('haDetails')!.innerHTML = details.map(d => `
+      <div class="flex items-center justify-between p-3 ${colors[d.color]} rounded-lg border">
+        <div><div class="font-medium text-sm">${d.label}: ${d.status}</div><div class="text-xs opacity-75">${d.note}</div></div>
+      </div>
+    `).join('');
+
+    resultEl.classList.remove('hidden');
+  });
+</script>

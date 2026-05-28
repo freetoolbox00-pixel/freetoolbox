@@ -1,0 +1,199 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JSON to CSV Converter"
+  description="Convert JSON arrays to CSV format. Handles nested objects. Download as CSV file. Free JSON to CSV converter."
+  category="developer"
+  icon="📊"
+>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button id="j2cMode1" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">JSON → CSV</button>
+      <button id="j2cMode2" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">CSV → JSON</button>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label id="j2cLabel" class="block text-sm font-medium text-gray-700 mb-1">JSON Input</label>
+        <textarea id="j2cInput" rows="14" placeholder='[
+  {"name": "Alice", "age": 30, "city": "NYC"},
+  {"name": "Bob", "age": 25, "city": "LA"},
+  {"name": "Charlie", "age": 35, "city": "Chicago"}
+]' class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Output</label>
+          <div class="flex gap-2">
+            <button id="j2cCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+            <button id="j2cDownload" class="text-xs text-blue-600 hover:text-blue-800">Download</button>
+          </div>
+        </div>
+        <pre id="j2cOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[350px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="flex gap-4 mt-4">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="j2cHeaders" checked class="accent-blue-600" /> Include headers
+      </label>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Delimiter:</label>
+        <select id="j2cDelim" class="px-2 py-1 border border-gray-300 rounded text-sm">
+          <option value=",">Comma (,)</option>
+          <option value=";">Semicolon (;)</option>
+          <option value="	">Tab</option>
+          <option value="|">Pipe (|)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="j2cStatus" class="mt-4 hidden">
+      <div id="j2cStatusMsg" class="p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'json2csv';
+
+    function flattenObj(obj: any, prefix: string = ''): Record<string, string> {
+      const result: Record<string, string> = {};
+      for (const [key, val] of Object.entries(obj)) {
+        const newKey = prefix ? `${prefix}.${key}` : key;
+        if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+          Object.assign(result, flattenObj(val, newKey));
+        } else {
+          result[newKey] = val === null ? '' : Array.isArray(val) ? JSON.stringify(val) : String(val);
+        }
+      }
+      return result;
+    }
+
+    function escapeCSV(val: string, delim: string): string {
+      if (val.includes(delim) || val.includes('"') || val.includes('\n')) {
+        return '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    }
+
+    function jsonToCsv(input: string): string {
+      const data = JSON.parse(input);
+      const delim = (document.getElementById('j2cDelim') as HTMLSelectElement).value;
+      const includeHeaders = (document.getElementById('j2cHeaders') as HTMLInputElement).checked;
+
+      let arr: any[];
+      if (Array.isArray(data)) arr = data;
+      else if (typeof data === 'object') arr = [data];
+      else throw new Error('Input must be a JSON array or object');
+
+      const flattened = arr.map(item => flattenObj(item));
+      const headers = [...new Set(flattened.flatMap(obj => Object.keys(obj)))];
+
+      let csv = '';
+      if (includeHeaders) csv = headers.map(h => escapeCSV(h, delim)).join(delim) + '\n';
+      flattened.forEach(row => {
+        csv += headers.map(h => escapeCSV(row[h] || '', delim)).join(delim) + '\n';
+      });
+      return csv.trim();
+    }
+
+    function csvToJson(input: string): string {
+      const delim = (document.getElementById('j2cDelim') as HTMLSelectElement).value;
+      const lines = input.trim().split('\n');
+      if (lines.length < 2) throw new Error('CSV must have at least a header row and one data row');
+
+      const headers = parseCsvLine(lines[0], delim);
+      const result = lines.slice(1).map(line => {
+        const values = parseCsvLine(line, delim);
+        const obj: Record<string, any> = {};
+        headers.forEach((h, i) => {
+          const val = values[i] || '';
+          if (val === 'true') obj[h] = true;
+          else if (val === 'false') obj[h] = false;
+          else if (val === '') obj[h] = '';
+          else if (!isNaN(Number(val)) && val.trim() !== '') obj[h] = Number(val);
+          else obj[h] = val;
+        });
+        return obj;
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    function parseCsvLine(line: string, delim: string): string[] {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        if (inQuotes) {
+          if (line[i] === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (line[i] === '"') inQuotes = false;
+          else current += line[i];
+        } else {
+          if (line[i] === '"') inQuotes = true;
+          else if (line[i] === delim || (delim === '\t' && line[i] === '\t')) { result.push(current); current = ''; }
+          else current += line[i];
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    function convert(): void {
+      const input = (document.getElementById('j2cInput') as HTMLTextAreaElement).value.trim();
+      if (!input) return;
+      try {
+        const result = mode === 'json2csv' ? jsonToCsv(input) : csvToJson(input);
+        document.getElementById('j2cOutput')!.textContent = result;
+        const lines = result.split('\n').length;
+        showStatus(`Converted (${lines} rows)`, 'success');
+      } catch (e: any) {
+        showStatus('Error: ' + e.message, 'error');
+      }
+    }
+
+    function showStatus(msg: string, type: 'success' | 'error'): void {
+      document.getElementById('j2cStatus')!.classList.remove('hidden');
+      const el = document.getElementById('j2cStatusMsg')!;
+      el.textContent = msg;
+      el.className = `p-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`;
+    }
+
+    document.getElementById('j2cMode1')!.addEventListener('click', () => {
+      mode = 'json2csv';
+      document.getElementById('j2cMode1')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('j2cMode2')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('j2cLabel')!.textContent = 'JSON Input';
+    });
+    document.getElementById('j2cMode2')!.addEventListener('click', () => {
+      mode = 'csv2json';
+      document.getElementById('j2cMode2')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('j2cMode1')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('j2cLabel')!.textContent = 'CSV Input';
+    });
+
+    (document.getElementById('j2cInput') as HTMLTextAreaElement).addEventListener('input', convert);
+    document.getElementById('j2cDelim')!.addEventListener('change', convert);
+    document.getElementById('j2cHeaders')!.addEventListener('change', convert);
+
+    document.getElementById('j2cCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('j2cOutput')!.textContent || '');
+    });
+    document.getElementById('j2cDownload')!.addEventListener('click', () => {
+      const output = document.getElementById('j2cOutput')!.textContent || '';
+      const ext = mode === 'json2csv' ? 'csv' : 'json';
+      const blob = new Blob([output], { type: ext === 'csv' ? 'text/csv' : 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `converted.${ext}`;
+      a.click();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JSON to CSV Converter</h2>
+    <p>Convert JSON arrays to CSV format or CSV to JSON. Handles nested objects by flattening keys. Supports custom delimiters (comma, semicolon, tab, pipe). Download the converted file.</p>
+  </Fragment>
+</ToolLayout>

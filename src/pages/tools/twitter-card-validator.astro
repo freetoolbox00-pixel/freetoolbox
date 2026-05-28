@@ -1,0 +1,248 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Twitter Card Validator"
+  description="Preview and generate Twitter/X card meta tags. Create summary and summary_large_image cards with live preview. Free Twitter card generator."
+  category="seo"
+  icon="🐦"
+>
+  <div>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Input Fields -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Card Type</label>
+          <select id="cardType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="summary">Summary</option>
+            <option value="summary_large_image" selected>Summary Large Image</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="flex justify-between">
+            <label class="block text-xs text-gray-500 mb-1">Title *</label>
+            <span id="titleCount" class="text-xs text-gray-400">0/70</span>
+          </div>
+          <input type="text" id="cardTitle" placeholder="Your page title" maxlength="70" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div id="titleWarning" class="text-xs text-yellow-600 mt-1 hidden"></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between">
+            <label class="block text-xs text-gray-500 mb-1">Description *</label>
+            <span id="descCount" class="text-xs text-gray-400">0/200</span>
+          </div>
+          <textarea id="cardDesc" rows="3" placeholder="Brief description of your page content" maxlength="200" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+          <div id="descWarning" class="text-xs text-yellow-600 mt-1 hidden"></div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Image URL</label>
+          <input type="url" id="cardImage" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <p class="text-xs text-gray-400 mt-1">Recommended: 1200x628 for large image, 144x144 for summary</p>
+        </div>
+
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Page URL</label>
+          <input type="url" id="cardUrl" placeholder="https://example.com/page" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Site @username</label>
+          <input type="text" id="cardSite" placeholder="@yourusername" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Creator @username</label>
+          <input type="text" id="cardCreator" placeholder="@creatorname" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+
+      <!-- Preview & Output -->
+      <div class="space-y-6">
+        <!-- Card Preview -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Card Preview</h3>
+          <div id="cardPreview" class="border border-gray-200 rounded-xl overflow-hidden max-w-[420px] bg-white cursor-pointer hover:bg-gray-50 transition-colors">
+            <!-- Large Image Card -->
+            <div id="previewLargeImage">
+              <div id="previewImgLarge" class="w-full h-[220px] bg-gray-100 flex items-center justify-center text-gray-300 text-sm">
+                No image
+              </div>
+              <div class="p-3">
+                <div id="previewDomain" class="text-xs text-gray-500 truncate">example.com</div>
+                <div id="previewTitleLarge" class="text-sm font-medium text-gray-900 truncate mt-0.5">Your page title</div>
+                <div id="previewDescLarge" class="text-xs text-gray-500 line-clamp-2 mt-0.5">Page description will appear here</div>
+              </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div id="previewSummary" class="hidden">
+              <div class="flex">
+                <div id="previewImgSmall" class="w-[130px] h-[130px] bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-xs">
+                  No image
+                </div>
+                <div class="p-3 flex flex-col justify-center min-w-0">
+                  <div id="previewDomainSm" class="text-xs text-gray-500 truncate">example.com</div>
+                  <div id="previewTitleSmall" class="text-sm font-medium text-gray-900 truncate mt-0.5">Your page title</div>
+                  <div id="previewDescSmall" class="text-xs text-gray-500 line-clamp-2 mt-0.5">Page description here</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Meta Tags -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-gray-700">Generated Meta Tags</h3>
+            <button id="copyMeta" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+          </div>
+          <pre id="metaOutput" class="p-4 bg-gray-50 border border-gray-300 rounded-lg overflow-auto text-xs font-mono whitespace-pre-wrap min-h-[150px]"></pre>
+        </div>
+
+        <!-- Also generate OG tags -->
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="includeOg" checked class="accent-blue-600" />
+          Also include Open Graph (og:) tags
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getVal(id: string): string {
+      return (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement).value.trim();
+    }
+
+    function getDomain(url: string): string {
+      try { return new URL(url).hostname; } catch { return url ? url.replace(/^https?:\/\//, '').split('/')[0] : 'example.com'; }
+    }
+
+    function updatePreview(): void {
+      const type = (document.getElementById('cardType') as HTMLSelectElement).value;
+      const title = getVal('cardTitle') || 'Your page title';
+      const desc = getVal('cardDesc') || 'Page description will appear here';
+      const image = getVal('cardImage');
+      const url = getVal('cardUrl');
+      const domain = getDomain(url);
+
+      const isLarge = type === 'summary_large_image';
+      document.getElementById('previewLargeImage')!.classList.toggle('hidden', !isLarge);
+      document.getElementById('previewSummary')!.classList.toggle('hidden', isLarge);
+
+      if (isLarge) {
+        document.getElementById('previewTitleLarge')!.textContent = title;
+        document.getElementById('previewDescLarge')!.textContent = desc;
+        document.getElementById('previewDomain')!.textContent = domain;
+        const imgEl = document.getElementById('previewImgLarge')!;
+        if (image) {
+          imgEl.innerHTML = `<img src="${image}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\\'text-gray-300 text-sm\\'>Image load failed</span>'" />`;
+        } else {
+          imgEl.innerHTML = '<span class="text-gray-300 text-sm">No image</span>';
+        }
+      } else {
+        document.getElementById('previewTitleSmall')!.textContent = title;
+        document.getElementById('previewDescSmall')!.textContent = desc;
+        document.getElementById('previewDomainSm')!.textContent = domain;
+        const imgEl = document.getElementById('previewImgSmall')!;
+        if (image) {
+          imgEl.innerHTML = `<img src="${image}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\\'text-gray-300 text-xs\\'>Failed</span>'" />`;
+        } else {
+          imgEl.innerHTML = '<span class="text-gray-300 text-xs">No image</span>';
+        }
+      }
+
+      // Character counts & warnings
+      const titleLen = getVal('cardTitle').length;
+      const descLen = getVal('cardDesc').length;
+      document.getElementById('titleCount')!.textContent = `${titleLen}/70`;
+      document.getElementById('descCount')!.textContent = `${descLen}/200`;
+
+      const titleWarn = document.getElementById('titleWarning')!;
+      if (titleLen > 60) {
+        titleWarn.classList.remove('hidden');
+        titleWarn.textContent = titleLen > 70 ? 'Title exceeds 70 characters and may be truncated' : 'Title is getting long, keep under 70 characters';
+      } else { titleWarn.classList.add('hidden'); }
+
+      const descWarn = document.getElementById('descWarning')!;
+      if (descLen > 180) {
+        descWarn.classList.remove('hidden');
+        descWarn.textContent = descLen > 200 ? 'Description exceeds 200 characters and will be truncated' : 'Description is getting long, keep under 200 characters';
+      } else { descWarn.classList.add('hidden'); }
+
+      generateMeta();
+    }
+
+    function generateMeta(): void {
+      const type = (document.getElementById('cardType') as HTMLSelectElement).value;
+      const title = getVal('cardTitle');
+      const desc = getVal('cardDesc');
+      const image = getVal('cardImage');
+      const url = getVal('cardUrl');
+      const site = getVal('cardSite');
+      const creator = getVal('cardCreator');
+      const includeOg = (document.getElementById('includeOg') as HTMLInputElement).checked;
+
+      let meta = `<!-- Twitter Card Meta Tags -->\n`;
+      meta += `<meta name="twitter:card" content="${type}" />\n`;
+      if (title) meta += `<meta name="twitter:title" content="${escHtml(title)}" />\n`;
+      if (desc) meta += `<meta name="twitter:description" content="${escHtml(desc)}" />\n`;
+      if (image) meta += `<meta name="twitter:image" content="${escHtml(image)}" />\n`;
+      if (site) meta += `<meta name="twitter:site" content="${escHtml(site)}" />\n`;
+      if (creator) meta += `<meta name="twitter:creator" content="${escHtml(creator)}" />\n`;
+
+      if (includeOg) {
+        meta += `\n<!-- Open Graph Meta Tags -->\n`;
+        if (title) meta += `<meta property="og:title" content="${escHtml(title)}" />\n`;
+        if (desc) meta += `<meta property="og:description" content="${escHtml(desc)}" />\n`;
+        if (image) meta += `<meta property="og:image" content="${escHtml(image)}" />\n`;
+        if (url) meta += `<meta property="og:url" content="${escHtml(url)}" />\n`;
+        meta += `<meta property="og:type" content="website" />\n`;
+      }
+
+      document.getElementById('metaOutput')!.textContent = meta;
+    }
+
+    function escHtml(s: string): string {
+      return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Event listeners
+    const inputs = ['cardType', 'cardTitle', 'cardDesc', 'cardImage', 'cardUrl', 'cardSite', 'cardCreator', 'includeOg'];
+    inputs.forEach(id => {
+      const el = document.getElementById(id)!;
+      el.addEventListener('input', updatePreview);
+      el.addEventListener('change', updatePreview);
+    });
+
+    document.getElementById('copyMeta')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('metaOutput')!.textContent || '');
+      const btn = document.getElementById('copyMeta')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    // Initial render
+    updatePreview();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Twitter Card Validator &amp; Generator</h2>
+    <p>Preview how your content will appear when shared on Twitter/X. Generate the correct meta tags for Twitter Cards including summary and summary_large_image types, with optional Open Graph tags for Facebook and other platforms.</p>
+    <h3>Card Types</h3>
+    <ul>
+      <li><strong>Summary</strong> - Small square image with title and description (144x144 image minimum)</li>
+      <li><strong>Summary Large Image</strong> - Large banner image above title and description (1200x628 recommended)</li>
+    </ul>
+    <h3>Best Practices</h3>
+    <ul>
+      <li>Keep titles under 70 characters to avoid truncation</li>
+      <li>Keep descriptions under 200 characters</li>
+      <li>Use high-quality images at the recommended dimensions</li>
+      <li>Include both Twitter and Open Graph tags for maximum compatibility</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

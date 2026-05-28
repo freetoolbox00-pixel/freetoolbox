@@ -1,0 +1,161 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Grid Generator"
+  description="Create CSS Grid layouts visually. Set columns, rows, gap. Generate CSS code. Free CSS Grid tool."
+  category="developer"
+  icon="⊞"
+>
+  <div>
+    <!-- Controls -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Columns: <span id="cgColVal">3</span></label>
+        <input type="range" id="cgCols" min="1" max="8" value="3" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Rows: <span id="cgRowVal">3</span></label>
+        <input type="range" id="cgRows" min="1" max="8" value="3" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Gap: <span id="cgGapVal">16</span>px</label>
+        <input type="range" id="cgGap" min="0" max="40" value="16" class="w-full accent-blue-600" />
+      </div>
+    </div>
+
+    <!-- Column/Row sizes -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Column Template</label>
+        <select id="cgColTpl" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="equal">Equal (1fr each)</option>
+          <option value="auto">Auto</option>
+          <option value="sidebar-left">Sidebar Left (250px 1fr)</option>
+          <option value="sidebar-right">Sidebar Right (1fr 250px)</option>
+          <option value="holy-grail">Holy Grail (200px 1fr 200px)</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input type="text" id="cgColCustom" placeholder="1fr 2fr 1fr" class="hidden w-full px-3 py-2 mt-2 border border-gray-300 rounded-lg text-sm font-mono" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Row Template</label>
+        <select id="cgRowTpl" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="equal">Equal (1fr each)</option>
+          <option value="auto">Auto</option>
+          <option value="header-content">Header + Content (80px 1fr)</option>
+          <option value="header-content-footer">Header + Content + Footer (80px 1fr 60px)</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input type="text" id="cgRowCustom" placeholder="100px 1fr 50px" class="hidden w-full px-3 py-2 mt-2 border border-gray-300 rounded-lg text-sm font-mono" />
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="mb-6">
+      <div id="cgPreview" class="w-full min-h-[300px] p-4 bg-gray-100 rounded-xl" style="display:grid"></div>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="cgCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="cgCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm"></pre>
+    </div>
+  </div>
+
+  <script>
+    const colors = ['bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-orange-400', 'bg-pink-400', 'bg-teal-400', 'bg-indigo-400', 'bg-cyan-400', 'bg-red-400', 'bg-yellow-400', 'bg-emerald-400', 'bg-fuchsia-400'];
+
+    function getColTemplate(): string {
+      const tpl = (document.getElementById('cgColTpl') as HTMLSelectElement).value;
+      const cols = parseInt((document.getElementById('cgCols') as HTMLInputElement).value);
+      switch (tpl) {
+        case 'equal': return Array(cols).fill('1fr').join(' ');
+        case 'auto': return Array(cols).fill('auto').join(' ');
+        case 'sidebar-left': return '250px ' + Array(Math.max(1, cols - 1)).fill('1fr').join(' ');
+        case 'sidebar-right': return Array(Math.max(1, cols - 1)).fill('1fr').join(' ') + ' 250px';
+        case 'holy-grail': return '200px 1fr 200px';
+        case 'custom': return (document.getElementById('cgColCustom') as HTMLInputElement).value || '1fr 1fr 1fr';
+        default: return Array(cols).fill('1fr').join(' ');
+      }
+    }
+
+    function getRowTemplate(): string {
+      const tpl = (document.getElementById('cgRowTpl') as HTMLSelectElement).value;
+      const rows = parseInt((document.getElementById('cgRows') as HTMLInputElement).value);
+      switch (tpl) {
+        case 'equal': return Array(rows).fill('1fr').join(' ');
+        case 'auto': return Array(rows).fill('auto').join(' ');
+        case 'header-content': return '80px ' + Array(Math.max(1, rows - 1)).fill('1fr').join(' ');
+        case 'header-content-footer': return '80px 1fr 60px';
+        case 'custom': return (document.getElementById('cgRowCustom') as HTMLInputElement).value || '1fr 1fr 1fr';
+        default: return Array(rows).fill('1fr').join(' ');
+      }
+    }
+
+    function update(): void {
+      const cols = parseInt((document.getElementById('cgCols') as HTMLInputElement).value);
+      const rows = parseInt((document.getElementById('cgRows') as HTMLInputElement).value);
+      const gap = parseInt((document.getElementById('cgGap') as HTMLInputElement).value);
+
+      document.getElementById('cgColVal')!.textContent = String(cols);
+      document.getElementById('cgRowVal')!.textContent = String(rows);
+      document.getElementById('cgGapVal')!.textContent = String(gap);
+
+      const colTpl = getColTemplate();
+      const rowTpl = getRowTemplate();
+
+      const preview = document.getElementById('cgPreview')!;
+      preview.style.gridTemplateColumns = colTpl;
+      preview.style.gridTemplateRows = rowTpl;
+      preview.style.gap = gap + 'px';
+
+      // Render items
+      preview.innerHTML = '';
+      const total = cols * rows;
+      for (let i = 0; i < total; i++) {
+        const div = document.createElement('div');
+        div.className = `${colors[i % colors.length]} rounded-lg flex items-center justify-center text-white font-bold text-sm min-h-[60px]`;
+        div.textContent = String(i + 1);
+        preview.appendChild(div);
+      }
+
+      // CSS
+      let css = `.grid-container {\n  display: grid;\n  grid-template-columns: ${colTpl};\n  grid-template-rows: ${rowTpl};`;
+      if (gap > 0) css += `\n  gap: ${gap}px;`;
+      css += '\n}';
+      document.getElementById('cgCode')!.textContent = css;
+    }
+
+    ['cgCols', 'cgRows', 'cgGap'].forEach(id => {
+      document.getElementById(id)!.addEventListener('input', update);
+    });
+    ['cgColTpl', 'cgRowTpl'].forEach(id => {
+      document.getElementById(id)!.addEventListener('change', () => {
+        const isCustomCol = (document.getElementById('cgColTpl') as HTMLSelectElement).value === 'custom';
+        const isCustomRow = (document.getElementById('cgRowTpl') as HTMLSelectElement).value === 'custom';
+        document.getElementById('cgColCustom')!.classList.toggle('hidden', !isCustomCol);
+        document.getElementById('cgRowCustom')!.classList.toggle('hidden', !isCustomRow);
+        update();
+      });
+    });
+    ['cgColCustom', 'cgRowCustom'].forEach(id => {
+      document.getElementById(id)!.addEventListener('input', update);
+    });
+
+    document.getElementById('cgCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('cgCode')!.textContent || '');
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Grid Generator</h2>
+    <p>Create CSS Grid layouts visually. Adjust columns, rows and gap. Choose from presets like sidebar layouts and holy grail. Generate clean CSS code.</p>
+  </Fragment>
+</ToolLayout>

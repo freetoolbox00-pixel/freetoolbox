@@ -1,0 +1,120 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Character Counter for Social Media"
+  description="Check character limits for Twitter/X, Instagram, LinkedIn, YouTube, TikTok and more. Real-time character counting with platform-specific limits."
+  category="text"
+  icon="280"
+>
+  <div>
+    <!-- Platform selector -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button class="plat-btn px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg" data-limit="280" data-name="Twitter/X Post">Twitter/X</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="2200" data-name="Instagram Caption">Instagram</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="3000" data-name="LinkedIn Post">LinkedIn</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="5000" data-name="YouTube Description">YouTube</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="150" data-name="Instagram Bio">IG Bio</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="160" data-name="Meta Description">SEO Meta</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="500" data-name="Facebook Ad">FB Ad</button>
+      <button class="plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg" data-limit="100" data-name="YouTube Title">YT Title</button>
+    </div>
+
+    <!-- Platform label + progress -->
+    <div class="flex items-center justify-between mb-2">
+      <span id="platName" class="text-sm font-medium text-gray-700">Twitter/X Post</span>
+      <span id="charRemaining" class="text-sm font-mono font-bold text-green-600">280</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+      <div id="charProgress" class="bg-green-500 h-2 rounded-full transition-all" style="width:0%"></div>
+    </div>
+
+    <!-- Input -->
+    <textarea id="charInput" rows="6" placeholder="Type or paste your text here..." class="w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y mb-4"></textarea>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div class="p-3 bg-gray-50 rounded-lg text-center">
+        <div id="statChars" class="text-xl font-bold text-gray-700">0</div>
+        <div class="text-xs text-gray-500">Characters</div>
+      </div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center">
+        <div id="statWords" class="text-xl font-bold text-gray-700">0</div>
+        <div class="text-xs text-gray-500">Words</div>
+      </div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center">
+        <div id="statLines" class="text-xl font-bold text-gray-700">0</div>
+        <div class="text-xs text-gray-500">Lines</div>
+      </div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center">
+        <div id="statEmoji" class="text-xl font-bold text-gray-700">0</div>
+        <div class="text-xs text-gray-500">Emojis</div>
+      </div>
+      <div class="p-3 bg-gray-50 rounded-lg text-center">
+        <div id="statHashtags" class="text-xl font-bold text-gray-700">0</div>
+        <div class="text-xs text-gray-500">Hashtags</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let limit = 280;
+    const input = document.getElementById('charInput') as HTMLTextAreaElement;
+
+    function update(): void {
+      const text = input.value;
+      const len = text.length;
+      const remaining = limit - len;
+      const pct = Math.min(100, (len / limit) * 100);
+
+      document.getElementById('charRemaining')!.textContent = remaining.toString();
+      document.getElementById('charRemaining')!.className = `text-sm font-mono font-bold ${remaining < 0 ? 'text-red-600' : remaining < limit * 0.1 ? 'text-orange-500' : 'text-green-600'}`;
+
+      const bar = document.getElementById('charProgress')!;
+      bar.style.width = pct + '%';
+      bar.className = `h-2 rounded-full transition-all ${remaining < 0 ? 'bg-red-500' : remaining < limit * 0.1 ? 'bg-orange-500' : 'bg-green-500'}`;
+
+      document.getElementById('statChars')!.textContent = len.toString();
+      document.getElementById('statWords')!.textContent = (text.trim() ? text.trim().split(/\s+/).length : 0).toString();
+      document.getElementById('statLines')!.textContent = (text ? text.split('\n').length : 0).toString();
+
+      // Count emojis (rough)
+      const emojiRegex = /\p{Emoji_Presentation}|\p{Emoji}️/gu;
+      const emojis = text.match(emojiRegex);
+      document.getElementById('statEmoji')!.textContent = (emojis ? emojis.length : 0).toString();
+
+      const hashtags = text.match(/#\w+/g);
+      document.getElementById('statHashtags')!.textContent = (hashtags ? hashtags.length : 0).toString();
+    }
+
+    input.addEventListener('input', update);
+
+    document.querySelectorAll('.plat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.plat-btn').forEach(b => b.className = 'plat-btn px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg');
+        (btn as HTMLElement).className = 'plat-btn px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg';
+        limit = parseInt((btn as HTMLElement).dataset.limit!);
+        document.getElementById('platName')!.textContent = (btn as HTMLElement).dataset.name!;
+        update();
+      });
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Character Counter for Social Media</h2>
+    <p>Count characters and check platform limits for Twitter/X, Instagram, LinkedIn, YouTube, TikTok and more. Real-time counting with visual progress indicator.</p>
+    <h3>Platform Character Limits</h3>
+    <ul>
+      <li><strong>Twitter/X</strong> - 280 characters per post</li>
+      <li><strong>Instagram</strong> - 2,200 characters per caption, 150 for bio</li>
+      <li><strong>LinkedIn</strong> - 3,000 characters per post</li>
+      <li><strong>YouTube</strong> - 100 characters for title, 5,000 for description</li>
+      <li><strong>SEO Meta Description</strong> - 160 characters recommended</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,143 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image Format Converter"
+  description="Convert images between PNG, JPG, WebP and BMP formats. Free online image converter — no upload, 100% client-side."
+  category="utility"
+  icon="🔄"
+>
+  <div>
+    <div id="ifDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop images here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">PNG, JPG, WebP, BMP, GIF</div>
+      <input type="file" id="ifFile" accept="image/*" multiple class="hidden" />
+    </div>
+
+    <div id="ifControls" class="hidden mb-6">
+      <div class="grid gap-4 sm:grid-cols-2 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Output format</label>
+          <select id="ifFormat" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg" selected>JPG</option>
+            <option value="image/webp">WebP</option>
+            <option value="image/bmp">BMP</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Quality (JPG/WebP)</label>
+          <div class="flex items-center gap-2">
+            <input id="ifQuality" type="range" min="10" max="100" value="90" class="flex-1" />
+            <span id="ifQVal" class="text-sm font-mono w-10 text-right">90%</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button id="ifConvert" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Convert All</button>
+        <button id="ifClear" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Clear</button>
+      </div>
+    </div>
+
+    <div id="ifResults" class="space-y-3"></div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('ifDrop')!;
+  const fileIn = document.getElementById('ifFile') as HTMLInputElement;
+  const controls = document.getElementById('ifControls')!;
+  const formatSel = document.getElementById('ifFormat') as HTMLSelectElement;
+  const qualityIn = document.getElementById('ifQuality') as HTMLInputElement;
+  const qualityVal = document.getElementById('ifQVal')!;
+  const convertBtn = document.getElementById('ifConvert') as HTMLButtonElement;
+  const clearBtn = document.getElementById('ifClear')!;
+  const resultsEl = document.getElementById('ifResults')!;
+
+  let files: File[] = [];
+
+  function fmtSize(b: number) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  const extMap: Record<string, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/bmp': '.bmp' };
+
+  qualityIn.addEventListener('input', () => { qualityVal.textContent = qualityIn.value + '%'; });
+
+  function addFiles(fl: FileList | File[]) {
+    for (const f of Array.from(fl)) { if (f.type.startsWith('image/')) files.push(f); }
+    if (files.length) controls.classList.remove('hidden');
+    renderList();
+  }
+
+  function renderList() {
+    resultsEl.innerHTML = '';
+    files.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-3';
+      row.id = `if-${i}`;
+      row.innerHTML = `<span>🖼️</span><div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${f.name}</div><div class="text-xs text-gray-500">${fmtSize(f.size)} &middot; ${f.type.split('/')[1].toUpperCase()}</div></div><div class="if-st text-xs text-gray-400">Ready</div>`;
+      resultsEl.appendChild(row);
+    });
+  }
+
+  async function convertImage(file: File, format: string, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d')!;
+        if (format === 'image/jpeg' || format === 'image/bmp') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, c.width, c.height);
+        }
+        ctx.drawImage(img, 0, 0);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('Convert failed')), format, quality / 100);
+      };
+      img.onerror = () => reject(new Error('Load failed'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  convertBtn.addEventListener('click', async () => {
+    const format = formatSel.value;
+    const quality = parseInt(qualityIn.value);
+    convertBtn.disabled = true;
+    for (let i = 0; i < files.length; i++) {
+      const row = document.getElementById(`if-${i}`);
+      if (!row) continue;
+      const st = row.querySelector('.if-st')!;
+      st.textContent = 'Converting...';
+      st.className = 'if-st text-xs text-yellow-600';
+      try {
+        const blob = await convertImage(files[i], format, quality);
+        const name = files[i].name.replace(/\.[^.]+$/, '') + extMap[format];
+        const url = URL.createObjectURL(blob);
+        st.className = 'if-st text-xs text-green-600';
+        st.textContent = fmtSize(blob.size);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        a.className = 'ml-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700';
+        a.textContent = 'Download';
+        row.appendChild(a);
+      } catch {
+        st.className = 'if-st text-xs text-red-500';
+        st.textContent = 'Error';
+      }
+    }
+    convertBtn.disabled = false;
+  });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50'); if (e.dataTransfer?.files) addFiles(e.dataTransfer.files); });
+  fileIn.addEventListener('change', () => { if (fileIn.files) addFiles(fileIn.files); fileIn.value = ''; });
+  clearBtn.addEventListener('click', () => { files = []; controls.classList.add('hidden'); resultsEl.innerHTML = ''; });
+</script>

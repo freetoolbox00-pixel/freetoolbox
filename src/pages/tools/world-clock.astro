@@ -1,0 +1,189 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="World Clock" description="See current time in multiple cities worldwide. Compare time zones, add your favorite cities. Live updating clock." category="utility" icon="🌍">
+  <div>
+    <div class="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl mb-6 text-center">
+      <div class="text-sm text-blue-600 mb-1">Your Local Time</div>
+      <div class="text-4xl font-bold text-blue-800 font-mono" id="wcLocal">--:--:--</div>
+      <div class="text-sm text-gray-500 mt-1" id="wcLocalDate">---</div>
+      <div class="text-xs text-gray-400" id="wcLocalTz">---</div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <select id="wcAdd" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        <option value="">+ Add a city...</option>
+        <option value="America/New_York">New York (EST)</option>
+        <option value="America/Los_Angeles">Los Angeles (PST)</option>
+        <option value="America/Chicago">Chicago (CST)</option>
+        <option value="Europe/London">London (GMT)</option>
+        <option value="Europe/Paris">Paris (CET)</option>
+        <option value="Europe/Berlin">Berlin (CET)</option>
+        <option value="Europe/Rome">Rome (CET)</option>
+        <option value="Europe/Madrid">Madrid (CET)</option>
+        <option value="Europe/Amsterdam">Amsterdam (CET)</option>
+        <option value="Europe/Moscow">Moscow (MSK)</option>
+        <option value="Europe/Istanbul">Istanbul (TRT)</option>
+        <option value="Asia/Dubai">Dubai (GST)</option>
+        <option value="Asia/Kolkata">Mumbai (IST)</option>
+        <option value="Asia/Shanghai">Shanghai (CST)</option>
+        <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+        <option value="Asia/Tokyo">Tokyo (JST)</option>
+        <option value="Asia/Seoul">Seoul (KST)</option>
+        <option value="Asia/Singapore">Singapore (SGT)</option>
+        <option value="Asia/Bangkok">Bangkok (ICT)</option>
+        <option value="Australia/Sydney">Sydney (AEST)</option>
+        <option value="Australia/Melbourne">Melbourne (AEST)</option>
+        <option value="Pacific/Auckland">Auckland (NZST)</option>
+        <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+        <option value="America/Mexico_City">Mexico City (CST)</option>
+        <option value="America/Toronto">Toronto (EST)</option>
+        <option value="Africa/Cairo">Cairo (EET)</option>
+        <option value="Africa/Lagos">Lagos (WAT)</option>
+        <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+      </select>
+    </div>
+
+    <div id="wcGrid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+    <div class="text-center mt-4">
+      <button id="wcReset" class="text-xs text-red-500 hover:underline">Reset to defaults</button>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  interface CityInfo { tz: string; city: string; }
+
+  const DEFAULT_CITIES: CityInfo[] = [
+    { tz: 'America/New_York', city: 'New York' },
+    { tz: 'Europe/London', city: 'London' },
+    { tz: 'Europe/Rome', city: 'Rome' },
+    { tz: 'Asia/Tokyo', city: 'Tokyo' },
+    { tz: 'Asia/Dubai', city: 'Dubai' },
+    { tz: 'Australia/Sydney', city: 'Sydney' },
+  ];
+
+  function loadCities(): CityInfo[] {
+    try {
+      const saved = localStorage.getItem('ftb_worldclock');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [...DEFAULT_CITIES];
+  }
+
+  function saveCities(cities: CityInfo[]) {
+    localStorage.setItem('ftb_worldclock', JSON.stringify(cities));
+  }
+
+  function getCityName(tz: string): string {
+    const parts = tz.split('/');
+    return parts[parts.length - 1].replace(/_/g, ' ');
+  }
+
+  function getTimeInfo(tz: string) {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, weekday: 'short', month: 'short', day: 'numeric'
+    });
+    const time = formatter.format(now);
+    const date = dateFormatter.format(now);
+
+    const localOffset = now.getTimezoneOffset();
+    const targetDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    const localDate = new Date(now.toLocaleString('en-US'));
+    const diff = (targetDate.getTime() - localDate.getTime()) / (1000 * 60 * 60);
+    const diffStr = diff >= 0 ? `+${diff.toFixed(1)}h` : `${diff.toFixed(1)}h`;
+
+    const hour = parseInt(time.split(':')[0]);
+    let period = 'day';
+    if (hour >= 6 && hour < 12) period = 'morning';
+    else if (hour >= 12 && hour < 18) period = 'afternoon';
+    else if (hour >= 18 && hour < 21) period = 'evening';
+    else period = 'night';
+
+    return { time, date, diff: diffStr, period };
+  }
+
+  let cities = loadCities();
+
+  function renderGrid() {
+    const grid = document.getElementById('wcGrid')!;
+    grid.innerHTML = cities.map((c, i) => {
+      const info = getTimeInfo(c.tz);
+      const bgMap: Record<string, string> = {
+        morning: 'from-yellow-50 to-orange-50 border-yellow-200',
+        afternoon: 'from-blue-50 to-cyan-50 border-blue-200',
+        evening: 'from-purple-50 to-pink-50 border-purple-200',
+        night: 'from-gray-100 to-gray-200 border-gray-300',
+      };
+      const bg = bgMap[info.period] || bgMap.afternoon;
+      const icon = info.period === 'night' ? '🌙' : info.period === 'morning' ? '🌅' : info.period === 'evening' ? '🌆' : '☀️';
+
+      return `<div class="p-4 bg-gradient-to-br ${bg} rounded-xl border relative group">
+        <button class="wc-remove absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity" data-i="${i}">✕</button>
+        <div class="flex items-center gap-2 mb-1">
+          <span>${icon}</span>
+          <span class="font-medium text-gray-800">${c.city}</span>
+        </div>
+        <div class="text-3xl font-bold font-mono text-gray-900 wc-time" data-tz="${c.tz}">${info.time}</div>
+        <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <span class="wc-date" data-tz="${c.tz}">${info.date}</span>
+          <span>${info.diff}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function updateTimes() {
+    const now = new Date();
+    const localFmt = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const localDateFmt = new Intl.DateTimeFormat('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('wcLocal')!.textContent = localFmt.format(now);
+    document.getElementById('wcLocalDate')!.textContent = localDateFmt.format(now);
+    document.getElementById('wcLocalTz')!.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    document.querySelectorAll('.wc-time').forEach(el => {
+      const tz = (el as HTMLElement).dataset.tz!;
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      el.textContent = fmt.format(now);
+    });
+    document.querySelectorAll('.wc-date').forEach(el => {
+      const tz = (el as HTMLElement).dataset.tz!;
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' });
+      el.textContent = fmt.format(now);
+    });
+  }
+
+  document.getElementById('wcAdd')!.addEventListener('change', (e) => {
+    const tz = (e.target as HTMLSelectElement).value;
+    if (!tz) return;
+    if (cities.some(c => c.tz === tz)) { (e.target as HTMLSelectElement).value = ''; return; }
+    cities.push({ tz, city: getCityName(tz) });
+    saveCities(cities);
+    renderGrid();
+    (e.target as HTMLSelectElement).value = '';
+  });
+
+  document.getElementById('wcGrid')!.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.wc-remove') as HTMLElement;
+    if (!btn) return;
+    cities.splice(parseInt(btn.dataset.i!), 1);
+    saveCities(cities);
+    renderGrid();
+  });
+
+  document.getElementById('wcReset')!.addEventListener('click', () => {
+    cities = [...DEFAULT_CITIES];
+    saveCities(cities);
+    renderGrid();
+  });
+
+  renderGrid();
+  updateTimes();
+  setInterval(updateTimes, 1000);
+</script>

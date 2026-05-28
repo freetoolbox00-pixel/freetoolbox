@@ -1,0 +1,171 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="PDF Split"
+  description="Split PDF files by page range. Extract specific pages from any PDF. Free online PDF splitter — no upload, 100% client-side."
+  category="pdf"
+  icon="✂️"
+>
+  <div>
+    <div id="psDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📄</div>
+      <div class="text-sm text-gray-600 font-medium">Drop a PDF file here or click to upload</div>
+      <input type="file" id="psFile" accept=".pdf" class="hidden" />
+    </div>
+
+    <div id="psPanel" class="hidden">
+      <div class="flex gap-4 mb-4">
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="psName">-</span></div>
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="psPages">0</span> pages</div>
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="psSize">0</span></div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Page range</label>
+        <input id="psRange" type="text" placeholder="e.g. 1-3, 5, 7-10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+        <div class="text-xs text-gray-400 mt-1">Leave empty to extract all pages individually</div>
+      </div>
+
+      <div id="psProgress" class="hidden mb-4">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="psBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1 text-center" id="psStatus">Processing...</div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="psExtract" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Extract Pages</button>
+        <button id="psReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Reset</button>
+      </div>
+
+      <div id="psResults" class="mt-6 space-y-2 hidden"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('psDrop')!;
+  const fileIn = document.getElementById('psFile') as HTMLInputElement;
+  const panel = document.getElementById('psPanel')!;
+  const nameEl = document.getElementById('psName')!;
+  const pagesEl = document.getElementById('psPages')!;
+  const sizeEl = document.getElementById('psSize')!;
+  const rangeIn = document.getElementById('psRange') as HTMLInputElement;
+  const extractBtn = document.getElementById('psExtract') as HTMLButtonElement;
+  const resetBtn = document.getElementById('psReset')!;
+  const progressEl = document.getElementById('psProgress')!;
+  const barEl = document.getElementById('psBar')!;
+  const statusEl = document.getElementById('psStatus')!;
+  const resultsEl = document.getElementById('psResults')!;
+
+  let pdfBytes: ArrayBuffer | null = null;
+  let totalPages = 0;
+
+  function fmtSize(b: number) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function parseRanges(input: string, max: number): number[] {
+    if (!input.trim()) return Array.from({ length: max }, (_, i) => i);
+    const pages = new Set<number>();
+    for (const part of input.split(',')) {
+      const t = part.trim();
+      const m = t.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (m) {
+        const s = Math.max(1, parseInt(m[1]));
+        const e = Math.min(max, parseInt(m[2]));
+        for (let i = s; i <= e; i++) pages.add(i - 1);
+      } else {
+        const n = parseInt(t);
+        if (n >= 1 && n <= max) pages.add(n - 1);
+      }
+    }
+    return Array.from(pages).sort((a, b) => a - b);
+  }
+
+  async function loadPdf(file: File) {
+    pdfBytes = await file.arrayBuffer();
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+    totalPages = doc.getPageCount();
+    nameEl.textContent = file.name;
+    pagesEl.textContent = String(totalPages);
+    sizeEl.textContent = fmtSize(file.size);
+    panel.classList.remove('hidden');
+    drop.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+    resultsEl.innerHTML = '';
+  }
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('border-blue-400', 'bg-blue-50');
+    const f = e.dataTransfer?.files[0];
+    if (f && f.type === 'application/pdf') loadPdf(f);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadPdf(fileIn.files[0]); });
+
+  resetBtn.addEventListener('click', () => {
+    pdfBytes = null;
+    totalPages = 0;
+    panel.classList.add('hidden');
+    drop.classList.remove('hidden');
+    rangeIn.value = '';
+    fileIn.value = '';
+  });
+
+  extractBtn.addEventListener('click', async () => {
+    if (!pdfBytes) return;
+    const indices = parseRanges(rangeIn.value, totalPages);
+    if (indices.length === 0) return;
+
+    extractBtn.disabled = true;
+    progressEl.classList.remove('hidden');
+    resultsEl.classList.remove('hidden');
+    resultsEl.innerHTML = '';
+
+    const { PDFDocument } = await import('pdf-lib');
+    const src = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+
+    if (rangeIn.value.trim()) {
+      statusEl.textContent = `Extracting ${indices.length} pages...`;
+      barEl.style.width = '50%';
+      const newDoc = await PDFDocument.create();
+      const copied = await newDoc.copyPages(src, indices);
+      copied.forEach(p => newDoc.addPage(p));
+      const bytes = await newDoc.save();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      barEl.style.width = '100%';
+      statusEl.textContent = 'Done!';
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200';
+      row.innerHTML = `<span>📄</span><div class="flex-1"><div class="text-sm font-medium">Pages ${rangeIn.value}</div><div class="text-xs text-gray-500">${fmtSize(bytes.length)} &middot; ${indices.length} pages</div></div><a href="${url}" download="split.pdf" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Download</a>`;
+      resultsEl.appendChild(row);
+    } else {
+      for (let i = 0; i < indices.length; i++) {
+        statusEl.textContent = `Extracting page ${i + 1} of ${indices.length}...`;
+        barEl.style.width = `${((i + 1) / indices.length * 100).toFixed(0)}%`;
+        const newDoc = await PDFDocument.create();
+        const [page] = await newDoc.copyPages(src, [indices[i]]);
+        newDoc.addPage(page);
+        const bytes = await newDoc.save();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200';
+        row.innerHTML = `<span>📄</span><div class="flex-1"><div class="text-sm font-medium">Page ${indices[i] + 1}</div><div class="text-xs text-gray-500">${fmtSize(bytes.length)}</div></div><a href="${url}" download="page-${indices[i] + 1}.pdf" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Download</a>`;
+        resultsEl.appendChild(row);
+      }
+      statusEl.textContent = `Done! Extracted ${indices.length} pages.`;
+    }
+    extractBtn.disabled = false;
+  });
+</script>

@@ -1,0 +1,152 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image Compressor"
+  description="Compress images online for free. Reduce file size while maintaining quality. Supports PNG, JPG, WebP. No upload to server — 100% client-side."
+  category="utility"
+  icon="🗜️"
+>
+  <div>
+    <div id="icDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop images here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">PNG, JPG, WebP — multiple files supported</div>
+      <input type="file" id="icFile" accept="image/png,image/jpeg,image/webp" multiple class="hidden" />
+    </div>
+
+    <div id="icControls" class="hidden mb-6">
+      <div class="flex items-center gap-4 mb-4">
+        <label class="text-sm font-medium text-gray-700">Quality:</label>
+        <input id="icQuality" type="range" min="10" max="100" value="80" class="flex-1" />
+        <span id="icQualityVal" class="text-sm font-mono text-blue-600 w-10 text-right">80%</span>
+      </div>
+      <div class="flex gap-3">
+        <button id="icCompress" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Compress All</button>
+        <button id="icClear" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Clear</button>
+      </div>
+    </div>
+
+    <div id="icResults" class="space-y-3"></div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('icDrop')!;
+  const fileIn = document.getElementById('icFile') as HTMLInputElement;
+  const controls = document.getElementById('icControls')!;
+  const qualityIn = document.getElementById('icQuality') as HTMLInputElement;
+  const qualityVal = document.getElementById('icQualityVal')!;
+  const compressBtn = document.getElementById('icCompress') as HTMLButtonElement;
+  const clearBtn = document.getElementById('icClear')!;
+  const results = document.getElementById('icResults')!;
+
+  interface ImgItem { file: File; id: number; }
+  let items: ImgItem[] = [];
+  let nextId = 0;
+
+  function fmtSize(b: number) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  qualityIn.addEventListener('input', () => { qualityVal.textContent = qualityIn.value + '%'; });
+
+  function addFiles(files: FileList | File[]) {
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith('image/')) continue;
+      items.push({ file: f, id: nextId++ });
+    }
+    renderList();
+  }
+
+  function renderList() {
+    if (items.length === 0) { controls.classList.add('hidden'); results.innerHTML = ''; return; }
+    controls.classList.remove('hidden');
+    results.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'p-4 bg-gray-50 rounded-lg border border-gray-200';
+      row.id = `ic-${item.id}`;
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-lg">🖼️</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-gray-800 truncate">${item.file.name}</div>
+            <div class="text-xs text-gray-500">Original: ${fmtSize(item.file.size)}</div>
+          </div>
+          <div class="ic-status text-xs text-gray-400">Ready</div>
+        </div>
+      `;
+      results.appendChild(row);
+    });
+  }
+
+  async function compressImage(file: File, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
+        const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob); else reject(new Error('Compression failed'));
+        }, mime, quality / 100);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  compressBtn.addEventListener('click', async () => {
+    const quality = parseInt(qualityIn.value);
+    compressBtn.disabled = true;
+    for (const item of items) {
+      const row = document.getElementById(`ic-${item.id}`);
+      if (!row) continue;
+      const status = row.querySelector('.ic-status')!;
+      status.textContent = 'Compressing...';
+      status.className = 'ic-status text-xs text-yellow-600';
+      try {
+        const blob = await compressImage(item.file, quality);
+        const saved = item.file.size - blob.size;
+        const pct = ((saved / item.file.size) * 100).toFixed(0);
+        const url = URL.createObjectURL(blob);
+        const ext = item.file.name.replace(/\.[^.]+$/, '');
+        if (saved > 0) {
+          status.className = 'ic-status text-xs text-green-600 font-medium';
+          status.textContent = `${fmtSize(blob.size)} (${pct}% smaller)`;
+        } else {
+          status.className = 'ic-status text-xs text-orange-500';
+          status.textContent = `${fmtSize(blob.size)} (already optimized)`;
+        }
+        const dl = document.createElement('a');
+        dl.href = url;
+        dl.download = `${ext}-compressed${item.file.name.match(/\.[^.]+$/)?.[0] || '.jpg'}`;
+        dl.className = 'ml-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 inline-block mt-2';
+        dl.textContent = 'Download';
+        row.appendChild(dl);
+      } catch {
+        status.className = 'ic-status text-xs text-red-500';
+        status.textContent = 'Error';
+      }
+    }
+    compressBtn.disabled = false;
+  });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('border-blue-400', 'bg-blue-50');
+    if (e.dataTransfer?.files) addFiles(e.dataTransfer.files);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files) addFiles(fileIn.files); fileIn.value = ''; });
+  clearBtn.addEventListener('click', () => { items = []; renderList(); });
+</script>

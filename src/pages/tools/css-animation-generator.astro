@@ -1,0 +1,150 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Animation Generator"
+  description="Create CSS animations visually. Choose from preset animations or build custom keyframes. Free CSS animation tool."
+  category="developer"
+  icon="✨"
+>
+  <div>
+    <!-- Preview -->
+    <div class="flex justify-center mb-6">
+      <div class="w-full max-w-md h-48 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+        <div id="caPreview" class="w-20 h-20 bg-blue-500 rounded-lg"></div>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Animation Presets</label>
+      <div class="flex flex-wrap gap-2">
+        <button class="ca-preset px-3 py-1 bg-blue-600 text-white text-xs rounded" data-name="bounce">Bounce</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="pulse">Pulse</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="shake">Shake</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="fade-in">Fade In</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="fade-out">Fade Out</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="slide-in">Slide In</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="spin">Spin</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="flip">Flip</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="swing">Swing</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="zoom-in">Zoom In</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="rubber">Rubber Band</button>
+        <button class="ca-preset px-3 py-1 bg-gray-100 text-xs rounded" data-name="jello">Jello</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Duration: <span id="caDurVal">1</span>s</label>
+        <input type="range" id="caDur" min="0.1" max="5" value="1" step="0.1" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Timing</label>
+        <select id="caTiming" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="ease">ease</option>
+          <option value="linear">linear</option>
+          <option value="ease-in">ease-in</option>
+          <option value="ease-out">ease-out</option>
+          <option value="ease-in-out">ease-in-out</option>
+          <option value="cubic-bezier(0.68, -0.55, 0.265, 1.55)">bounce</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Iteration</label>
+        <select id="caIter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="infinite" selected>Infinite</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="caCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="caCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[300px]"></pre>
+    </div>
+  </div>
+
+  <script>
+    const animations: Record<string, string> = {
+      bounce: '@keyframes bounce {\n  0%, 100% { transform: translateY(0); }\n  50% { transform: translateY(-30px); }\n}',
+      pulse: '@keyframes pulse {\n  0%, 100% { transform: scale(1); }\n  50% { transform: scale(1.15); }\n}',
+      shake: '@keyframes shake {\n  0%, 100% { transform: translateX(0); }\n  25% { transform: translateX(-10px); }\n  75% { transform: translateX(10px); }\n}',
+      'fade-in': '@keyframes fadeIn {\n  from { opacity: 0; }\n  to { opacity: 1; }\n}',
+      'fade-out': '@keyframes fadeOut {\n  from { opacity: 1; }\n  to { opacity: 0; }\n}',
+      'slide-in': '@keyframes slideIn {\n  from { transform: translateX(-100%); opacity: 0; }\n  to { transform: translateX(0); opacity: 1; }\n}',
+      spin: '@keyframes spin {\n  from { transform: rotate(0deg); }\n  to { transform: rotate(360deg); }\n}',
+      flip: '@keyframes flip {\n  0% { transform: perspective(400px) rotateY(0); }\n  100% { transform: perspective(400px) rotateY(360deg); }\n}',
+      swing: '@keyframes swing {\n  0%, 100% { transform: rotate(0deg); }\n  25% { transform: rotate(15deg); }\n  50% { transform: rotate(-10deg); }\n  75% { transform: rotate(5deg); }\n}',
+      'zoom-in': '@keyframes zoomIn {\n  from { transform: scale(0); opacity: 0; }\n  to { transform: scale(1); opacity: 1; }\n}',
+      rubber: '@keyframes rubberBand {\n  0%, 100% { transform: scaleX(1) scaleY(1); }\n  30% { transform: scaleX(1.25) scaleY(0.75); }\n  40% { transform: scaleX(0.75) scaleY(1.25); }\n  50% { transform: scaleX(1.15) scaleY(0.85); }\n  65% { transform: scaleX(0.95) scaleY(1.05); }\n  75% { transform: scaleX(1.05) scaleY(0.95); }\n}',
+      jello: '@keyframes jello {\n  0%, 100% { transform: skewX(0deg) skewY(0deg); }\n  30% { transform: skewX(-12.5deg) skewY(-12.5deg); }\n  40% { transform: skewX(6.25deg) skewY(6.25deg); }\n  50% { transform: skewX(-3.125deg) skewY(-3.125deg); }\n  65% { transform: skewX(1.5625deg) skewY(1.5625deg); }\n  75% { transform: skewX(-0.78125deg) skewY(-0.78125deg); }\n}'
+    };
+
+    const animNames: Record<string, string> = {
+      bounce: 'bounce', pulse: 'pulse', shake: 'shake', 'fade-in': 'fadeIn', 'fade-out': 'fadeOut', 'slide-in': 'slideIn', spin: 'spin', flip: 'flip', swing: 'swing', 'zoom-in': 'zoomIn', rubber: 'rubberBand', jello: 'jello'
+    };
+
+    let currentAnim = 'bounce';
+    let styleEl: HTMLStyleElement;
+
+    function init(): void {
+      styleEl = document.createElement('style');
+      document.head.appendChild(styleEl);
+    }
+
+    function update(): void {
+      const dur = (document.getElementById('caDur') as HTMLInputElement).value;
+      const timing = (document.getElementById('caTiming') as HTMLSelectElement).value;
+      const iter = (document.getElementById('caIter') as HTMLSelectElement).value;
+      const name = animNames[currentAnim];
+
+      document.getElementById('caDurVal')!.textContent = dur;
+
+      const keyframes = animations[currentAnim];
+      styleEl.textContent = `${keyframes}\n#caPreview { animation: ${name} ${dur}s ${timing} ${iter}; }`;
+
+      // Force restart
+      const el = document.getElementById('caPreview')!;
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = '';
+
+      const css = `${keyframes}\n\n.animated {\n  animation: ${name} ${dur}s ${timing} ${iter};\n}`;
+      document.getElementById('caCode')!.textContent = css;
+    }
+
+    document.querySelectorAll('.ca-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ca-preset').forEach(b => b.className = 'ca-preset px-3 py-1 bg-gray-100 text-xs rounded');
+        (btn as HTMLElement).className = 'ca-preset px-3 py-1 bg-blue-600 text-white text-xs rounded';
+        currentAnim = (btn as HTMLElement).dataset.name!;
+        update();
+      });
+    });
+
+    document.getElementById('caDur')!.addEventListener('input', update);
+    document.getElementById('caTiming')!.addEventListener('change', update);
+    document.getElementById('caIter')!.addEventListener('change', update);
+    document.getElementById('caCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('caCode')!.textContent || '');
+    });
+
+    init();
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Animation Generator</h2>
+    <p>Create CSS animations visually. Choose from 12 preset animations including bounce, pulse, shake, spin, flip and more. Customize duration, timing and iteration. Copy the generated CSS code.</p>
+  </Fragment>
+</ToolLayout>

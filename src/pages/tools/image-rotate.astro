@@ -1,0 +1,101 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Image Rotate & Flip" description="Rotate images 90°, 180°, 270° or flip horizontally/vertically. Free online image rotator." category="utility" icon="🔄">
+  <div>
+    <div id="irDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop an image here or click to upload</div>
+      <input type="file" id="irFile" accept="image/*" class="hidden" />
+    </div>
+    <div id="irPanel" class="hidden">
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="ir-btn px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" data-action="cw">↻ Rotate 90° CW</button>
+        <button class="ir-btn px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" data-action="ccw">↺ Rotate 90° CCW</button>
+        <button class="ir-btn px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" data-action="180">🔃 Rotate 180°</button>
+        <button class="ir-btn px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" data-action="fh">↔ Flip Horizontal</button>
+        <button class="ir-btn px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" data-action="fv">↕ Flip Vertical</button>
+      </div>
+      <div class="mb-4 flex justify-center">
+        <canvas id="irCanvas" class="max-w-full border border-gray-200 rounded-lg"></canvas>
+      </div>
+      <div class="flex gap-3">
+        <button id="irDl" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Download</button>
+        <button id="irReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('irDrop')!;
+  const fileIn = document.getElementById('irFile') as HTMLInputElement;
+  const panel = document.getElementById('irPanel')!;
+  const canvas = document.getElementById('irCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const dlBtn = document.getElementById('irDl')!;
+  const resetBtn = document.getElementById('irReset')!;
+
+  let img: HTMLImageElement | null = null;
+  let rotation = 0;
+  let flipH = false;
+  let flipV = false;
+
+  function loadImage(file: File) {
+    const i = new Image();
+    i.onload = () => { img = i; rotation = 0; flipH = false; flipV = false; draw(); panel.classList.remove('hidden'); drop.classList.add('hidden'); };
+    i.src = URL.createObjectURL(file);
+  }
+
+  function draw() {
+    if (!img) return;
+    const r = rotation % 360;
+    const swap = r === 90 || r === 270;
+    const maxW = Math.min(700, window.innerWidth - 80);
+    const scale = Math.min(1, maxW / (swap ? img.naturalHeight : img.naturalWidth));
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    canvas.width = swap ? h : w;
+    canvas.height = swap ? w : h;
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((r * Math.PI) / 180);
+    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
+  document.querySelectorAll('.ir-btn').forEach(btn => btn.addEventListener('click', () => {
+    const action = (btn as HTMLElement).dataset.action;
+    if (action === 'cw') rotation = (rotation + 90) % 360;
+    else if (action === 'ccw') rotation = (rotation + 270) % 360;
+    else if (action === '180') rotation = (rotation + 180) % 360;
+    else if (action === 'fh') flipH = !flipH;
+    else if (action === 'fv') flipV = !flipV;
+    draw();
+  }));
+
+  dlBtn.addEventListener('click', () => {
+    if (!img) return;
+    // Re-draw at full resolution
+    const r = rotation % 360;
+    const swap = r === 90 || r === 270;
+    const c = document.createElement('canvas');
+    c.width = swap ? img.naturalHeight : img.naturalWidth;
+    c.height = swap ? img.naturalWidth : img.naturalHeight;
+    const cx = c.getContext('2d')!;
+    cx.translate(c.width / 2, c.height / 2);
+    cx.rotate((r * Math.PI) / 180);
+    cx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    cx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    c.toBlob(blob => { if (!blob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rotated.png'; a.click(); }, 'image/png');
+  });
+
+  resetBtn.addEventListener('click', () => { img = null; panel.classList.add('hidden'); drop.classList.remove('hidden'); fileIn.value = ''; });
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50'); const f = e.dataTransfer?.files[0]; if (f?.type.startsWith('image/')) loadImage(f); });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadImage(fileIn.files[0]); });
+</script>

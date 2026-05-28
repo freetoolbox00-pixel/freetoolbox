@@ -1,0 +1,72 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="GPA Calculator" description="Calculate your Grade Point Average. Add courses, credits and grades. Supports 4.0 and weighted scales." category="utility" icon="🎓">
+  <div>
+    <div id="gpCourses" class="space-y-2 mb-4">
+      <div class="grid grid-cols-[1fr_80px_100px_40px] gap-2 text-xs text-gray-500 font-medium px-1">
+        <div>Course</div><div>Credits</div><div>Grade</div><div></div>
+      </div>
+    </div>
+    <button id="gpAdd" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 mb-4">+ Add Course</button>
+    <div class="grid gap-3 sm:grid-cols-3 mb-4">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-blue-600">GPA</div>
+        <div class="text-3xl font-bold text-blue-700" id="gpGpa">0.00</div>
+      </div>
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500">Total Credits</div>
+        <div class="text-2xl font-bold text-gray-900" id="gpCredits">0</div>
+      </div>
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500">Total Points</div>
+        <div class="text-2xl font-bold text-gray-900" id="gpPoints">0.00</div>
+      </div>
+    </div>
+    <button id="gpReset" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Reset</button>
+  </div>
+</ToolLayout>
+
+<script>
+  const container = document.getElementById('gpCourses')!;
+  const addBtn = document.getElementById('gpAdd')!;
+  const gpaEl = document.getElementById('gpGpa')!;
+  const creditsEl = document.getElementById('gpCredits')!;
+  const pointsEl = document.getElementById('gpPoints')!;
+  const resetBtn = document.getElementById('gpReset')!;
+
+  const GRADES: Record<string, number> = { 'A+':4.0,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'D-':0.7,'F':0.0 };
+  const gradeOptions = Object.keys(GRADES).map(g => `<option value="${g}">${g}</option>`).join('');
+
+  function addRow(name = '', credits = '3', grade = 'A') {
+    const row = document.createElement('div');
+    row.className = 'grid grid-cols-[1fr_80px_100px_40px] gap-2 gp-row';
+    row.innerHTML = `<input type="text" class="gp-name px-2 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Course name" value="${name}" /><input type="number" class="gp-cr px-2 py-2 border border-gray-300 rounded-lg text-sm text-center" min="0" max="10" value="${credits}" /><select class="gp-gr px-2 py-2 border border-gray-300 rounded-lg text-sm">${gradeOptions}</select><button class="gp-rm text-red-400 hover:text-red-600 text-lg">×</button>`;
+    (row.querySelector('.gp-gr') as HTMLSelectElement).value = grade;
+    container.appendChild(row);
+    row.querySelector('.gp-rm')!.addEventListener('click', () => { row.remove(); calc(); });
+    row.querySelector('.gp-cr')!.addEventListener('input', calc);
+    row.querySelector('.gp-gr')!.addEventListener('change', calc);
+  }
+
+  function calc() {
+    let totalPoints = 0;
+    let totalCredits = 0;
+    document.querySelectorAll('.gp-row').forEach(row => {
+      const cr = parseFloat((row.querySelector('.gp-cr') as HTMLInputElement).value) || 0;
+      const gr = (row.querySelector('.gp-gr') as HTMLSelectElement).value;
+      totalCredits += cr;
+      totalPoints += cr * (GRADES[gr] ?? 0);
+    });
+    gpaEl.textContent = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+    creditsEl.textContent = String(totalCredits);
+    pointsEl.textContent = totalPoints.toFixed(2);
+  }
+
+  addBtn.addEventListener('click', () => { addRow(); });
+  resetBtn.addEventListener('click', () => { container.querySelectorAll('.gp-row').forEach(r => r.remove()); addRow('','3','A'); addRow('','3','A'); addRow('','3','A'); calc(); });
+
+  addRow('','3','A'); addRow('','3','B+'); addRow('','3','A-'); addRow('','3','B');
+  calc();
+</script>

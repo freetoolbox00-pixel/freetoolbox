@@ -1,0 +1,175 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="XML Sitemap Generator"
+  description="Generate XML sitemaps for your website. Add URLs with priority and change frequency. Free sitemap generator for SEO."
+  category="seo"
+  icon="🗺"
+>
+  <div>
+    <!-- Domain -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Website URL</label>
+      <input type="text" id="smDomain" value="https://example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+    </div>
+
+    <!-- Add URL -->
+    <div class="grid gap-3 sm:grid-cols-4 mb-4">
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-gray-500 mb-1">Path</label>
+        <input type="text" id="smPath" value="/" placeholder="/about" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Priority</label>
+        <select id="smPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="1.0">1.0 (Highest)</option>
+          <option value="0.8" selected>0.8 (High)</option>
+          <option value="0.6">0.6 (Medium)</option>
+          <option value="0.4">0.4 (Low)</option>
+          <option value="0.2">0.2 (Lowest)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Change Freq</label>
+        <select id="smFreq" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="always">Always</option>
+          <option value="hourly">Hourly</option>
+          <option value="daily">Daily</option>
+          <option value="weekly" selected>Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+          <option value="never">Never</option>
+        </select>
+      </div>
+    </div>
+    <button id="smAdd" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg mb-4">Add URL</button>
+
+    <!-- URL List -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-medium text-gray-700">URLs (<span id="smCount">0</span>)</h3>
+        <div class="flex gap-2">
+          <button id="smCommon" class="text-xs text-blue-600 hover:text-blue-800">Add Common Pages</button>
+          <button id="smClear" class="text-xs text-red-500 hover:text-red-700">Clear All</button>
+        </div>
+      </div>
+      <div id="smList" class="max-h-48 overflow-y-auto space-y-1 border border-gray-200 rounded-lg p-2"></div>
+    </div>
+
+    <!-- Bulk add -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Bulk Add (one path per line)</label>
+      <div class="flex gap-2">
+        <textarea id="smBulk" rows="3" placeholder="/about&#10;/contact&#10;/blog" class="flex-1 p-3 font-mono text-sm border border-gray-300 rounded-lg resize-y"></textarea>
+        <button id="smBulkAdd" class="px-4 py-2 bg-gray-100 hover:bg-blue-50 text-sm rounded-lg self-start">Add All</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">sitemap.xml</label>
+        <div class="flex gap-2">
+          <button id="smCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+          <button id="smDownload" class="text-xs text-blue-600 hover:text-blue-800">Download</button>
+        </div>
+      </div>
+      <pre id="smOutput" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-xs overflow-auto max-h-[400px] whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    interface SitemapURL {
+      path: string;
+      priority: string;
+      freq: string;
+      lastmod: string;
+    }
+    let urls: SitemapURL[] = [];
+
+    function addUrl(path: string, priority: string = '0.8', freq: string = 'weekly'): void {
+      if (!path.startsWith('/')) path = '/' + path;
+      if (urls.some(u => u.path === path)) return;
+      urls.push({ path, priority, freq, lastmod: new Date().toISOString().split('T')[0] });
+      renderList();
+      generateXml();
+    }
+
+    function renderList(): void {
+      const list = document.getElementById('smList')!;
+      document.getElementById('smCount')!.textContent = String(urls.length);
+      if (urls.length === 0) { list.innerHTML = '<div class="text-xs text-gray-400 p-2">No URLs added yet</div>'; return; }
+      list.innerHTML = urls.map((u, i) => `<div class="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded text-xs"><span class="font-mono flex-1">${u.path}</span><span class="text-gray-400">${u.priority}</span><span class="text-gray-400">${u.freq}</span><button class="sm-del text-red-400 hover:text-red-600" data-i="${i}">✕</button></div>`).join('');
+      list.querySelectorAll('.sm-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          urls.splice(parseInt((btn as HTMLElement).dataset.i!), 1);
+          renderList();
+          generateXml();
+        });
+      });
+    }
+
+    function generateXml(): void {
+      const domain = (document.getElementById('smDomain') as HTMLInputElement).value.replace(/\/+$/, '');
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      urls.forEach(u => {
+        xml += '  <url>\n';
+        xml += `    <loc>${domain}${u.path}</loc>\n`;
+        xml += `    <lastmod>${u.lastmod}</lastmod>\n`;
+        xml += `    <changefreq>${u.freq}</changefreq>\n`;
+        xml += `    <priority>${u.priority}</priority>\n`;
+        xml += '  </url>\n';
+      });
+      xml += '</urlset>';
+      document.getElementById('smOutput')!.textContent = xml;
+    }
+
+    document.getElementById('smAdd')!.addEventListener('click', () => {
+      const path = (document.getElementById('smPath') as HTMLInputElement).value.trim();
+      const priority = (document.getElementById('smPriority') as HTMLSelectElement).value;
+      const freq = (document.getElementById('smFreq') as HTMLSelectElement).value;
+      if (path) addUrl(path, priority, freq);
+    });
+
+    document.getElementById('smCommon')!.addEventListener('click', () => {
+      ['/', '/about', '/contact', '/blog', '/services', '/pricing', '/faq', '/privacy-policy', '/terms'].forEach(p => addUrl(p));
+    });
+
+    document.getElementById('smClear')!.addEventListener('click', () => {
+      urls = [];
+      renderList();
+      generateXml();
+    });
+
+    document.getElementById('smBulkAdd')!.addEventListener('click', () => {
+      const paths = (document.getElementById('smBulk') as HTMLTextAreaElement).value.split('\n').map(p => p.trim()).filter(Boolean);
+      paths.forEach(p => addUrl(p));
+      (document.getElementById('smBulk') as HTMLTextAreaElement).value = '';
+    });
+
+    document.getElementById('smDomain')!.addEventListener('input', generateXml);
+
+    document.getElementById('smCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('smOutput')!.textContent || '');
+    });
+
+    document.getElementById('smDownload')!.addEventListener('click', () => {
+      const blob = new Blob([document.getElementById('smOutput')!.textContent || ''], { type: 'application/xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sitemap.xml';
+      a.click();
+    });
+
+    renderList();
+    generateXml();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free XML Sitemap Generator</h2>
+    <p>Create XML sitemaps to help search engines crawl your website. Add URLs with priority and change frequency settings. Download the sitemap.xml file ready to upload.</p>
+  </Fragment>
+</ToolLayout>

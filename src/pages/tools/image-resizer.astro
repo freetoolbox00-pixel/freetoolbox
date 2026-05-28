@@ -1,0 +1,194 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image Resizer"
+  description="Resize images online. Maintain aspect ratio. Set exact width and height. Download resized images. Free image resizer."
+  category="utility"
+  icon="📐"
+>
+  <div>
+    <!-- Upload -->
+    <div id="irDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📷</div>
+      <div class="text-sm text-gray-600">Drop an image here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">PNG, JPG, WEBP, GIF</div>
+      <input type="file" id="irFile" accept="image/*" class="hidden" />
+    </div>
+
+    <!-- Controls (hidden until image loaded) -->
+    <div id="irControls" class="hidden">
+      <!-- Original info -->
+      <div class="flex gap-4 mb-4">
+        <div class="px-3 py-1 bg-gray-100 rounded text-sm">Original: <span id="irOrigW">0</span>×<span id="irOrigH">0</span></div>
+        <div class="px-3 py-1 bg-gray-100 rounded text-sm">File: <span id="irOrigSize">0</span></div>
+      </div>
+
+      <!-- Size inputs -->
+      <div class="grid gap-4 sm:grid-cols-3 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Width (px)</label>
+          <input type="number" id="irW" min="1" max="10000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Height (px)</label>
+          <input type="number" id="irH" min="1" max="10000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div class="flex items-end gap-2">
+          <label class="flex items-center gap-2 text-sm pb-2">
+            <input type="checkbox" id="irLock" checked class="accent-blue-600" /> Lock aspect ratio
+          </label>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="1920" data-h="1080">1920×1080</button>
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="1280" data-h="720">1280×720</button>
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="800" data-h="600">800×600</button>
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="640" data-h="480">640×480</button>
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="400" data-h="400">400×400</button>
+        <button class="ir-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-w="150" data-h="150">150×150</button>
+        <button class="ir-pct px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-pct="50">50%</button>
+        <button class="ir-pct px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-pct="75">75%</button>
+        <button class="ir-pct px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-pct="200">200%</button>
+      </div>
+
+      <!-- Format & Quality -->
+      <div class="grid gap-4 sm:grid-cols-2 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
+          <select id="irFormat" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WebP</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Quality: <span id="irQval">92</span>%</label>
+          <input type="range" id="irQuality" min="10" max="100" value="92" class="w-full accent-blue-600" />
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="flex justify-center mb-6">
+        <canvas id="irCanvas" class="max-w-full border border-gray-200 rounded-lg hidden"></canvas>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="irResize" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">Resize & Download</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let origW = 0, origH = 0, aspectRatio = 1;
+    let imgSrc: HTMLImageElement | null = null;
+
+    function formatSize(bytes: number): string {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function loadImage(file: File): void {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          origW = img.width;
+          origH = img.height;
+          aspectRatio = origW / origH;
+          imgSrc = img;
+
+          document.getElementById('irOrigW')!.textContent = String(origW);
+          document.getElementById('irOrigH')!.textContent = String(origH);
+          document.getElementById('irOrigSize')!.textContent = formatSize(file.size);
+          (document.getElementById('irW') as HTMLInputElement).value = String(origW);
+          (document.getElementById('irH') as HTMLInputElement).value = String(origH);
+          document.getElementById('irControls')!.classList.remove('hidden');
+        };
+        img.src = e.target!.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    const drop = document.getElementById('irDrop')!;
+    const fileInput = document.getElementById('irFile') as HTMLInputElement;
+
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('border-blue-400'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('border-blue-400');
+      const file = (e as DragEvent).dataTransfer?.files[0];
+      if (file && file.type.startsWith('image/')) loadImage(file);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files?.[0]) loadImage(fileInput.files[0]);
+    });
+
+    document.getElementById('irW')!.addEventListener('input', () => {
+      if ((document.getElementById('irLock') as HTMLInputElement).checked && aspectRatio) {
+        const w = parseInt((document.getElementById('irW') as HTMLInputElement).value) || 0;
+        (document.getElementById('irH') as HTMLInputElement).value = String(Math.round(w / aspectRatio));
+      }
+    });
+    document.getElementById('irH')!.addEventListener('input', () => {
+      if ((document.getElementById('irLock') as HTMLInputElement).checked && aspectRatio) {
+        const h = parseInt((document.getElementById('irH') as HTMLInputElement).value) || 0;
+        (document.getElementById('irW') as HTMLInputElement).value = String(Math.round(h * aspectRatio));
+      }
+    });
+
+    document.getElementById('irQuality')!.addEventListener('input', (e) => {
+      document.getElementById('irQval')!.textContent = (e.target as HTMLInputElement).value;
+    });
+
+    document.querySelectorAll('.ir-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        (document.getElementById('irW') as HTMLInputElement).value = (btn as HTMLElement).dataset.w!;
+        (document.getElementById('irH') as HTMLInputElement).value = (btn as HTMLElement).dataset.h!;
+      });
+    });
+
+    document.querySelectorAll('.ir-pct').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pct = parseInt((btn as HTMLElement).dataset.pct!) / 100;
+        (document.getElementById('irW') as HTMLInputElement).value = String(Math.round(origW * pct));
+        (document.getElementById('irH') as HTMLInputElement).value = String(Math.round(origH * pct));
+      });
+    });
+
+    document.getElementById('irResize')!.addEventListener('click', () => {
+      if (!imgSrc) return;
+      const w = parseInt((document.getElementById('irW') as HTMLInputElement).value) || origW;
+      const h = parseInt((document.getElementById('irH') as HTMLInputElement).value) || origH;
+      const format = (document.getElementById('irFormat') as HTMLSelectElement).value;
+      const quality = parseInt((document.getElementById('irQuality') as HTMLInputElement).value) / 100;
+
+      const canvas = document.getElementById('irCanvas') as HTMLCanvasElement;
+      canvas.width = w;
+      canvas.height = h;
+      canvas.classList.remove('hidden');
+      canvas.style.maxWidth = '100%';
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(imgSrc, 0, 0, w, h);
+
+      const dataUrl = canvas.toDataURL(format, quality);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      const ext = format.split('/')[1];
+      a.download = `resized-${w}x${h}.${ext}`;
+      a.click();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Image Resizer</h2>
+    <p>Resize images online with exact pixel dimensions. Lock aspect ratio, choose output format (PNG, JPEG, WebP) and quality. Includes presets for common sizes. Everything runs in your browser.</p>
+  </Fragment>
+</ToolLayout>

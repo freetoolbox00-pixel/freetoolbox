@@ -1,0 +1,118 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Social Media Post Formatter" description="Format text for social media with bold, italic, unicode fonts. Works on Instagram, Twitter, Facebook, LinkedIn." category="seo" icon="✨">
+  <div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Your Text</label>
+      <textarea id="spInput" rows="3" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg" placeholder="Type your text here...">Hello World</textarea>
+    </div>
+
+    <h3 class="text-sm font-medium text-gray-700 mb-2">Choose a Style</h3>
+    <div id="spStyles" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-6"></div>
+
+    <div id="spResult" class="p-4 bg-gray-50 border border-gray-200 rounded-xl mb-4">
+      <div class="flex justify-between mb-2">
+        <span class="text-xs text-gray-500">Preview</span>
+        <button id="spCopy" class="text-xs text-blue-600 hover:underline">Copy</button>
+      </div>
+      <div id="spOutput" class="text-lg break-all select-all"></div>
+    </div>
+
+    <h3 class="text-sm font-medium text-gray-700 mb-2">Special Characters</h3>
+    <div class="flex flex-wrap gap-1" id="spEmojis"></div>
+  </div>
+</ToolLayout>
+
+<script>
+  const FONTS: Record<string, Record<string, string>> = {
+    'Bold': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D400 + i : i < 52 ? 0x1D41A + (i - 26) : 0x1D7CE + (i - 52))])),
+    'Italic': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D434 + i : 0x1D44E + (i - 26))])),
+    'Bold Italic': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D468 + i : 0x1D482 + (i - 26))])),
+    'Monospace': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D670 + i : i < 52 ? 0x1D68A + (i - 26) : 0x1D7F6 + (i - 52))])),
+    'Script': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D49C + i : 0x1D4B6 + (i - 26))])),
+    'Double-Struck': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x1D538 + i : i < 52 ? 0x1D552 + (i - 26) : 0x1D7D8 + (i - 52))])),
+    'Fullwidth': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '].map((c, i) => {
+      if (c === ' ') return [c, '　'];
+      const code = c.charCodeAt(0);
+      return [c, String.fromCodePoint(code - 0x21 + 0xFF01)];
+    })),
+    'Circled': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].map((c, i) => [c, String.fromCodePoint(i < 26 ? 0x24B6 + i : 0x24D0 + (i - 26))])),
+    'Squared': Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((c, i) => [c, String.fromCodePoint(0x1F130 + i)])),
+  };
+
+  const DECORATORS: Record<string, (s: string) => string> = {
+    'S̶t̶r̶i̶k̶e̶t̶h̶r̶o̶u̶g̶h̶': s => s.split('').map(c => c + '̶').join(''),
+    'U̲n̲d̲e̲r̲l̲i̲n̲e̲': s => s.split('').map(c => c + '̲').join(''),
+    'S̾p̾o̾o̾k̾y̾': s => s.split('').map(c => c + '̾').join(''),
+    'W̆ă̆v̆ĕ̆': s => s.split('').map(c => c + '̆').join(''),
+  };
+
+  function transform(text: string, fontName: string): string {
+    if (DECORATORS[fontName]) return DECORATORS[fontName](text);
+    const font = FONTS[fontName];
+    if (!font) return text;
+    return text.split('').map(c => font[c] || c).join('');
+  }
+
+  let currentStyle = 'Bold';
+
+  function renderStyles() {
+    const allStyles = [...Object.keys(FONTS), ...Object.keys(DECORATORS)];
+    const input = (document.getElementById('spInput') as HTMLTextAreaElement).value || 'Hello';
+    const container = document.getElementById('spStyles')!;
+
+    container.innerHTML = allStyles.map(name => {
+      const preview = transform(input.substring(0, 20), name);
+      const isActive = name === currentStyle;
+      return `<button class="sp-style p-3 rounded-lg border-2 text-left transition-all ${isActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-400'}" data-style="${name}">
+        <div class="text-xs text-gray-500 mb-1">${name}</div>
+        <div class="text-sm break-all">${preview}</div>
+      </button>`;
+    }).join('');
+  }
+
+  function updateOutput() {
+    const text = (document.getElementById('spInput') as HTMLTextAreaElement).value;
+    document.getElementById('spOutput')!.textContent = transform(text, currentStyle);
+  }
+
+  document.getElementById('spStyles')!.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.sp-style') as HTMLElement;
+    if (!btn) return;
+    currentStyle = btn.dataset.style!;
+    renderStyles();
+    updateOutput();
+  });
+
+  document.getElementById('spInput')!.addEventListener('input', () => {
+    renderStyles();
+    updateOutput();
+  });
+
+  document.getElementById('spCopy')!.addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('spOutput')!.textContent || '');
+    const btn = document.getElementById('spCopy')!;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+
+  const specialChars = ['⭐','🔥','💯','✅','❌','➡️','⬆️','📌','🎯','💡','🚀','💎','👑','🏆','❤️','💪','🎉','✨','🔗','📢','⚡','🌟','💰','📊','🎁'];
+  const emojisEl = document.getElementById('spEmojis')!;
+  emojisEl.innerHTML = specialChars.map(e => `<button class="sp-emoji w-9 h-9 flex items-center justify-center bg-gray-50 rounded-lg hover:bg-gray-100 text-lg" data-e="${e}">${e}</button>`).join('');
+  emojisEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.sp-emoji') as HTMLElement;
+    if (!btn) return;
+    const textarea = document.getElementById('spInput') as HTMLTextAreaElement;
+    const pos = textarea.selectionStart;
+    textarea.value = textarea.value.substring(0, pos) + btn.dataset.e + textarea.value.substring(pos);
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = pos + 2;
+    renderStyles();
+    updateOutput();
+  });
+
+  renderStyles();
+  updateOutput();
+</script>

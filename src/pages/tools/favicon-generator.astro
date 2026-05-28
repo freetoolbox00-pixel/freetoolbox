@@ -1,0 +1,306 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Favicon Generator"
+  description="Create favicons from text, emoji, or image. Generate favicon in multiple sizes (16x16, 32x32, 48x48). Free online favicon maker with preview."
+  category="developer"
+  icon="⬛"
+>
+  <div>
+    <!-- Mode Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button id="modeText" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">Text / Emoji</button>
+      <button id="modeImage" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Upload Image</button>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Controls -->
+      <div class="space-y-4">
+        <!-- Text Mode Controls -->
+        <div id="textControls">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Text or Emoji</label>
+            <input type="text" id="faviconText" value="A" maxlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Background Color</label>
+              <div class="flex gap-2">
+                <input type="color" id="bgColor" value="#3b82f6" class="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
+                <input type="text" id="bgColorText" value="#3b82f6" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Text Color</label>
+              <div class="flex gap-2">
+                <input type="color" id="textColor" value="#ffffff" class="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
+                <input type="text" id="textColorText" value="#ffffff" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="block text-xs text-gray-500 mb-1">Font Size: <span id="fontSizeVal">32</span>px</label>
+            <input type="range" id="fontSize" min="8" max="56" value="32" class="w-full accent-blue-600" />
+          </div>
+          <div class="mt-3">
+            <label class="block text-xs text-gray-500 mb-1">Border Radius: <span id="radiusVal">0</span>px</label>
+            <input type="range" id="borderRadius" min="0" max="24" value="0" class="w-full accent-blue-600" />
+          </div>
+          <div class="mt-3">
+            <label class="block text-xs text-gray-500 mb-1">Font Weight</label>
+            <select id="fontWeight" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="normal">Normal</option>
+              <option value="bold" selected>Bold</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Image Mode Controls -->
+        <div id="imageControls" class="hidden">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-600" />
+          </div>
+          <p class="text-xs text-gray-400 mt-2">Image will be resized to favicon dimensions. Square images work best.</p>
+        </div>
+
+        <!-- Quick Emoji Picker -->
+        <div id="emojiPicker">
+          <label class="block text-xs text-gray-500 mb-1">Quick Pick</label>
+          <div class="flex flex-wrap gap-2">
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🌐">🌐</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🚀">🚀</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="⚡">⚡</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="💡">💡</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🔥">🔥</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="💎">💎</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🎯">🎯</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="📌">📌</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🏠">🏠</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="⭐">⭐</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="🛠">🛠</button>
+            <button class="emoji-pick w-9 h-9 text-lg border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors" data-emoji="📱">📱</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">Preview</h3>
+        <div class="space-y-4">
+          <div class="flex items-center gap-6">
+            <div class="text-center">
+              <canvas id="canvas48" width="48" height="48" class="border border-gray-200 rounded"></canvas>
+              <div class="text-xs text-gray-400 mt-1">48x48</div>
+            </div>
+            <div class="text-center">
+              <canvas id="canvas32" width="32" height="32" class="border border-gray-200 rounded"></canvas>
+              <div class="text-xs text-gray-400 mt-1">32x32</div>
+            </div>
+            <div class="text-center">
+              <canvas id="canvas16" width="16" height="16" class="border border-gray-200 rounded"></canvas>
+              <div class="text-xs text-gray-400 mt-1">16x16</div>
+            </div>
+          </div>
+
+          <!-- Browser Tab Preview -->
+          <div>
+            <p class="text-xs text-gray-500 mb-1">Browser Tab Preview</p>
+            <div class="bg-gray-100 rounded-t-lg p-2 inline-flex items-center gap-2 border border-gray-200">
+              <canvas id="canvasTab" width="16" height="16"></canvas>
+              <span class="text-xs text-gray-600 max-w-[120px] truncate">My Website</span>
+              <span class="text-xs text-gray-300 ml-2">x</span>
+            </div>
+          </div>
+
+          <!-- Large Preview -->
+          <div>
+            <p class="text-xs text-gray-500 mb-1">Large Preview (128x128)</p>
+            <canvas id="canvas128" width="128" height="128" class="border border-gray-200 rounded-lg"></canvas>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="mt-4 space-y-2">
+          <button id="download16" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Download 16x16 PNG</button>
+          <button id="download32" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Download 32x32 PNG</button>
+          <button id="download48" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Download 48x48 PNG</button>
+          <button id="download128" class="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-lg transition-colors">Download 128x128 PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isTextMode = true;
+    let uploadedImage: HTMLImageElement | null = null;
+
+    function setMode(text: boolean): void {
+      isTextMode = text;
+      document.getElementById('modeText')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${text ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('modeImage')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${!text ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('textControls')!.classList.toggle('hidden', !text);
+      document.getElementById('imageControls')!.classList.toggle('hidden', text);
+      document.getElementById('emojiPicker')!.classList.toggle('hidden', !text);
+      render();
+    }
+
+    function drawFavicon(canvas: HTMLCanvasElement, size: number): void {
+      const ctx = canvas.getContext('2d')!;
+      canvas.width = size;
+      canvas.height = size;
+      ctx.clearRect(0, 0, size, size);
+
+      if (!isTextMode && uploadedImage) {
+        // Draw uploaded image
+        const aspect = uploadedImage.width / uploadedImage.height;
+        let sx = 0, sy = 0, sw = uploadedImage.width, sh = uploadedImage.height;
+        if (aspect > 1) { sx = (uploadedImage.width - uploadedImage.height) / 2; sw = uploadedImage.height; }
+        else if (aspect < 1) { sy = (uploadedImage.height - uploadedImage.width) / 2; sh = uploadedImage.width; }
+        ctx.drawImage(uploadedImage, sx, sy, sw, sh, 0, 0, size, size);
+        return;
+      }
+
+      const bgColor = (document.getElementById('bgColor') as HTMLInputElement).value;
+      const textColor = (document.getElementById('textColor') as HTMLInputElement).value;
+      const text = (document.getElementById('faviconText') as HTMLInputElement).value || 'A';
+      const baseFontSize = parseInt((document.getElementById('fontSize') as HTMLInputElement).value);
+      const radius = parseInt((document.getElementById('borderRadius') as HTMLInputElement).value);
+      const fontWeight = (document.getElementById('fontWeight') as HTMLSelectElement).value;
+
+      // Scale font size proportionally
+      const scale = size / 48;
+      const fontSize = Math.round(baseFontSize * scale);
+      const scaledRadius = Math.round(radius * scale);
+
+      // Background
+      ctx.beginPath();
+      if (scaledRadius > 0) {
+        const r = Math.min(scaledRadius, size / 2);
+        ctx.moveTo(r, 0);
+        ctx.arcTo(size, 0, size, size, r);
+        ctx.arcTo(size, size, 0, size, r);
+        ctx.arcTo(0, size, 0, 0, r);
+        ctx.arcTo(0, 0, size, 0, r);
+      } else {
+        ctx.rect(0, 0, size, size);
+      }
+      ctx.closePath();
+      ctx.fillStyle = bgColor;
+      ctx.fill();
+
+      // Text
+      ctx.fillStyle = textColor;
+      ctx.font = `${fontWeight} ${fontSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, size / 2, size / 2 + scale);
+    }
+
+    function render(): void {
+      const sizes = [
+        { id: 'canvas16', size: 16 },
+        { id: 'canvas32', size: 32 },
+        { id: 'canvas48', size: 48 },
+        { id: 'canvasTab', size: 16 },
+        { id: 'canvas128', size: 128 },
+      ];
+      for (const s of sizes) {
+        drawFavicon(document.getElementById(s.id) as HTMLCanvasElement, s.size);
+      }
+    }
+
+    function download(canvasId: string, size: number): void {
+      const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+      // Create a proper-sized canvas for download
+      const dlCanvas = document.createElement('canvas');
+      dlCanvas.width = size;
+      dlCanvas.height = size;
+      drawFavicon(dlCanvas, size);
+
+      const link = document.createElement('a');
+      link.download = `favicon-${size}x${size}.png`;
+      link.href = dlCanvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Mode switches
+    document.getElementById('modeText')!.addEventListener('click', () => setMode(true));
+    document.getElementById('modeImage')!.addEventListener('click', () => setMode(false));
+
+    // Text inputs
+    document.getElementById('faviconText')!.addEventListener('input', render);
+    document.getElementById('fontSize')!.addEventListener('input', () => {
+      document.getElementById('fontSizeVal')!.textContent = (document.getElementById('fontSize') as HTMLInputElement).value;
+      render();
+    });
+    document.getElementById('borderRadius')!.addEventListener('input', () => {
+      document.getElementById('radiusVal')!.textContent = (document.getElementById('borderRadius') as HTMLInputElement).value;
+      render();
+    });
+    document.getElementById('fontWeight')!.addEventListener('change', render);
+
+    // Color inputs
+    document.getElementById('bgColor')!.addEventListener('input', (e) => {
+      (document.getElementById('bgColorText') as HTMLInputElement).value = (e.target as HTMLInputElement).value;
+      render();
+    });
+    document.getElementById('bgColorText')!.addEventListener('input', (e) => {
+      const v = (e.target as HTMLInputElement).value;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) { (document.getElementById('bgColor') as HTMLInputElement).value = v; render(); }
+    });
+    document.getElementById('textColor')!.addEventListener('input', (e) => {
+      (document.getElementById('textColorText') as HTMLInputElement).value = (e.target as HTMLInputElement).value;
+      render();
+    });
+    document.getElementById('textColorText')!.addEventListener('input', (e) => {
+      const v = (e.target as HTMLInputElement).value;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) { (document.getElementById('textColor') as HTMLInputElement).value = v; render(); }
+    });
+
+    // Emoji picker
+    document.querySelectorAll('.emoji-pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        (document.getElementById('faviconText') as HTMLInputElement).value = (btn as HTMLElement).dataset.emoji!;
+        render();
+      });
+    });
+
+    // Image upload
+    document.getElementById('imageUpload')!.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => { uploadedImage = img; render(); };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Downloads
+    document.getElementById('download16')!.addEventListener('click', () => download('canvas16', 16));
+    document.getElementById('download32')!.addEventListener('click', () => download('canvas32', 32));
+    document.getElementById('download48')!.addEventListener('click', () => download('canvas48', 48));
+    document.getElementById('download128')!.addEventListener('click', () => download('canvas128', 128));
+
+    // Initial render
+    render();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Favicon Generator</h2>
+    <p>Create favicons from text, emoji, or uploaded images. Generate PNG favicons in multiple sizes (16x16, 32x32, 48x48, 128x128) with customizable colors, font size, and border radius. Preview how your favicon looks in a browser tab.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Text/Emoji Mode</strong> - Type any letter or emoji to create a quick favicon</li>
+      <li><strong>Image Upload</strong> - Upload any image and resize it to standard favicon dimensions</li>
+      <li><strong>Customizable</strong> - Adjust background color, text color, font size, and border radius</li>
+      <li><strong>Multiple Sizes</strong> - Download in 16x16, 32x32, 48x48, or 128x128 pixels</li>
+      <li><strong>Browser Tab Preview</strong> - See how your favicon looks in a real browser tab</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

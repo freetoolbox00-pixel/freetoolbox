@@ -1,0 +1,156 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Tip Calculator"
+  description="Free tip calculator. Calculate tip amount, total bill, and split between multiple people. Preset tip percentages with round-up option."
+  category="utility"
+  icon="🍽"
+>
+  <div>
+    <!-- Bill Amount -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Bill Amount ($)</label>
+      <input type="number" id="billAmount" value="85.00" min="0" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-medium" />
+    </div>
+
+    <!-- Tip Percentage -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <label class="text-sm font-medium text-gray-700">Tip Percentage</label>
+        <span id="tipPctDisplay" class="text-lg font-bold text-blue-600">18%</span>
+      </div>
+      <input type="range" id="tipSlider" min="0" max="30" step="1" value="18" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mb-3" />
+      <div class="flex gap-2 flex-wrap">
+        <button data-tip="10" class="tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">10%</button>
+        <button data-tip="15" class="tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">15%</button>
+        <button data-tip="18" class="tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-blue-50 border-blue-300 text-blue-700 font-medium transition-colors">18%</button>
+        <button data-tip="20" class="tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">20%</button>
+        <button data-tip="25" class="tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">25%</button>
+        <input type="number" id="tipCustom" placeholder="Custom" min="0" max="100" class="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg text-center" />
+      </div>
+    </div>
+
+    <!-- Split & Options -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div class="p-4 bg-white border border-gray-200 rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Split Between</label>
+        <div class="flex items-center gap-3">
+          <button id="splitMinus" class="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg text-lg font-bold hover:bg-gray-100 transition-colors">-</button>
+          <span id="splitCount" class="text-2xl font-bold text-gray-800 w-8 text-center">1</span>
+          <button id="splitPlus" class="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg text-lg font-bold hover:bg-gray-100 transition-colors">+</button>
+        </div>
+      </div>
+      <div class="p-4 bg-white border border-gray-200 rounded-lg flex items-center">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="roundUp" class="w-5 h-5 text-blue-600 rounded accent-blue-600" />
+          <div>
+            <span class="text-sm font-medium text-gray-700">Round up total</span>
+            <span class="block text-xs text-gray-400">Round to nearest dollar</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Tip Amount</div>
+        <div id="tipAmount" class="text-2xl font-bold text-blue-600">$0.00</div>
+      </div>
+      <div class="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Total</div>
+        <div id="totalAmount" class="text-2xl font-bold text-green-600">$0.00</div>
+      </div>
+      <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500 mb-1">Per Person</div>
+        <div id="perPerson" class="text-2xl font-bold text-purple-600">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Quick Comparison</h3>
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center" id="quickCompare"></div>
+    </div>
+  </div>
+
+  <script>
+    let splitNum = 1;
+    const fmt = (n: number): string => '$' + n.toFixed(2);
+
+    function calculate(): void {
+      const bill = parseFloat((document.getElementById('billAmount') as HTMLInputElement).value) || 0;
+      const tipPct = parseInt((document.getElementById('tipSlider') as HTMLInputElement).value) || 0;
+      const roundUp = (document.getElementById('roundUp') as HTMLInputElement).checked;
+
+      let tip = bill * (tipPct / 100);
+      let total = bill + tip;
+      if (roundUp) {
+        total = Math.ceil(total);
+        tip = total - bill;
+      }
+      const pp = total / Math.max(1, splitNum);
+
+      document.getElementById('tipPctDisplay')!.textContent = tipPct + '%';
+      document.getElementById('tipAmount')!.textContent = fmt(tip);
+      document.getElementById('totalAmount')!.textContent = fmt(total);
+      document.getElementById('perPerson')!.textContent = fmt(pp);
+      document.getElementById('splitCount')!.textContent = String(splitNum);
+
+      // Quick compare
+      const pcts = [10, 15, 18, 20, 22, 25];
+      let html = '';
+      for (const p of pcts) {
+        const t = bill * (p / 100);
+        const tot = bill + t;
+        const active = p === tipPct ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200';
+        html += `<div class="p-2 border rounded-lg ${active}">
+          <div class="text-xs text-gray-500">${p}%</div>
+          <div class="text-sm font-bold">${fmt(tot / Math.max(1, splitNum))}</div>
+        </div>`;
+      }
+      document.getElementById('quickCompare')!.innerHTML = html;
+
+      // Highlight active preset
+      document.querySelectorAll('.tip-preset').forEach(btn => {
+        const val = parseInt((btn as HTMLElement).dataset.tip || '0');
+        if (val === tipPct) {
+          btn.className = 'tip-preset px-3 py-1.5 text-sm border rounded-lg bg-blue-50 border-blue-300 text-blue-700 font-medium transition-colors';
+        } else {
+          btn.className = 'tip-preset px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors';
+        }
+      });
+    }
+
+    document.getElementById('billAmount')!.addEventListener('input', calculate);
+    document.getElementById('tipSlider')!.addEventListener('input', calculate);
+    document.getElementById('roundUp')!.addEventListener('change', calculate);
+
+    document.querySelectorAll('.tip-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = (btn as HTMLElement).dataset.tip || '18';
+        (document.getElementById('tipSlider') as HTMLInputElement).value = val;
+        (document.getElementById('tipCustom') as HTMLInputElement).value = '';
+        calculate();
+      });
+    });
+
+    document.getElementById('tipCustom')!.addEventListener('input', () => {
+      const val = parseInt((document.getElementById('tipCustom') as HTMLInputElement).value) || 0;
+      (document.getElementById('tipSlider') as HTMLInputElement).value = String(Math.min(30, Math.max(0, val)));
+      calculate();
+    });
+
+    document.getElementById('splitPlus')!.addEventListener('click', () => { splitNum++; calculate(); });
+    document.getElementById('splitMinus')!.addEventListener('click', () => { if (splitNum > 1) splitNum--; calculate(); });
+
+    calculate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Tip Calculator</h2>
+    <p>Quickly calculate the tip amount for any bill. Choose preset tip percentages or set a custom one with the slider. Split the bill between multiple people and optionally round up to the nearest dollar. See a quick comparison of different tip percentages at a glance.</p>
+  </Fragment>
+</ToolLayout>

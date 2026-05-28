@@ -1,0 +1,116 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Lorem Ipsum Generator"
+  description="Generate Lorem Ipsum placeholder text in paragraphs, sentences or words. Free dummy text generator for designers and developers."
+  category="text"
+  icon="Li"
+>
+  <div>
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+        <input type="number" id="loremAmount" min="1" max="100" value="5" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+        <select id="loremType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="paragraphs" selected>Paragraphs</option>
+          <option value="sentences">Sentences</option>
+          <option value="words">Words</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <label class="flex items-center gap-2 text-sm pb-2">
+          <input type="checkbox" id="startLorem" checked class="accent-blue-600" />
+          Start with "Lorem ipsum..."
+        </label>
+      </div>
+    </div>
+
+    <!-- Generate & Copy -->
+    <div class="flex gap-2 mb-6">
+      <button id="generateLorem" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+        Generate
+      </button>
+      <button id="copyLorem" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition-colors">
+        Copy
+      </button>
+    </div>
+
+    <!-- Output -->
+    <div id="loremOutput" class="p-4 bg-gray-50 border border-gray-200 rounded-lg min-h-[200px] text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+      Click "Generate" to create Lorem Ipsum text.
+    </div>
+  </div>
+
+  <script>
+    const LOREM_WORDS = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt neque porro quisquam est qui dolorem ipsum quia dolor sit amet consectetur adipisci velit sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem'.split(' ');
+
+    const LOREM_START = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
+
+    function randInt(min: number, max: number): number {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomWord(): string {
+      return LOREM_WORDS[randInt(0, LOREM_WORDS.length - 1)];
+    }
+
+    function generateSentence(): string {
+      const len = randInt(6, 15);
+      const words = Array.from({ length: len }, () => randomWord());
+      words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+      return words.join(' ') + '.';
+    }
+
+    function generateParagraph(): string {
+      const count = randInt(4, 8);
+      return Array.from({ length: count }, () => generateSentence()).join(' ');
+    }
+
+    function generate(): void {
+      const amount = parseInt((document.getElementById('loremAmount') as HTMLInputElement).value) || 1;
+      const type = (document.getElementById('loremType') as HTMLSelectElement).value;
+      const startWithLorem = (document.getElementById('startLorem') as HTMLInputElement).checked;
+      let result: string;
+
+      if (type === 'words') {
+        const words = Array.from({ length: amount }, () => randomWord());
+        if (startWithLorem) { words[0] = 'Lorem'; words[1] = 'ipsum'; }
+        result = words.join(' ') + '.';
+      } else if (type === 'sentences') {
+        const sentences = Array.from({ length: amount }, () => generateSentence());
+        if (startWithLorem) sentences[0] = LOREM_START;
+        result = sentences.join(' ');
+      } else {
+        const paragraphs = Array.from({ length: amount }, () => generateParagraph());
+        if (startWithLorem) paragraphs[0] = LOREM_START + ' ' + paragraphs[0];
+        result = paragraphs.join('\n\n');
+      }
+
+      document.getElementById('loremOutput')!.textContent = result;
+    }
+
+    document.getElementById('generateLorem')!.addEventListener('click', generate);
+    document.getElementById('copyLorem')!.addEventListener('click', async () => {
+      const text = document.getElementById('loremOutput')!.textContent || '';
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copyLorem')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    generate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Lorem Ipsum Generator</h2>
+    <p>Generate placeholder text for your designs, websites and documents. Choose the number of paragraphs, sentences or words you need.</p>
+    <h3>What is Lorem Ipsum?</h3>
+    <p>Lorem Ipsum is dummy text used in the printing and typesetting industry since the 1500s. It provides a natural-looking text distribution for mockups and prototypes without distracting from the visual design.</p>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,107 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JSON Path Finder"
+  description="Explore JSON structure as an interactive tree. Click any value to get its JSONPath. Find and copy paths for API data extraction."
+  category="developer"
+  icon="{.}"
+>
+  <div>
+    <!-- Input -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Paste JSON</label>
+      <textarea id="jpInput" rows="6" placeholder='{"users":[{"name":"John","age":30},{"name":"Jane","age":25}]}' class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button id="jpParse" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Parse</button>
+    </div>
+
+    <!-- Selected Path -->
+    <div id="jpPathBar" class="mb-4 hidden">
+      <div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+        <span class="text-sm text-gray-600">Path:</span>
+        <code id="jpPath" class="flex-1 font-mono text-sm text-blue-700 font-medium"></code>
+        <button id="jpCopyPath" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-100 rounded">Copy</button>
+      </div>
+    </div>
+
+    <!-- Tree View -->
+    <div id="jpTree" class="p-4 bg-gray-50 border border-gray-200 rounded-lg overflow-auto max-h-[500px] font-mono text-sm">
+      <span class="text-gray-400">Paste JSON and click Parse</span>
+    </div>
+  </div>
+
+  <script>
+    function escapeHtml(s: string): string {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderTree(data: any, path: string, depth: number): string {
+      const indent = '  '.repeat(depth);
+
+      if (data === null) return `<span class="jp-val text-gray-400 cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">null</span>`;
+      if (typeof data === 'boolean') return `<span class="jp-val text-purple-600 cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">${data}</span>`;
+      if (typeof data === 'number') return `<span class="jp-val text-blue-600 cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">${data}</span>`;
+      if (typeof data === 'string') return `<span class="jp-val text-green-600 cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">"${escapeHtml(data)}"</span>`;
+
+      if (Array.isArray(data)) {
+        if (data.length === 0) return `<span class="jp-val cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">[]</span>`;
+        let html = `<span class="jp-toggle cursor-pointer text-gray-400">[</span><span class="text-gray-400 text-xs ml-1">${data.length} items</span>\n`;
+        data.forEach((item, i) => {
+          html += `${indent}  <span class="text-gray-400">${i}:</span> ${renderTree(item, `${path}[${i}]`, depth + 1)}${i < data.length - 1 ? ',' : ''}\n`;
+        });
+        html += `${indent}<span class="text-gray-400">]</span>`;
+        return html;
+      }
+
+      if (typeof data === 'object') {
+        const keys = Object.keys(data);
+        if (keys.length === 0) return `<span class="jp-val cursor-pointer hover:bg-yellow-100 px-1 rounded" data-path="${path}">{}</span>`;
+        let html = `<span class="jp-toggle cursor-pointer text-gray-400">{</span>\n`;
+        keys.forEach((key, i) => {
+          const childPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? `${path}.${key}` : `${path}["${key}"]`;
+          html += `${indent}  <span class="text-red-600">"${escapeHtml(key)}"</span>: ${renderTree(data[key], childPath, depth + 1)}${i < keys.length - 1 ? ',' : ''}\n`;
+        });
+        html += `${indent}<span class="text-gray-400">}</span>`;
+        return html;
+      }
+
+      return String(data);
+    }
+
+    document.getElementById('jpParse')!.addEventListener('click', () => {
+      const input = (document.getElementById('jpInput') as HTMLTextAreaElement).value;
+      const tree = document.getElementById('jpTree')!;
+      try {
+        const data = JSON.parse(input);
+        tree.innerHTML = `<pre class="whitespace-pre">${renderTree(data, '$', 0)}</pre>`;
+
+        tree.querySelectorAll('.jp-val').forEach(el => {
+          el.addEventListener('click', () => {
+            const path = (el as HTMLElement).dataset.path!;
+            document.getElementById('jpPath')!.textContent = path;
+            document.getElementById('jpPathBar')!.classList.remove('hidden');
+            tree.querySelectorAll('.jp-val').forEach(v => v.classList.remove('bg-yellow-200'));
+            el.classList.add('bg-yellow-200');
+          });
+        });
+      } catch (e: any) {
+        tree.innerHTML = `<span class="text-red-600">Error: ${e.message}</span>`;
+      }
+    });
+
+    document.getElementById('jpCopyPath')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('jpPath')!.textContent || '');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JSON Path Finder</h2>
+    <p>Explore JSON data as an interactive tree. Click any value to instantly get its JSONPath expression. Perfect for working with API responses and complex JSON structures.</p>
+    <h3>What is JSONPath?</h3>
+    <p>JSONPath is a query language for JSON, similar to XPath for XML. It lets you reference specific values in a JSON structure using dot notation (e.g., $.users[0].name).</p>
+  </Fragment>
+</ToolLayout>

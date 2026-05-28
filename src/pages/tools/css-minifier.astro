@@ -1,0 +1,129 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Minifier / Beautifier"
+  description="Minify CSS to reduce file size or beautify compressed CSS for readability. Free online CSS minifier and formatter tool."
+  category="developer"
+  icon="CSS"
+>
+  <div>
+    <!-- Buttons -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button id="minifyCSS" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Minify</button>
+      <button id="beautifyCSS" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">Beautify</button>
+      <button id="copyCSS" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy Output</button>
+      <button id="clearCSS" class="px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear</button>
+    </div>
+
+    <!-- Stats -->
+    <div id="cssStats" class="mb-4 hidden">
+      <div class="flex gap-4 text-sm">
+        <span>Original: <strong id="cssOrigSize">0</strong> bytes</span>
+        <span>Result: <strong id="cssNewSize">0</strong> bytes</span>
+        <span class="text-green-600 font-medium">Saved: <strong id="cssSaved">0%</strong></span>
+      </div>
+    </div>
+
+    <!-- Input/Output -->
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Input CSS</label>
+        <textarea id="cssInput" rows="16" placeholder=".container {&#10;  max-width: 1200px;&#10;  margin: 0 auto;&#10;  padding: 0 16px;&#10;}" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Output</label>
+        <pre id="cssOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[400px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cssInput = document.getElementById('cssInput') as HTMLTextAreaElement;
+    const cssOutput = document.getElementById('cssOutput')!;
+
+    function showStats(original: string, result: string): void {
+      document.getElementById('cssStats')!.classList.remove('hidden');
+      document.getElementById('cssOrigSize')!.textContent = original.length.toString();
+      document.getElementById('cssNewSize')!.textContent = result.length.toString();
+      const saved = original.length > 0 ? Math.round((1 - result.length / original.length) * 100) : 0;
+      document.getElementById('cssSaved')!.textContent = saved + '%';
+    }
+
+    function minifyCSS(css: string): string {
+      return css
+        .replace(/\/\*[\s\S]*?\*\//g, '')  // Remove comments
+        .replace(/\s+/g, ' ')               // Collapse whitespace
+        .replace(/\s*([{}:;,>~+])\s*/g, '$1') // Remove spaces around operators
+        .replace(/;}/g, '}')                // Remove last semicolons
+        .replace(/\s*!important/g, '!important')
+        .trim();
+    }
+
+    function beautifyCSS(css: string): string {
+      // First minify to normalize
+      let s = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').trim();
+      let result = '';
+      let indent = 0;
+      const tab = '  ';
+
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === '{') {
+          result += ' {\n' + tab.repeat(indent + 1);
+          indent++;
+        } else if (c === '}') {
+          indent = Math.max(0, indent - 1);
+          result = result.trimEnd() + '\n' + tab.repeat(indent) + '}\n' + (indent === 0 ? '\n' : '') + tab.repeat(indent);
+        } else if (c === ';') {
+          result += ';\n' + tab.repeat(indent);
+        } else if (c === ':' && s[i+1] !== ':') {
+          result += ': ';
+          while (s[i+1] === ' ') i++;
+        } else if (c === ',' && indent === 0) {
+          result += ',\n';
+        } else {
+          result += c;
+        }
+      }
+      return result.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+    }
+
+    document.getElementById('minifyCSS')!.addEventListener('click', () => {
+      const input = cssInput.value;
+      const result = minifyCSS(input);
+      cssOutput.textContent = result;
+      showStats(input, result);
+    });
+
+    document.getElementById('beautifyCSS')!.addEventListener('click', () => {
+      const input = cssInput.value;
+      const result = beautifyCSS(input);
+      cssOutput.textContent = result;
+      showStats(input, result);
+    });
+
+    document.getElementById('copyCSS')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(cssOutput.textContent || '');
+    });
+
+    document.getElementById('clearCSS')!.addEventListener('click', () => {
+      cssInput.value = '';
+      cssOutput.textContent = '';
+      document.getElementById('cssStats')!.classList.add('hidden');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Minifier and Beautifier</h2>
+    <p>Minify CSS to reduce file size for production, or beautify compressed CSS for readability. Shows compression statistics and savings.</p>
+    <h3>What Does CSS Minification Do?</h3>
+    <ul>
+      <li>Removes comments and unnecessary whitespace</li>
+      <li>Strips trailing semicolons</li>
+      <li>Reduces file size by 20-40% typically</li>
+      <li>Improves page load speed</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

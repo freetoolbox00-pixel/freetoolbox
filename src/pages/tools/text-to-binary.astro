@@ -1,0 +1,133 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Text to Binary Converter"
+  description="Convert text to binary code and binary to text. Also converts to/from octal and hexadecimal. Free binary converter."
+  category="developer"
+  icon="01"
+>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button id="t2bEnc" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Text → Binary</button>
+      <button id="t2bDec" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Binary → Text</button>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2 mb-4">
+      <div>
+        <label id="t2bLabel" class="block text-sm font-medium text-gray-700 mb-1">Text Input</label>
+        <textarea id="t2bInput" rows="6" placeholder="Hello World" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Binary Output</label>
+          <button id="t2bCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+        </div>
+        <pre id="t2bOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[150px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+
+    <!-- Additional formats -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-4">
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Octal</label>
+          <button class="t2b-fmt-copy text-xs text-blue-600" data-target="t2bOctal">Copy</button>
+        </div>
+        <pre id="t2bOctal" class="p-3 font-mono text-xs bg-gray-50 border rounded-lg overflow-auto max-h-32 whitespace-pre-wrap"></pre>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Decimal</label>
+          <button class="t2b-fmt-copy text-xs text-blue-600" data-target="t2bDecimal">Copy</button>
+        </div>
+        <pre id="t2bDecimal" class="p-3 font-mono text-xs bg-gray-50 border rounded-lg overflow-auto max-h-32 whitespace-pre-wrap"></pre>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Hexadecimal</label>
+          <button class="t2b-fmt-copy text-xs text-blue-600" data-target="t2bHexOut">Copy</button>
+        </div>
+        <pre id="t2bHexOut" class="p-3 font-mono text-xs bg-gray-50 border rounded-lg overflow-auto max-h-32 whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="flex gap-4">
+      <label class="text-sm text-gray-600">Separator:</label>
+      <label class="flex items-center gap-1 text-sm"><input type="radio" name="t2bSep" value=" " checked class="accent-blue-600" /> Space</label>
+      <label class="flex items-center gap-1 text-sm"><input type="radio" name="t2bSep" value="" class="accent-blue-600" /> None</label>
+      <label class="flex items-center gap-1 text-sm"><input type="radio" name="t2bSep" value="\n" class="accent-blue-600" /> Newline</label>
+    </div>
+  </div>
+
+  <script>
+    let encoding = true;
+
+    function getSep(): string {
+      const v = (document.querySelector('input[name="t2bSep"]:checked') as HTMLInputElement).value;
+      return v === '\\n' ? '\n' : v;
+    }
+
+    function convert(): void {
+      const input = (document.getElementById('t2bInput') as HTMLTextAreaElement).value;
+      const sep = getSep();
+
+      if (encoding) {
+        if (!input) {
+          ['t2bOutput', 't2bOctal', 't2bDecimal', 't2bHexOut'].forEach(id => document.getElementById(id)!.textContent = '');
+          return;
+        }
+        const chars = [...input];
+        document.getElementById('t2bOutput')!.textContent = chars.map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(sep);
+        document.getElementById('t2bOctal')!.textContent = chars.map(c => c.charCodeAt(0).toString(8).padStart(3, '0')).join(sep);
+        document.getElementById('t2bDecimal')!.textContent = chars.map(c => c.charCodeAt(0).toString(10)).join(sep);
+        document.getElementById('t2bHexOut')!.textContent = chars.map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(sep);
+      } else {
+        try {
+          const bins = input.trim().split(/[\s,]+/).filter(Boolean);
+          const text = bins.map(b => String.fromCharCode(parseInt(b, 2))).join('');
+          document.getElementById('t2bOutput')!.textContent = text;
+          document.getElementById('t2bOctal')!.textContent = bins.map(b => parseInt(b, 2).toString(8).padStart(3, '0')).join(sep);
+          document.getElementById('t2bDecimal')!.textContent = bins.map(b => parseInt(b, 2).toString(10)).join(sep);
+          document.getElementById('t2bHexOut')!.textContent = bins.map(b => parseInt(b, 2).toString(16).padStart(2, '0')).join(sep);
+        } catch {
+          document.getElementById('t2bOutput')!.textContent = 'Invalid binary input';
+        }
+      }
+    }
+
+    document.getElementById('t2bEnc')!.addEventListener('click', () => {
+      encoding = true;
+      document.getElementById('t2bEnc')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('t2bDec')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('t2bLabel')!.textContent = 'Text Input';
+      convert();
+    });
+    document.getElementById('t2bDec')!.addEventListener('click', () => {
+      encoding = false;
+      document.getElementById('t2bDec')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('t2bEnc')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('t2bLabel')!.textContent = 'Binary Input';
+      convert();
+    });
+
+    (document.getElementById('t2bInput') as HTMLTextAreaElement).addEventListener('input', convert);
+    document.querySelectorAll('input[name="t2bSep"]').forEach(r => r.addEventListener('change', convert));
+
+    document.getElementById('t2bCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('t2bOutput')!.textContent || '');
+    });
+    document.querySelectorAll('.t2b-fmt-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(document.getElementById((btn as HTMLElement).dataset.target!)!.textContent || '');
+      });
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Text to Binary Converter</h2>
+    <p>Convert text to binary code and binary back to text. Also shows octal, decimal and hexadecimal representations. Supports custom separators.</p>
+  </Fragment>
+</ToolLayout>

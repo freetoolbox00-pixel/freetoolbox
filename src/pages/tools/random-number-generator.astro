@@ -1,0 +1,167 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Random Number Generator"
+  description="Generate random numbers, dice rolls, coin flips and lottery numbers. Cryptographically secure random number generator. Free RNG tool."
+  category="utility"
+  icon="🎲"
+>
+  <div>
+    <!-- Main Generator -->
+    <div class="p-6 bg-blue-50 rounded-xl text-center mb-6">
+      <div id="rngResult" class="text-6xl font-bold font-mono text-blue-600 mb-4">42</div>
+      <button id="rngGenerate" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-lg font-medium rounded-xl transition-colors">Generate</button>
+    </div>
+
+    <!-- Range -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
+        <input type="number" id="rngMin" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
+        <input type="number" id="rngMax" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+        <input type="number" id="rngQty" value="1" min="1" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="rngUnique" class="accent-blue-600" /> No duplicates
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="rngSorted" class="accent-blue-600" /> Sort results
+      </label>
+    </div>
+
+    <!-- Quick Tools -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <!-- Coin Flip -->
+      <div class="p-4 bg-yellow-50 rounded-lg text-center">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Coin Flip</h3>
+        <div id="coinResult" class="text-3xl font-bold mb-2">🪙</div>
+        <button id="flipCoin" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg">Flip!</button>
+      </div>
+
+      <!-- Dice Roll -->
+      <div class="p-4 bg-green-50 rounded-lg text-center">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Dice Roll</h3>
+        <div id="diceResult" class="text-3xl font-bold mb-2">🎲</div>
+        <div class="flex gap-1 justify-center">
+          <button class="dice-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded" data-sides="6">D6</button>
+          <button class="dice-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded" data-sides="20">D20</button>
+          <button class="dice-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded" data-sides="100">D100</button>
+        </div>
+      </div>
+
+      <!-- Pick from List -->
+      <div class="p-4 bg-purple-50 rounded-lg text-center">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Random from List</h3>
+        <textarea id="listInput" rows="2" placeholder="apple, banana, cherry" class="w-full mb-2 px-2 py-1 border border-gray-300 rounded text-xs resize-none"></textarea>
+        <button id="pickFromList" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg">Pick</button>
+        <div id="listResult" class="mt-2 font-bold text-purple-600"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-medium text-gray-700">History</h3>
+        <button id="clearHistory" class="text-xs text-gray-400 hover:text-red-500">Clear</button>
+      </div>
+      <div id="rngHistory" class="text-sm text-gray-600 space-y-1 max-h-[150px] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <script>
+    function secureRandom(min: number, max: number): number {
+      const range = max - min + 1;
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return min + (array[0] % range);
+    }
+
+    const history: string[] = [];
+
+    function addHistory(text: string): void {
+      history.unshift(text);
+      if (history.length > 20) history.pop();
+      document.getElementById('rngHistory')!.innerHTML = history.map(h => `<div class="p-1 bg-gray-50 rounded font-mono text-xs">${h}</div>`).join('');
+    }
+
+    document.getElementById('rngGenerate')!.addEventListener('click', () => {
+      const min = parseInt((document.getElementById('rngMin') as HTMLInputElement).value);
+      const max = parseInt((document.getElementById('rngMax') as HTMLInputElement).value);
+      const qty = Math.min(100, parseInt((document.getElementById('rngQty') as HTMLInputElement).value) || 1);
+      const unique = (document.getElementById('rngUnique') as HTMLInputElement).checked;
+      const sorted = (document.getElementById('rngSorted') as HTMLInputElement).checked;
+
+      if (isNaN(min) || isNaN(max) || min > max) return;
+      if (unique && qty > (max - min + 1)) return;
+
+      const results: number[] = [];
+      const used = new Set<number>();
+      while (results.length < qty) {
+        const n = secureRandom(min, max);
+        if (unique && used.has(n)) continue;
+        results.push(n);
+        used.add(n);
+      }
+
+      if (sorted) results.sort((a, b) => a - b);
+
+      document.getElementById('rngResult')!.textContent = results.join(', ');
+      addHistory(`[${min}-${max}] → ${results.join(', ')}`);
+    });
+
+    document.getElementById('flipCoin')!.addEventListener('click', () => {
+      const result = secureRandom(0, 1) === 0 ? 'Heads' : 'Tails';
+      document.getElementById('coinResult')!.textContent = result === 'Heads' ? '🪙 Heads' : '🪙 Tails';
+      addHistory(`Coin: ${result}`);
+    });
+
+    document.querySelectorAll('.dice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sides = parseInt((btn as HTMLElement).dataset.sides!);
+        const result = secureRandom(1, sides);
+        document.getElementById('diceResult')!.textContent = `🎲 ${result}`;
+        addHistory(`D${sides}: ${result}`);
+      });
+    });
+
+    document.getElementById('pickFromList')!.addEventListener('click', () => {
+      const items = (document.getElementById('listInput') as HTMLTextAreaElement).value.split(',').map(s => s.trim()).filter(Boolean);
+      if (items.length === 0) return;
+      const pick = items[secureRandom(0, items.length - 1)];
+      document.getElementById('listResult')!.textContent = pick;
+      addHistory(`List: "${pick}"`);
+    });
+
+    document.getElementById('clearHistory')!.addEventListener('click', () => {
+      history.length = 0;
+      document.getElementById('rngHistory')!.innerHTML = '';
+    });
+
+    // Initial
+    document.getElementById('rngGenerate')!.click();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Random Number Generator</h2>
+    <p>Generate cryptographically secure random numbers with custom ranges. Includes coin flip, dice roller, and random list picker. All randomness uses crypto.getRandomValues() for true unpredictability.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Custom range</strong> - Set any min/max values</li>
+      <li><strong>Bulk generation</strong> - Generate up to 100 numbers at once</li>
+      <li><strong>No duplicates</strong> - Option to ensure unique numbers</li>
+      <li><strong>Coin flip & dice</strong> - Quick D6, D20, D100 dice rolls</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

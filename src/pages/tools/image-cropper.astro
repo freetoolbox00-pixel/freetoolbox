@@ -1,0 +1,188 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image Cropper"
+  description="Crop images online for free. Set custom dimensions or use preset aspect ratios. No upload to server — 100% client-side."
+  category="utility"
+  icon="✂️"
+>
+  <div>
+    <div id="crDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop an image here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">PNG, JPG, WebP</div>
+      <input type="file" id="crFile" accept="image/*" class="hidden" />
+    </div>
+
+    <div id="crPanel" class="hidden">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Aspect ratio</label>
+        <div class="flex flex-wrap gap-2">
+          <button class="cr-ratio px-3 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium" data-ratio="free">Free</button>
+          <button class="cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-ratio="1:1">1:1</button>
+          <button class="cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-ratio="4:3">4:3</button>
+          <button class="cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-ratio="16:9">16:9</button>
+          <button class="cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-ratio="3:2">3:2</button>
+          <button class="cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-ratio="2:3">2:3</button>
+        </div>
+      </div>
+
+      <div class="relative inline-block mb-4 select-none" id="crContainer">
+        <canvas id="crCanvas" class="max-w-full border border-gray-200 rounded-lg"></canvas>
+        <div id="crOverlay" class="absolute border-2 border-white shadow-lg" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
+      </div>
+
+      <div class="flex items-center gap-4 mb-4">
+        <div class="text-sm text-gray-500">Selection: <span id="crDims" class="font-mono">0 x 0</span></div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="crCrop" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Crop & Download</button>
+        <button id="crReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('crDrop')!;
+  const fileIn = document.getElementById('crFile') as HTMLInputElement;
+  const panel = document.getElementById('crPanel')!;
+  const container = document.getElementById('crContainer')!;
+  const canvas = document.getElementById('crCanvas') as HTMLCanvasElement;
+  const overlay = document.getElementById('crOverlay')!;
+  const dimsEl = document.getElementById('crDims')!;
+  const cropBtn = document.getElementById('crCrop')!;
+  const resetBtn = document.getElementById('crReset')!;
+
+  let img: HTMLImageElement | null = null;
+  let scale = 1;
+  let ratio: number | null = null;
+  let sx = 20, sy = 20, sw = 200, sh = 200;
+  let dragging = false;
+  let dragType = '';
+  let startX = 0, startY = 0, startSx = 0, startSy = 0, startSw = 0, startSh = 0;
+
+  function loadImage(file: File) {
+    const i = new Image();
+    i.onload = () => {
+      img = i;
+      const maxW = Math.min(800, window.innerWidth - 80);
+      scale = Math.min(1, maxW / i.naturalWidth);
+      canvas.width = i.naturalWidth * scale;
+      canvas.height = i.naturalHeight * scale;
+      canvas.getContext('2d')!.drawImage(i, 0, 0, canvas.width, canvas.height);
+      sx = 10; sy = 10;
+      sw = canvas.width - 20;
+      sh = canvas.height - 20;
+      if (ratio) { sh = sw / ratio; if (sh > canvas.height - 20) { sh = canvas.height - 20; sw = sh * ratio; } }
+      updateOverlay();
+      panel.classList.remove('hidden');
+      drop.classList.add('hidden');
+    };
+    i.src = URL.createObjectURL(file);
+  }
+
+  function updateOverlay() {
+    overlay.style.left = sx + 'px';
+    overlay.style.top = sy + 'px';
+    overlay.style.width = sw + 'px';
+    overlay.style.height = sh + 'px';
+    const rw = Math.round(sw / scale);
+    const rh = Math.round(sh / scale);
+    dimsEl.textContent = `${rw} x ${rh}`;
+  }
+
+  container.addEventListener('mousedown', (e) => {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    const edge = 8;
+    const onRight = Math.abs(mx - (sx + sw)) < edge && my >= sy && my <= sy + sh;
+    const onBottom = Math.abs(my - (sy + sh)) < edge && mx >= sx && mx <= sx + sw;
+    const inside = mx >= sx && mx <= sx + sw && my >= sy && my <= sy + sh;
+
+    if (onRight && onBottom) dragType = 'resize-br';
+    else if (onRight) dragType = 'resize-r';
+    else if (onBottom) dragType = 'resize-b';
+    else if (inside) dragType = 'move';
+    else { dragType = 'new'; sx = mx; sy = my; sw = 0; sh = 0; }
+
+    dragging = true;
+    startX = mx; startY = my;
+    startSx = sx; startSy = sy; startSw = sw; startSh = sh;
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    const dx = mx - startX;
+    const dy = my - startY;
+
+    if (dragType === 'move') {
+      sx = Math.max(0, Math.min(canvas.width - sw, startSx + dx));
+      sy = Math.max(0, Math.min(canvas.height - sh, startSy + dy));
+    } else if (dragType === 'resize-br' || dragType === 'resize-r' || dragType === 'resize-b') {
+      if (dragType !== 'resize-b') sw = Math.max(20, Math.min(canvas.width - sx, startSw + dx));
+      if (dragType !== 'resize-r') sh = Math.max(20, Math.min(canvas.height - sy, startSh + dy));
+      if (ratio) sh = sw / ratio;
+    } else if (dragType === 'new') {
+      sw = Math.max(20, Math.min(canvas.width - sx, mx - sx));
+      sh = Math.max(20, Math.min(canvas.height - sy, my - sy));
+      if (ratio) sh = sw / ratio;
+    }
+    updateOverlay();
+  });
+
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  document.querySelectorAll('.cr-ratio').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cr-ratio').forEach(b => { b.className = 'cr-ratio px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400'; });
+      (btn as HTMLElement).className = 'cr-ratio px-3 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium';
+      const val = (btn as HTMLElement).dataset.ratio!;
+      if (val === 'free') { ratio = null; }
+      else { const [w, h] = val.split(':').map(Number); ratio = w / h; sh = sw / ratio; }
+      updateOverlay();
+    });
+  });
+
+  cropBtn.addEventListener('click', () => {
+    if (!img) return;
+    const c = document.createElement('canvas');
+    const rw = Math.round(sw / scale);
+    const rh = Math.round(sh / scale);
+    c.width = rw;
+    c.height = rh;
+    c.getContext('2d')!.drawImage(img, Math.round(sx / scale), Math.round(sy / scale), rw, rh, 0, 0, rw, rh);
+    c.toBlob(blob => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'cropped.png';
+      a.click();
+    }, 'image/png');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    img = null;
+    panel.classList.add('hidden');
+    drop.classList.remove('hidden');
+    fileIn.value = '';
+  });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50');
+    const f = e.dataTransfer?.files[0];
+    if (f && f.type.startsWith('image/')) loadImage(f);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadImage(fileIn.files[0]); });
+</script>

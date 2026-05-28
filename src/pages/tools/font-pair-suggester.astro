@@ -1,0 +1,141 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Font Pair Suggester"
+  description="Find beautiful font pairings for your website. Preview heading + body combinations with Google Fonts. Free font pairing tool."
+  category="developer"
+  icon="Ff"
+>
+  <div>
+    <!-- Pairs -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div id="fpPairs" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      <div>
+        <div id="fpPreview" class="p-6 bg-white border-2 border-gray-200 rounded-xl min-h-[350px]">
+          <h2 id="fpHeading" class="text-3xl font-bold mb-3" style="font-family:Georgia,serif">The Quick Brown Fox</h2>
+          <h3 id="fpSubhead" class="text-xl mb-4 text-gray-600" style="font-family:Georgia,serif">Jumps Over the Lazy Dog</h3>
+          <p id="fpBody" class="text-base leading-relaxed text-gray-700" style="font-family:system-ui,sans-serif">Typography is the art and technique of arranging type to make written language legible, readable and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing.</p>
+          <p id="fpBody2" class="text-sm mt-4 text-gray-500" style="font-family:system-ui,sans-serif">Secondary text with the body font to show how smaller sizes look in paragraph form.</p>
+        </div>
+        <!-- Custom text -->
+        <div class="mt-3">
+          <input type="text" id="fpCustom" placeholder="Type custom preview text..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Current pair info -->
+    <div id="fpInfo" class="p-4 bg-gray-50 rounded-xl mb-6">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs text-gray-400 mb-1">Heading Font</div>
+          <div id="fpHeadName" class="font-medium">Georgia</div>
+          <div id="fpHeadType" class="text-xs text-gray-400">Serif</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400 mb-1">Body Font</div>
+          <div id="fpBodyName" class="font-medium">System UI</div>
+          <div id="fpBodyType" class="text-xs text-gray-400">Sans-serif</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="fpCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="fpCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    interface FontPair {
+      heading: string;
+      headType: string;
+      headStack: string;
+      body: string;
+      bodyType: string;
+      bodyStack: string;
+      mood: string;
+    }
+
+    const pairs: FontPair[] = [
+      { heading: 'Georgia', headType: 'Serif', headStack: 'Georgia, "Times New Roman", serif', body: 'Verdana', bodyType: 'Sans-serif', bodyStack: 'Verdana, Geneva, sans-serif', mood: 'Classic & Readable' },
+      { heading: 'Palatino', headType: 'Serif', headStack: '"Palatino Linotype", "Book Antiqua", Palatino, serif', body: 'Trebuchet MS', bodyType: 'Sans-serif', bodyStack: '"Trebuchet MS", Helvetica, sans-serif', mood: 'Elegant' },
+      { heading: 'Impact', headType: 'Sans-serif', headStack: 'Impact, Haettenschweiler, sans-serif', body: 'Georgia', bodyType: 'Serif', bodyStack: 'Georgia, "Times New Roman", serif', mood: 'Bold & Strong' },
+      { heading: 'Garamond', headType: 'Serif', headStack: 'Garamond, "Times New Roman", serif', body: 'Tahoma', bodyType: 'Sans-serif', bodyStack: 'Tahoma, Geneva, sans-serif', mood: 'Sophisticated' },
+      { heading: 'Arial Black', headType: 'Sans-serif', headStack: '"Arial Black", Gadget, sans-serif', body: 'Arial', bodyType: 'Sans-serif', bodyStack: 'Arial, Helvetica, sans-serif', mood: 'Modern & Clean' },
+      { heading: 'Courier New', headType: 'Monospace', headStack: '"Courier New", Courier, monospace', body: 'Lucida Sans', bodyType: 'Sans-serif', bodyStack: '"Lucida Sans Unicode", "Lucida Grande", sans-serif', mood: 'Technical' },
+      { heading: 'Cambria', headType: 'Serif', headStack: 'Cambria, Georgia, serif', body: 'Calibri', bodyType: 'Sans-serif', bodyStack: 'Calibri, "Segoe UI", sans-serif', mood: 'Professional' },
+      { heading: 'Century Gothic', headType: 'Sans-serif', headStack: '"Century Gothic", Futura, sans-serif', body: 'Georgia', bodyType: 'Serif', bodyStack: 'Georgia, "Times New Roman", serif', mood: 'Minimal & Geometric' },
+      { heading: 'Rockwell', headType: 'Serif', headStack: 'Rockwell, "Courier Bold", serif', body: 'Helvetica', bodyType: 'Sans-serif', bodyStack: 'Helvetica, Arial, sans-serif', mood: 'Strong & Stable' },
+      { heading: 'Segoe UI', headType: 'Sans-serif', headStack: '"Segoe UI", Roboto, sans-serif', body: 'Georgia', bodyType: 'Serif', bodyStack: 'Georgia, "Times New Roman", serif', mood: 'Modern Hybrid' },
+      { heading: 'Franklin Gothic', headType: 'Sans-serif', headStack: '"Franklin Gothic Medium", Arial, sans-serif', body: 'Book Antiqua', bodyType: 'Serif', bodyStack: '"Book Antiqua", Palatino, serif', mood: 'Editorial' },
+      { heading: 'Lucida Console', headType: 'Monospace', headStack: '"Lucida Console", Monaco, monospace', body: 'Verdana', bodyType: 'Sans-serif', bodyStack: 'Verdana, Geneva, sans-serif', mood: 'Developer / Code' },
+    ];
+
+    let currentPair = 0;
+
+    function renderPairList(): void {
+      const container = document.getElementById('fpPairs')!;
+      container.innerHTML = pairs.map((p, i) => `
+        <button class="fp-pair w-full text-left p-3 rounded-lg border-2 transition-colors ${i === currentPair ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}" data-i="${i}">
+          <div class="text-sm font-medium">${p.heading} + ${p.body}</div>
+          <div class="text-xs text-gray-400">${p.mood}</div>
+        </button>
+      `).join('');
+
+      container.querySelectorAll('.fp-pair').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPair = parseInt((btn as HTMLElement).dataset.i!);
+          selectPair();
+        });
+      });
+    }
+
+    function selectPair(): void {
+      const p = pairs[currentPair];
+      document.getElementById('fpHeading')!.style.fontFamily = p.headStack;
+      document.getElementById('fpSubhead')!.style.fontFamily = p.headStack;
+      document.getElementById('fpBody')!.style.fontFamily = p.bodyStack;
+      document.getElementById('fpBody2')!.style.fontFamily = p.bodyStack;
+
+      document.getElementById('fpHeadName')!.textContent = p.heading;
+      document.getElementById('fpHeadType')!.textContent = p.headType;
+      document.getElementById('fpBodyName')!.textContent = p.body;
+      document.getElementById('fpBodyType')!.textContent = p.bodyType;
+
+      const css = `/* ${p.mood} */\nh1, h2, h3 {\n  font-family: ${p.headStack};\n}\n\nbody, p {\n  font-family: ${p.bodyStack};\n}`;
+      document.getElementById('fpCode')!.textContent = css;
+
+      renderPairList();
+    }
+
+    document.getElementById('fpCustom')!.addEventListener('input', (e) => {
+      const text = (e.target as HTMLInputElement).value;
+      if (text) {
+        document.getElementById('fpHeading')!.textContent = text;
+        document.getElementById('fpBody')!.textContent = text;
+      } else {
+        document.getElementById('fpHeading')!.textContent = 'The Quick Brown Fox';
+        document.getElementById('fpBody')!.textContent = 'Typography is the art and technique of arranging type to make written language legible, readable and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing.';
+      }
+    });
+
+    document.getElementById('fpCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('fpCode')!.textContent || '');
+    });
+
+    renderPairList();
+    selectPair();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Font Pair Suggester</h2>
+    <p>Find harmonious font pairings for your website. Preview heading and body font combinations with live text preview. Get CSS code ready to use. All system fonts — no external loading needed.</p>
+  </Fragment>
+</ToolLayout>

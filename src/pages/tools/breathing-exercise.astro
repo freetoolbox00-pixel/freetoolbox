@@ -1,0 +1,105 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Breathing Exercise" description="Guided breathing exercises for relaxation, focus and stress relief. Box breathing, 4-7-8, and more techniques." category="utility" icon="🫁">
+  <div>
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button class="br-pre px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium" data-in="4" data-hold="4" data-out="4" data-pause="4">Box Breathing</button>
+      <button class="br-pre px-4 py-2 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-in="4" data-hold="7" data-out="8" data-pause="0">4-7-8 Relaxing</button>
+      <button class="br-pre px-4 py-2 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-in="5" data-hold="0" data-out="5" data-pause="0">Deep Calm</button>
+      <button class="br-pre px-4 py-2 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-in="3" data-hold="0" data-out="3" data-pause="0">Quick Focus</button>
+    </div>
+    <div class="flex justify-center mb-6">
+      <div class="relative w-64 h-64">
+        <svg viewBox="0 0 200 200" class="w-full h-full">
+          <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" stroke-width="4" />
+          <circle id="brCircle" cx="100" cy="100" r="90" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="565" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 100 100)" class="transition-all" />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <div id="brPhase" class="text-2xl font-bold text-gray-800">Ready</div>
+          <div id="brCount" class="text-5xl font-bold text-blue-600">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-2 text-center text-sm mb-6">
+      <div class="p-2 bg-blue-50 rounded-lg"><div class="text-xs text-blue-500">Inhale</div><div class="font-bold" id="brInVal">4s</div></div>
+      <div class="p-2 bg-yellow-50 rounded-lg"><div class="text-xs text-yellow-600">Hold</div><div class="font-bold" id="brHoldVal">4s</div></div>
+      <div class="p-2 bg-green-50 rounded-lg"><div class="text-xs text-green-600">Exhale</div><div class="font-bold" id="brOutVal">4s</div></div>
+      <div class="p-2 bg-gray-50 rounded-lg"><div class="text-xs text-gray-500">Pause</div><div class="font-bold" id="brPauseVal">4s</div></div>
+    </div>
+    <div class="flex justify-center gap-3">
+      <button id="brStart" class="px-8 py-3 bg-blue-600 text-white rounded-full text-lg font-bold hover:bg-blue-700">Start</button>
+      <button id="brStop" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 hidden">Stop</button>
+    </div>
+    <div class="text-center mt-3 text-sm text-gray-500">Cycles: <span id="brCycles">0</span></div>
+  </div>
+</ToolLayout>
+
+<script>
+  let inhale = 4, hold = 4, exhale = 4, pause = 4;
+  let running = false;
+  let timer: number | null = null;
+  let cycles = 0;
+
+  const circle = document.getElementById('brCircle')!;
+  const phaseEl = document.getElementById('brPhase')!;
+  const countEl = document.getElementById('brCount')!;
+  const cyclesEl = document.getElementById('brCycles')!;
+  const startBtn = document.getElementById('brStart')!;
+  const stopBtn = document.getElementById('brStop')!;
+
+  function setCircle(pct: number) {
+    const offset = 565 * (1 - pct);
+    circle.setAttribute('stroke-dashoffset', String(offset));
+  }
+
+  async function runCycle() {
+    const phases = [
+      { name: 'Inhale', dur: inhale, color: '#3b82f6' },
+      { name: 'Hold', dur: hold, color: '#eab308' },
+      { name: 'Exhale', dur: exhale, color: '#22c55e' },
+      { name: 'Pause', dur: pause, color: '#9ca3af' },
+    ];
+
+    for (const phase of phases) {
+      if (!running || phase.dur === 0) continue;
+      circle.setAttribute('stroke', phase.color);
+      phaseEl.textContent = phase.name;
+      for (let i = phase.dur; i > 0; i--) {
+        if (!running) return;
+        countEl.textContent = String(i);
+        setCircle((phase.dur - i + 1) / phase.dur);
+        await new Promise(r => { timer = window.setTimeout(r, 1000); });
+      }
+    }
+    cycles++;
+    cyclesEl.textContent = String(cycles);
+    if (running) runCycle();
+  }
+
+  startBtn.addEventListener('click', () => {
+    running = true; cycles = 0; cyclesEl.textContent = '0';
+    startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden');
+    runCycle();
+  });
+
+  stopBtn.addEventListener('click', () => {
+    running = false;
+    if (timer) clearTimeout(timer);
+    phaseEl.textContent = 'Ready'; countEl.textContent = '0';
+    setCircle(0); circle.setAttribute('stroke', '#3b82f6');
+    stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+  });
+
+  document.querySelectorAll('.br-pre').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.br-pre').forEach(b => { b.className = 'br-pre px-4 py-2 border border-gray-300 rounded-lg text-sm hover:border-gray-400'; });
+    (btn as HTMLElement).className = 'br-pre px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium';
+    const d = (btn as HTMLElement).dataset;
+    inhale = parseInt(d.in!); hold = parseInt(d.hold!); exhale = parseInt(d.out!); pause = parseInt(d.pause!);
+    document.getElementById('brInVal')!.textContent = inhale + 's';
+    document.getElementById('brHoldVal')!.textContent = hold + 's';
+    document.getElementById('brOutVal')!.textContent = exhale + 's';
+    document.getElementById('brPauseVal')!.textContent = pause + 's';
+  }));
+</script>

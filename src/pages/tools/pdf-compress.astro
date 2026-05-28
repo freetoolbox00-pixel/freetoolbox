@@ -1,0 +1,149 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="PDF Compress"
+  description="Compress PDF files to reduce file size. Free online PDF compressor — no upload to server, 100% client-side."
+  category="pdf"
+  icon="📦"
+>
+  <div>
+    <div id="pcDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📄</div>
+      <div class="text-sm text-gray-600 font-medium">Drop a PDF file here or click to upload</div>
+      <input type="file" id="pcFile" accept=".pdf" class="hidden" />
+    </div>
+
+    <div id="pcPanel" class="hidden">
+      <div class="flex gap-4 mb-4 flex-wrap">
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="pcName">-</span></div>
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium">Original: <span id="pcOrig">0</span></div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Compression level</label>
+        <div class="flex gap-3">
+          <label class="flex-1 cursor-pointer"><input type="radio" name="pcLevel" value="low" class="peer hidden" /><div class="p-3 border-2 border-gray-200 rounded-lg text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-colors"><div class="text-sm font-medium">Low</div><div class="text-xs text-gray-400">Smaller file</div></div></label>
+          <label class="flex-1 cursor-pointer"><input type="radio" name="pcLevel" value="medium" checked class="peer hidden" /><div class="p-3 border-2 border-gray-200 rounded-lg text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-colors"><div class="text-sm font-medium">Medium</div><div class="text-xs text-gray-400">Balanced</div></div></label>
+          <label class="flex-1 cursor-pointer"><input type="radio" name="pcLevel" value="high" class="peer hidden" /><div class="p-3 border-2 border-gray-200 rounded-lg text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-colors"><div class="text-sm font-medium">High</div><div class="text-xs text-gray-400">Better quality</div></div></label>
+        </div>
+      </div>
+
+      <div id="pcProgress" class="hidden mb-4">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="pcBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1 text-center" id="pcStatus">Compressing...</div>
+      </div>
+
+      <div id="pcResult" class="hidden mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium text-green-800">Compressed: <span id="pcNew">0</span></div>
+            <div class="text-xs text-green-600"><span id="pcSaved">0</span>% smaller</div>
+          </div>
+          <a id="pcDownload" href="#" download="compressed.pdf" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium">Download</a>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="pcCompress" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Compress</button>
+        <button id="pcReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('pcDrop')!;
+  const fileIn = document.getElementById('pcFile') as HTMLInputElement;
+  const panel = document.getElementById('pcPanel')!;
+  const nameEl = document.getElementById('pcName')!;
+  const origEl = document.getElementById('pcOrig')!;
+  const progressEl = document.getElementById('pcProgress')!;
+  const barEl = document.getElementById('pcBar')!;
+  const statusEl = document.getElementById('pcStatus')!;
+  const resultEl = document.getElementById('pcResult')!;
+  const newEl = document.getElementById('pcNew')!;
+  const savedEl = document.getElementById('pcSaved')!;
+  const dlEl = document.getElementById('pcDownload') as HTMLAnchorElement;
+  const compressBtn = document.getElementById('pcCompress') as HTMLButtonElement;
+  const resetBtn = document.getElementById('pcReset')!;
+
+  let pdfBytes: ArrayBuffer | null = null;
+  let origSize = 0;
+
+  function fmtSize(b: number) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  async function loadFile(file: File) {
+    pdfBytes = await file.arrayBuffer();
+    origSize = file.size;
+    nameEl.textContent = file.name;
+    origEl.textContent = fmtSize(file.size);
+    panel.classList.remove('hidden');
+    drop.classList.add('hidden');
+    resultEl.classList.add('hidden');
+  }
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50');
+    const f = e.dataTransfer?.files[0];
+    if (f && f.type === 'application/pdf') loadFile(f);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadFile(fileIn.files[0]); });
+
+  resetBtn.addEventListener('click', () => {
+    pdfBytes = null;
+    panel.classList.add('hidden');
+    drop.classList.remove('hidden');
+    resultEl.classList.add('hidden');
+    fileIn.value = '';
+  });
+
+  compressBtn.addEventListener('click', async () => {
+    if (!pdfBytes) return;
+    compressBtn.disabled = true;
+    progressEl.classList.remove('hidden');
+    resultEl.classList.add('hidden');
+    barEl.style.width = '30%';
+    statusEl.textContent = 'Loading PDF...';
+
+    const level = (document.querySelector('input[name="pcLevel"]:checked') as HTMLInputElement)?.value || 'medium';
+    const { PDFDocument } = await import('pdf-lib');
+
+    try {
+      barEl.style.width = '50%';
+      statusEl.textContent = 'Re-serializing...';
+      const src = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      const newDoc = await PDFDocument.create();
+      const pages = await newDoc.copyPages(src, src.getPageIndices());
+      pages.forEach(p => newDoc.addPage(p));
+
+      barEl.style.width = '80%';
+      statusEl.textContent = 'Saving...';
+      const bytes = await newDoc.save();
+
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const saved = Math.max(0, ((origSize - bytes.length) / origSize * 100));
+
+      newEl.textContent = fmtSize(bytes.length);
+      savedEl.textContent = saved.toFixed(1);
+      dlEl.href = url;
+      resultEl.classList.remove('hidden');
+      barEl.style.width = '100%';
+      statusEl.textContent = 'Done!';
+    } catch (err) {
+      statusEl.textContent = `Error: ${(err as Error).message}`;
+    }
+    compressBtn.disabled = false;
+  });
+</script>

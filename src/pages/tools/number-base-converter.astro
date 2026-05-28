@@ -1,0 +1,151 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Number Base Converter"
+  description="Convert numbers between binary, octal, decimal and hexadecimal. Support for any base from 2 to 36. Free number system converter."
+  category="developer"
+  icon="0x"
+>
+  <div>
+    <!-- Input -->
+    <div class="mb-6">
+      <div class="flex gap-2 mb-2">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Input Number</label>
+          <input type="text" id="numInput" value="255" class="w-full px-3 py-3 border border-gray-300 rounded-lg font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Base</label>
+          <select id="inputBase" class="px-3 py-3 border border-gray-300 rounded-lg text-sm">
+            <option value="2">Binary (2)</option>
+            <option value="8">Octal (8)</option>
+            <option value="10" selected>Decimal (10)</option>
+            <option value="16">Hex (16)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="customBaseWrap" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Base</label>
+          <input type="number" id="customBase" min="2" max="36" value="2" class="w-16 px-3 py-3 border border-gray-300 rounded-lg text-sm" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="space-y-3">
+      <div class="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-500 uppercase font-medium">Binary (Base 2)</div>
+          <div id="resBin" class="font-mono text-lg break-all">11111111</div>
+        </div>
+        <button class="base-copy text-xs text-blue-600 hover:text-blue-800" data-target="resBin">Copy</button>
+      </div>
+      <div class="p-3 bg-green-50 rounded-lg flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-500 uppercase font-medium">Octal (Base 8)</div>
+          <div id="resOct" class="font-mono text-lg">377</div>
+        </div>
+        <button class="base-copy text-xs text-green-600 hover:text-green-800" data-target="resOct">Copy</button>
+      </div>
+      <div class="p-3 bg-purple-50 rounded-lg flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-500 uppercase font-medium">Decimal (Base 10)</div>
+          <div id="resDec" class="font-mono text-lg">255</div>
+        </div>
+        <button class="base-copy text-xs text-purple-600 hover:text-purple-800" data-target="resDec">Copy</button>
+      </div>
+      <div class="p-3 bg-orange-50 rounded-lg flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-500 uppercase font-medium">Hexadecimal (Base 16)</div>
+          <div id="resHex" class="font-mono text-lg uppercase">FF</div>
+        </div>
+        <button class="base-copy text-xs text-orange-600 hover:text-orange-800" data-target="resHex">Copy</button>
+      </div>
+    </div>
+
+    <!-- Bit breakdown -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Bit Visualization</h3>
+      <div id="bitViz" class="flex flex-wrap gap-1 font-mono text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    const numInput = document.getElementById('numInput') as HTMLInputElement;
+    const inputBase = document.getElementById('inputBase') as HTMLSelectElement;
+    const customBase = document.getElementById('customBase') as HTMLInputElement;
+
+    function getBase(): number {
+      const v = inputBase.value;
+      if (v === 'custom') return parseInt(customBase.value) || 10;
+      return parseInt(v);
+    }
+
+    function convert(): void {
+      const text = numInput.value.trim();
+      const base = getBase();
+
+      document.getElementById('customBaseWrap')!.classList.toggle('hidden', inputBase.value !== 'custom');
+
+      try {
+        const num = parseInt(text, base);
+        if (isNaN(num)) throw new Error('Invalid');
+
+        document.getElementById('resBin')!.textContent = num.toString(2);
+        document.getElementById('resOct')!.textContent = num.toString(8);
+        document.getElementById('resDec')!.textContent = num.toString(10);
+        document.getElementById('resHex')!.textContent = num.toString(16).toUpperCase();
+
+        // Bit visualization
+        const bits = num.toString(2).padStart(Math.ceil(num.toString(2).length / 8) * 8, '0');
+        const bitViz = document.getElementById('bitViz')!;
+        bitViz.innerHTML = '';
+        for (let i = 0; i < bits.length; i++) {
+          const span = document.createElement('span');
+          span.textContent = bits[i];
+          span.className = `w-6 h-8 flex items-center justify-center rounded ${bits[i] === '1' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`;
+          if (i > 0 && i % 8 === 0) {
+            const sep = document.createElement('span');
+            sep.className = 'w-2';
+            bitViz.appendChild(sep);
+          }
+          bitViz.appendChild(span);
+        }
+      } catch {
+        ['resBin', 'resOct', 'resDec', 'resHex'].forEach(id => {
+          document.getElementById(id)!.textContent = '—';
+        });
+        document.getElementById('bitViz')!.innerHTML = '<span class="text-gray-400">Invalid input</span>';
+      }
+    }
+
+    numInput.addEventListener('input', convert);
+    inputBase.addEventListener('change', convert);
+    customBase.addEventListener('input', convert);
+
+    document.querySelectorAll('.base-copy').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const target = (btn as HTMLElement).dataset.target!;
+        await navigator.clipboard.writeText(document.getElementById(target)!.textContent || '');
+        (btn as HTMLElement).textContent = 'Copied!';
+        setTimeout(() => (btn as HTMLElement).textContent = 'Copy', 1500);
+      });
+    });
+
+    convert();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Number Base Converter</h2>
+    <p>Convert numbers between binary (base 2), octal (base 8), decimal (base 10) and hexadecimal (base 16). Visual bit breakdown included.</p>
+    <h3>Number Systems</h3>
+    <ul>
+      <li><strong>Binary (Base 2)</strong> - Used in computing at the hardware level (0 and 1)</li>
+      <li><strong>Octal (Base 8)</strong> - Used in Unix file permissions</li>
+      <li><strong>Decimal (Base 10)</strong> - Standard human number system</li>
+      <li><strong>Hexadecimal (Base 16)</strong> - Used in colors, memory addresses, MAC addresses</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,180 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="PDF Merge"
+  description="Merge multiple PDF files into one document. Drag to reorder. Free online PDF merger — no upload to server, 100% client-side."
+  category="pdf"
+  icon="📑"
+>
+  <div>
+    <div id="pmDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📄</div>
+      <div class="text-sm text-gray-600 font-medium">Drop PDF files here or click to upload</div>
+      <div class="text-xs text-gray-400 mt-1">Select multiple PDF files</div>
+      <input type="file" id="pmFile" accept=".pdf" multiple class="hidden" />
+    </div>
+
+    <div id="pmList" class="space-y-2 mb-6 hidden"></div>
+
+    <div id="pmInfo" class="flex gap-4 mb-4 hidden">
+      <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="pmCount">0</span> files</div>
+      <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="pmPages">0</span> total pages</div>
+    </div>
+
+    <div id="pmProgress" class="hidden mb-4">
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="pmBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width:0%"></div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1 text-center" id="pmStatus">Merging...</div>
+    </div>
+
+    <div class="flex gap-3">
+      <button id="pmMerge" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-40 disabled:cursor-not-allowed" disabled>Merge All</button>
+      <button id="pmClear" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors hidden">Clear All</button>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('pmDrop')!;
+  const fileIn = document.getElementById('pmFile') as HTMLInputElement;
+  const listEl = document.getElementById('pmList')!;
+  const infoEl = document.getElementById('pmInfo')!;
+  const countEl = document.getElementById('pmCount')!;
+  const pagesEl = document.getElementById('pmPages')!;
+  const mergeBtn = document.getElementById('pmMerge') as HTMLButtonElement;
+  const clearBtn = document.getElementById('pmClear')!;
+  const progressEl = document.getElementById('pmProgress')!;
+  const barEl = document.getElementById('pmBar')!;
+  const statusEl = document.getElementById('pmStatus')!;
+
+  interface PdfItem { file: File; pages: number; id: number; }
+  let items: PdfItem[] = [];
+  let nextId = 0;
+  let dragIdx = -1;
+
+  function fmtSize(b: number) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  async function countPages(file: File): Promise<number> {
+    const { PDFDocument } = await import('pdf-lib');
+    const buf = await file.arrayBuffer();
+    try {
+      const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+      return doc.getPageCount();
+    } catch { return 0; }
+  }
+
+  async function addFiles(files: FileList | File[]) {
+    for (const f of Array.from(files)) {
+      if (f.type !== 'application/pdf') continue;
+      const pages = await countPages(f);
+      items.push({ file: f, pages, id: nextId++ });
+    }
+    render();
+  }
+
+  function render() {
+    if (items.length === 0) {
+      listEl.classList.add('hidden');
+      infoEl.classList.add('hidden');
+      clearBtn.classList.add('hidden');
+      mergeBtn.disabled = true;
+      return;
+    }
+    listEl.classList.remove('hidden');
+    infoEl.classList.remove('hidden');
+    clearBtn.classList.remove('hidden');
+    mergeBtn.disabled = items.length < 2;
+    countEl.textContent = String(items.length);
+    pagesEl.textContent = String(items.reduce((s, i) => s + i.pages, 0));
+
+    listEl.innerHTML = '';
+    items.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-grab active:cursor-grabbing';
+      row.draggable = true;
+      row.dataset.idx = String(idx);
+      row.innerHTML = `
+        <span class="text-gray-400 text-sm font-mono w-6 text-center">${idx + 1}</span>
+        <span class="text-lg">📄</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-800 truncate">${item.file.name}</div>
+          <div class="text-xs text-gray-500">${fmtSize(item.file.size)} &middot; ${item.pages} pages</div>
+        </div>
+        <button class="pm-rm text-gray-400 hover:text-red-500 text-lg px-2" data-id="${item.id}">&times;</button>
+      `;
+      row.addEventListener('dragstart', () => { dragIdx = idx; row.classList.add('opacity-50'); });
+      row.addEventListener('dragend', () => { dragIdx = -1; row.classList.remove('opacity-50'); });
+      row.addEventListener('dragover', (e) => { e.preventDefault(); row.classList.add('border-blue-400'); });
+      row.addEventListener('dragleave', () => row.classList.remove('border-blue-400'));
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('border-blue-400');
+        if (dragIdx < 0 || dragIdx === idx) return;
+        const moved = items.splice(dragIdx, 1)[0];
+        items.splice(idx, 0, moved);
+        render();
+      });
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll('.pm-rm').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = Number((btn as HTMLElement).dataset.id);
+        items = items.filter(i => i.id !== id);
+        render();
+      });
+    });
+  }
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('border-blue-400', 'bg-blue-50');
+    if (e.dataTransfer?.files) addFiles(e.dataTransfer.files);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files) addFiles(fileIn.files); fileIn.value = ''; });
+
+  clearBtn.addEventListener('click', () => { items = []; render(); });
+
+  mergeBtn.addEventListener('click', async () => {
+    if (items.length < 2) return;
+    mergeBtn.disabled = true;
+    progressEl.classList.remove('hidden');
+    barEl.style.width = '0%';
+    statusEl.textContent = 'Merging...';
+
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const merged = await PDFDocument.create();
+      for (let i = 0; i < items.length; i++) {
+        statusEl.textContent = `Processing file ${i + 1} of ${items.length}...`;
+        barEl.style.width = `${((i + 1) / items.length * 100).toFixed(0)}%`;
+        const buf = await items[i].file.arrayBuffer();
+        const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(p => merged.addPage(p));
+      }
+      const bytes = await merged.save();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'merged.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = `Done! Merged ${items.length} files (${fmtSize(bytes.length)})`;
+    } catch (err) {
+      statusEl.textContent = `Error: ${(err as Error).message}`;
+    }
+    mergeBtn.disabled = false;
+  });
+</script>

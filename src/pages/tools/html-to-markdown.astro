@@ -1,0 +1,139 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="HTML to Markdown Converter"
+  description="Convert HTML to Markdown and Markdown to HTML. Paste HTML code and get clean Markdown output. Free HTML/Markdown converter."
+  category="developer"
+  icon="H→M"
+>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button id="htmlToMd" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">HTML → Markdown</button>
+      <button id="mdToHtml" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Markdown → HTML</button>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label id="htmLabel" class="block text-sm font-medium text-gray-700 mb-1">HTML Input</label>
+        <textarea id="htmInput" rows="14" placeholder="<h1>Hello World</h1>&#10;<p>This is a <strong>bold</strong> paragraph with a <a href='https://example.com'>link</a>.</p>&#10;<ul>&#10;  <li>Item 1</li>&#10;  <li>Item 2</li>&#10;</ul>" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Output</label>
+          <button id="copyHtm" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+        </div>
+        <pre id="htmOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[350px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'html2md';
+
+    function htmlToMarkdown(html: string): string {
+      let md = html;
+      // Headers
+      md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
+      md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
+      md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
+      md = md.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
+      md = md.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '##### $1\n\n');
+      md = md.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '###### $1\n\n');
+      // Bold, italic
+      md = md.replace(/<(strong|b)>(.*?)<\/(strong|b)>/gi, '**$2**');
+      md = md.replace(/<(em|i)>(.*?)<\/(em|i)>/gi, '*$2*');
+      md = md.replace(/<del>(.*?)<\/del>/gi, '~~$1~~');
+      md = md.replace(/<code>(.*?)<\/code>/gi, '`$1`');
+      // Links and images
+      md = md.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+      md = md.replace(/<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*\/?>/gi, '![$2]($1)');
+      md = md.replace(/<img[^>]*src=["']([^"']*)["'][^>]*\/?>/gi, '![]($1)');
+      // Lists
+      md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+      md = md.replace(/<\/?[uo]l[^>]*>/gi, '\n');
+      // Paragraphs and breaks
+      md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
+      md = md.replace(/<br\s*\/?>/gi, '\n');
+      md = md.replace(/<hr\s*\/?>/gi, '\n---\n\n');
+      // Blockquote
+      md = md.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '> $1\n\n');
+      // Pre/code blocks
+      md = md.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1\n```\n\n');
+      md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, '```\n$1\n```\n\n');
+      // Strip remaining tags
+      md = md.replace(/<[^>]+>/g, '');
+      // Decode entities
+      md = md.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+      // Clean up whitespace
+      md = md.replace(/\n{3,}/g, '\n\n').trim();
+      return md;
+    }
+
+    function markdownToHtml(md: string): string {
+      let html = md;
+      // Code blocks
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Headers
+      html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+      html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
+      html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      // Bold, italic
+      html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+      // Links, images
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      // HR
+      html = html.replace(/^---+$/gm, '<hr />');
+      // Blockquote
+      html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // Lists
+      html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>\n$&</ul>\n');
+      // Paragraphs
+      html = html.replace(/\n\n/g, '</p>\n<p>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p>\s*(<[huo]|<pre|<blockquote|<hr)/g, '$1');
+      html = html.replace(/(<\/[huo]l>|<\/pre>|<\/blockquote>|<hr \/>)\s*<\/p>/g, '$1');
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      return html.trim();
+    }
+
+    function convert(): void {
+      const input = (document.getElementById('htmInput') as HTMLTextAreaElement).value;
+      if (!input.trim()) { document.getElementById('htmOutput')!.textContent = ''; return; }
+      document.getElementById('htmOutput')!.textContent = mode === 'html2md' ? htmlToMarkdown(input) : markdownToHtml(input);
+    }
+
+    document.getElementById('htmlToMd')!.addEventListener('click', () => {
+      mode = 'html2md';
+      document.getElementById('htmlToMd')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('mdToHtml')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('htmLabel')!.textContent = 'HTML Input';
+    });
+    document.getElementById('mdToHtml')!.addEventListener('click', () => {
+      mode = 'md2html';
+      document.getElementById('mdToHtml')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('htmlToMd')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('htmLabel')!.textContent = 'Markdown Input';
+    });
+
+    (document.getElementById('htmInput') as HTMLTextAreaElement).addEventListener('input', convert);
+    document.getElementById('copyHtm')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('htmOutput')!.textContent || '');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free HTML to Markdown Converter</h2>
+    <p>Convert HTML to clean Markdown syntax or convert Markdown back to HTML. Supports headings, bold, italic, links, images, lists and code blocks.</p>
+  </Fragment>
+</ToolLayout>

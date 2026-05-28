@@ -1,0 +1,223 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Pomodoro Timer"
+  description="Free online Pomodoro timer for productivity. 25-minute work sessions with breaks. Track completed sessions. Customizable intervals."
+  category="utility"
+  icon="🍅"
+>
+  <div>
+    <!-- Timer Display -->
+    <div class="text-center mb-8">
+      <div id="timerMode" class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Work Session</div>
+      <div id="timerDisplay" class="text-8xl font-bold font-mono text-gray-900">25:00</div>
+      <div id="sessionCount" class="mt-2 text-sm text-gray-500">Session #1</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex justify-center gap-3 mb-8">
+      <button id="startBtn" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-lg font-medium rounded-xl transition-colors">Start</button>
+      <button id="pauseBtn" class="px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white text-lg font-medium rounded-xl transition-colors hidden">Pause</button>
+      <button id="resetBtn" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-medium rounded-xl transition-colors">Reset</button>
+      <button id="skipBtn" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-xl transition-colors">Skip ⏭</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-8">
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="flex justify-center gap-2 mb-6">
+      <button class="mode-btn px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-sm rounded-lg transition-colors font-medium" data-mode="work">🍅 Work</button>
+      <button class="mode-btn px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 text-sm rounded-lg transition-colors" data-mode="short">☕ Short Break</button>
+      <button class="mode-btn px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded-lg transition-colors" data-mode="long">🌴 Long Break</button>
+    </div>
+
+    <!-- Settings -->
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Settings</h3>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Work (min)</label>
+          <input type="number" id="workTime" min="1" max="120" value="25" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Short Break (min)</label>
+          <input type="number" id="shortBreak" min="1" max="30" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Long Break (min)</label>
+          <input type="number" id="longBreak" min="1" max="60" value="15" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center" />
+        </div>
+      </div>
+      <div class="mt-3">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="autoStart" class="accent-blue-600" /> Auto-start next session
+        </label>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="mt-6 grid grid-cols-3 gap-4 text-center">
+      <div class="p-3 bg-red-50 rounded-lg">
+        <div id="completedSessions" class="text-2xl font-bold text-red-600">0</div>
+        <div class="text-xs text-gray-500">Sessions</div>
+      </div>
+      <div class="p-3 bg-green-50 rounded-lg">
+        <div id="totalWork" class="text-2xl font-bold text-green-600">0m</div>
+        <div class="text-xs text-gray-500">Work Time</div>
+      </div>
+      <div class="p-3 bg-blue-50 rounded-lg">
+        <div id="totalBreak" class="text-2xl font-bold text-blue-600">0m</div>
+        <div class="text-xs text-gray-500">Break Time</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let timeLeft = 25 * 60;
+    let totalTime = 25 * 60;
+    let mode: 'work' | 'short' | 'long' = 'work';
+    let sessions = 0;
+    let totalWorkSec = 0;
+    let totalBreakSec = 0;
+    let running = false;
+
+    const display = document.getElementById('timerDisplay')!;
+    const modeLabel = document.getElementById('timerMode')!;
+    const startBtn = document.getElementById('startBtn')!;
+    const pauseBtn = document.getElementById('pauseBtn')!;
+    const progressBar = document.getElementById('progressBar')!;
+
+    function formatTime(sec: number): string {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateDisplay(): void {
+      display.textContent = formatTime(timeLeft);
+      document.title = `${formatTime(timeLeft)} - Pomodoro Timer`;
+      const pct = ((totalTime - timeLeft) / totalTime) * 100;
+      progressBar.style.width = pct + '%';
+      progressBar.className = `h-2 rounded-full transition-all ${mode === 'work' ? 'bg-red-500' : mode === 'short' ? 'bg-green-500' : 'bg-blue-500'}`;
+    }
+
+    function setMode(m: 'work' | 'short' | 'long'): void {
+      mode = m;
+      const times = { work: parseInt((document.getElementById('workTime') as HTMLInputElement).value), short: parseInt((document.getElementById('shortBreak') as HTMLInputElement).value), long: parseInt((document.getElementById('longBreak') as HTMLInputElement).value) };
+      totalTime = times[m] * 60;
+      timeLeft = totalTime;
+      modeLabel.textContent = m === 'work' ? 'Work Session' : m === 'short' ? 'Short Break' : 'Long Break';
+      document.getElementById('sessionCount')!.textContent = `Session #${sessions + 1}`;
+      updateDisplay();
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const bm = (btn as HTMLElement).dataset.mode;
+        btn.className = `mode-btn px-4 py-2 text-sm rounded-lg transition-colors ${bm === m ? 'font-medium' : ''} ${bm === 'work' ? 'bg-red-50 hover:bg-red-100 text-red-700' : bm === 'short' ? 'bg-green-50 hover:bg-green-100 text-green-700' : 'bg-blue-50 hover:bg-blue-100 text-blue-700'}`;
+      });
+    }
+
+    function complete(): void {
+      stop();
+      if (mode === 'work') {
+        sessions++;
+        totalWorkSec += totalTime;
+        document.getElementById('completedSessions')!.textContent = sessions.toString();
+        document.getElementById('totalWork')!.textContent = Math.round(totalWorkSec / 60) + 'm';
+        // Notify
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Pomodoro Complete!', { body: `Session #${sessions} done. Time for a break!` });
+        }
+        // Next: short or long break
+        if ((document.getElementById('autoStart') as HTMLInputElement).checked) {
+          setMode(sessions % 4 === 0 ? 'long' : 'short');
+          start();
+        } else {
+          setMode(sessions % 4 === 0 ? 'long' : 'short');
+        }
+      } else {
+        totalBreakSec += totalTime;
+        document.getElementById('totalBreak')!.textContent = Math.round(totalBreakSec / 60) + 'm';
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Break Over!', { body: 'Time to get back to work!' });
+        }
+        if ((document.getElementById('autoStart') as HTMLInputElement).checked) {
+          setMode('work');
+          start();
+        } else {
+          setMode('work');
+        }
+      }
+    }
+
+    function start(): void {
+      if (running) return;
+      running = true;
+      startBtn.classList.add('hidden');
+      pauseBtn.classList.remove('hidden');
+      timer = setInterval(() => {
+        timeLeft--;
+        if (mode === 'work') totalWorkSec++;
+        else totalBreakSec++;
+        updateDisplay();
+        if (timeLeft <= 0) complete();
+      }, 1000);
+    }
+
+    function stop(): void {
+      running = false;
+      if (timer) clearInterval(timer);
+      timer = null;
+      startBtn.classList.remove('hidden');
+      pauseBtn.classList.add('hidden');
+      startBtn.textContent = 'Resume';
+    }
+
+    startBtn.addEventListener('click', () => {
+      if ('Notification' in window) Notification.requestPermission();
+      start();
+    });
+    pauseBtn.addEventListener('click', stop);
+    document.getElementById('resetBtn')!.addEventListener('click', () => {
+      stop();
+      setMode(mode);
+      startBtn.textContent = 'Start';
+    });
+    document.getElementById('skipBtn')!.addEventListener('click', complete);
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stop();
+        setMode((btn as HTMLElement).dataset.mode as any);
+        startBtn.textContent = 'Start';
+      });
+    });
+
+    ['workTime', 'shortBreak', 'longBreak'].forEach(id => {
+      document.getElementById(id)!.addEventListener('change', () => { if (!running) setMode(mode); });
+    });
+
+    updateDisplay();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Online Pomodoro Timer</h2>
+    <p>Boost productivity with the Pomodoro Technique. Work in focused 25-minute sessions with short breaks. Track completed sessions and total time worked.</p>
+    <h3>What is the Pomodoro Technique?</h3>
+    <p>Developed by Francesco Cirillo, the Pomodoro Technique uses timed intervals: 25 minutes of focused work followed by a 5-minute break. After 4 sessions, take a longer 15-minute break.</p>
+    <h3>Features</h3>
+    <ul>
+      <li>Customizable work and break durations</li>
+      <li>Auto-start next session option</li>
+      <li>Browser notifications when sessions end</li>
+      <li>Session tracking and statistics</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

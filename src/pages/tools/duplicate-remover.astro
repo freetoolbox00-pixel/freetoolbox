@@ -1,0 +1,156 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Duplicate Line Remover"
+  description="Remove duplicate lines from text instantly. Find and eliminate repeated lines with case-sensitive or case-insensitive matching. Free online tool."
+  category="text"
+  icon="✂"
+>
+  <div>
+    <!-- Input -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Input Text</label>
+      <textarea id="dupeInput" rows="8" placeholder="Paste text with duplicate lines..." class="w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y font-mono"></textarea>
+      <div class="text-xs text-gray-500 mt-1"><span id="dupeInputCount">0</span> lines</div>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-4 items-center">
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="dupeCaseSensitive" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        Case-sensitive
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" id="dupeTrimWhitespace" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        Trim whitespace
+      </label>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="flex gap-1 mb-4">
+      <button id="modeUnique" class="mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors">Remove Duplicates</button>
+      <button id="modeDupes" class="mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">Find Duplicates</button>
+    </div>
+
+    <!-- Action -->
+    <div class="flex gap-2 mb-4">
+      <button id="dupeProcess" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Process</button>
+    </div>
+
+    <!-- Stats -->
+    <div id="dupeStats" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 hidden"></div>
+
+    <!-- Output -->
+    <div class="flex items-center justify-between mb-1">
+      <label class="block text-sm font-medium text-gray-700">Result <span class="text-gray-400 font-normal">(<span id="dupeOutputCount">0</span> lines)</span></label>
+      <button id="dupeCopy" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy</button>
+    </div>
+    <textarea id="dupeOutput" rows="8" readonly class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-y font-mono"></textarea>
+  </div>
+
+  <script>
+    const input = document.getElementById('dupeInput') as HTMLTextAreaElement;
+    const output = document.getElementById('dupeOutput') as HTMLTextAreaElement;
+    const caseSensitive = document.getElementById('dupeCaseSensitive') as HTMLInputElement;
+    const trimWs = document.getElementById('dupeTrimWhitespace') as HTMLInputElement;
+    const stats = document.getElementById('dupeStats')!;
+    const inputCount = document.getElementById('dupeInputCount')!;
+    const outputCount = document.getElementById('dupeOutputCount')!;
+
+    let mode: 'unique' | 'dupes' = 'unique';
+
+    input.addEventListener('input', () => {
+      const lines = input.value.split('\n').filter(l => l.length > 0);
+      inputCount.textContent = lines.length.toString();
+    });
+
+    document.getElementById('modeUnique')!.addEventListener('click', () => {
+      mode = 'unique';
+      document.getElementById('modeUnique')!.className = 'mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors';
+      document.getElementById('modeDupes')!.className = 'mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors';
+    });
+
+    document.getElementById('modeDupes')!.addEventListener('click', () => {
+      mode = 'dupes';
+      document.getElementById('modeDupes')!.className = 'mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition-colors';
+      document.getElementById('modeUnique')!.className = 'mode-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors';
+    });
+
+    function normalize(line: string): string {
+      let l = line;
+      if (trimWs.checked) l = l.trim();
+      if (!caseSensitive.checked) l = l.toLowerCase();
+      return l;
+    }
+
+    function process(): void {
+      const lines = input.value.split('\n');
+      const totalLines = lines.length;
+      const seen = new Map<string, number>();
+
+      for (const line of lines) {
+        const key = normalize(line);
+        seen.set(key, (seen.get(key) || 0) + 1);
+      }
+
+      let result: string[];
+      let removedCount: number;
+
+      if (mode === 'unique') {
+        const added = new Set<string>();
+        result = [];
+        for (const line of lines) {
+          const key = normalize(line);
+          if (!added.has(key)) {
+            added.add(key);
+            result.push(line);
+          }
+        }
+        removedCount = totalLines - result.length;
+        stats.innerHTML = `<strong>${removedCount}</strong> duplicate line${removedCount !== 1 ? 's' : ''} removed. <strong>${result.length}</strong> unique lines remaining.`;
+      } else {
+        const dupeKeys = new Set<string>();
+        for (const [key, count] of seen) {
+          if (count > 1) dupeKeys.add(key);
+        }
+        const added = new Set<string>();
+        result = [];
+        for (const line of lines) {
+          const key = normalize(line);
+          if (dupeKeys.has(key) && !added.has(key)) {
+            added.add(key);
+            result.push(line);
+          }
+        }
+        stats.innerHTML = `Found <strong>${result.length}</strong> duplicated line${result.length !== 1 ? 's' : ''} (appearing 2+ times).`;
+      }
+
+      output.value = result.join('\n');
+      outputCount.textContent = result.length.toString();
+      stats.classList.remove('hidden');
+    }
+
+    document.getElementById('dupeProcess')!.addEventListener('click', process);
+
+    document.getElementById('dupeCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.value);
+      const btn = document.getElementById('dupeCopy')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Duplicate Line Remover</h2>
+    <p>Remove duplicate lines from text or find which lines appear more than once. Supports case-sensitive and case-insensitive matching with optional whitespace trimming.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Remove Duplicates</strong> - Keep only the first occurrence of each unique line</li>
+      <li><strong>Find Duplicates</strong> - Show only lines that appear more than once</li>
+      <li><strong>Case-Sensitive Toggle</strong> - Match lines with exact or case-insensitive comparison</li>
+      <li><strong>Trim Whitespace</strong> - Ignore leading and trailing spaces when comparing</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

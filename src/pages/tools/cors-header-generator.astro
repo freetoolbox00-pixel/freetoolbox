@@ -1,0 +1,95 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="CORS Header Generator" description="Generate Cross-Origin Resource Sharing headers. Configure allowed origins, methods and headers." category="security" icon="🔗">
+  <div>
+    <div class="space-y-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Allowed Origins</label>
+        <input type="text" id="coOrigins" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="https://example.com, https://app.example.com" value="*" />
+        <div class="text-xs text-gray-400 mt-1">Comma-separated. Use * for all origins.</div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Allowed Methods</label>
+        <div class="flex flex-wrap gap-2" id="coMethods">
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="GET" checked /> GET</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="POST" checked /> POST</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="PUT" checked /> PUT</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="DELETE" checked /> DELETE</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="PATCH" /> PATCH</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="OPTIONS" checked /> OPTIONS</label>
+          <label class="flex items-center gap-1 text-sm"><input type="checkbox" value="HEAD" /> HEAD</label>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Allowed Headers</label>
+        <input type="text" id="coHeaders" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" value="Content-Type, Authorization" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Exposed Headers</label>
+        <input type="text" id="coExpose" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="X-Request-Id" />
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Max Age (seconds)</label>
+          <input type="number" id="coMaxAge" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" value="86400" />
+        </div>
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="coCreds" /> Allow Credentials</label>
+        </div>
+      </div>
+    </div>
+    <button id="coGen" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4">Generate</button>
+    <div id="coOut" class="hidden space-y-4">
+      <div>
+        <div class="flex justify-between mb-1"><label class="text-sm font-medium text-gray-700">HTTP Headers</label><button id="coCopy" class="text-xs text-blue-600 hover:underline">Copy</button></div>
+        <pre id="coResult" class="p-4 bg-gray-900 text-green-400 rounded-lg text-sm font-mono whitespace-pre-wrap"></pre>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-700 mb-1 block">Express.js (Node)</label>
+        <pre id="coExpress" class="p-4 bg-gray-900 text-green-400 rounded-lg text-sm font-mono whitespace-pre-wrap"></pre>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-700 mb-1 block">Nginx</label>
+        <pre id="coNginx" class="p-4 bg-gray-900 text-green-400 rounded-lg text-sm font-mono whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const genBtn = document.getElementById('coGen')!;
+  const outEl = document.getElementById('coOut')!;
+  const resultEl = document.getElementById('coResult')!;
+  const expressEl = document.getElementById('coExpress')!;
+  const nginxEl = document.getElementById('coNginx')!;
+  const copyBtn = document.getElementById('coCopy')!;
+
+  genBtn.addEventListener('click', () => {
+    const origins = (document.getElementById('coOrigins') as HTMLInputElement).value.trim();
+    const methods = Array.from(document.querySelectorAll('#coMethods input:checked')).map(i => (i as HTMLInputElement).value).join(', ');
+    const headers = (document.getElementById('coHeaders') as HTMLInputElement).value.trim();
+    const expose = (document.getElementById('coExpose') as HTMLInputElement).value.trim();
+    const maxAge = (document.getElementById('coMaxAge') as HTMLInputElement).value;
+    const creds = (document.getElementById('coCreds') as HTMLInputElement).checked;
+
+    let httpHeaders = `Access-Control-Allow-Origin: ${origins}\nAccess-Control-Allow-Methods: ${methods}\nAccess-Control-Allow-Headers: ${headers}`;
+    if (expose) httpHeaders += `\nAccess-Control-Expose-Headers: ${expose}`;
+    if (maxAge) httpHeaders += `\nAccess-Control-Max-Age: ${maxAge}`;
+    if (creds) httpHeaders += `\nAccess-Control-Allow-Credentials: true`;
+
+    resultEl.textContent = httpHeaders;
+
+    expressEl.textContent = `app.use((req, res, next) => {\n  res.header('Access-Control-Allow-Origin', '${origins}');\n  res.header('Access-Control-Allow-Methods', '${methods}');\n  res.header('Access-Control-Allow-Headers', '${headers}');${expose ? `\n  res.header('Access-Control-Expose-Headers', '${expose}');` : ''}${creds ? `\n  res.header('Access-Control-Allow-Credentials', 'true');` : ''}${maxAge ? `\n  res.header('Access-Control-Max-Age', '${maxAge}');` : ''}\n  if (req.method === 'OPTIONS') return res.sendStatus(204);\n  next();\n});`;
+
+    nginxEl.textContent = `add_header 'Access-Control-Allow-Origin' '${origins}';\nadd_header 'Access-Control-Allow-Methods' '${methods}';\nadd_header 'Access-Control-Allow-Headers' '${headers}';${expose ? `\nadd_header 'Access-Control-Expose-Headers' '${expose}';` : ''}${creds ? `\nadd_header 'Access-Control-Allow-Credentials' 'true';` : ''}${maxAge ? `\nadd_header 'Access-Control-Max-Age' ${maxAge};` : ''}`;
+
+    outEl.classList.remove('hidden');
+  });
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(resultEl.textContent || '');
+    copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+  });
+</script>

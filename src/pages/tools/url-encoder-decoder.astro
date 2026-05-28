@@ -1,0 +1,102 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="URL Encoder / Decoder"
+  description="Encode or decode URLs and query strings online. Percent-encode special characters for safe URLs. Free URL encoding tool."
+  category="developer"
+  icon="%U"
+>
+  <div>
+    <!-- Mode Toggle -->
+    <div class="flex gap-2 mb-4">
+      <button id="urlEncMode" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">Encode</button>
+      <button id="urlDecMode" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Decode</button>
+    </div>
+
+    <!-- Input -->
+    <div class="mb-4">
+      <label id="urlLabel" class="block text-sm font-medium text-gray-700 mb-1">Text to encode</label>
+      <textarea id="urlInput" rows="4" placeholder="https://example.com/path?q=hello world&lang=en" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" id="urlComponent" class="accent-blue-600" />
+        encodeURIComponent (encode everything)
+      </label>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-2 mb-4">
+      <button id="urlConvert" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Convert</button>
+      <button id="urlCopy" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy</button>
+      <button id="urlSwap" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">↕ Swap</button>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Result</label>
+      <pre id="urlOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[100px] whitespace-pre-wrap break-all"></pre>
+    </div>
+  </div>
+
+  <script>
+    let encoding = true;
+    const input = document.getElementById('urlInput') as HTMLTextAreaElement;
+    const output = document.getElementById('urlOutput')!;
+    const label = document.getElementById('urlLabel')!;
+    const encBtn = document.getElementById('urlEncMode')!;
+    const decBtn = document.getElementById('urlDecMode')!;
+
+    function setMode(enc: boolean): void {
+      encoding = enc;
+      encBtn.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${enc ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      decBtn.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${!enc ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      label.textContent = enc ? 'Text to encode' : 'URL to decode';
+    }
+
+    function convert(): void {
+      const text = input.value;
+      if (!text) { output.textContent = ''; return; }
+      const useComponent = (document.getElementById('urlComponent') as HTMLInputElement).checked;
+      try {
+        if (encoding) {
+          output.textContent = useComponent ? encodeURIComponent(text) : encodeURI(text);
+        } else {
+          output.textContent = useComponent ? decodeURIComponent(text) : decodeURI(text);
+        }
+      } catch (e: any) {
+        output.textContent = 'Error: ' + e.message;
+      }
+    }
+
+    encBtn.addEventListener('click', () => setMode(true));
+    decBtn.addEventListener('click', () => setMode(false));
+    document.getElementById('urlConvert')!.addEventListener('click', convert);
+    input.addEventListener('input', convert);
+
+    document.getElementById('urlCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(output.textContent || '');
+    });
+
+    document.getElementById('urlSwap')!.addEventListener('click', () => {
+      input.value = output.textContent || '';
+      setMode(!encoding);
+      convert();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free URL Encoder and Decoder</h2>
+    <p>Encode special characters in URLs using percent-encoding, or decode percent-encoded URLs back to readable text. Supports both encodeURI and encodeURIComponent modes.</p>
+    <h3>When to Use</h3>
+    <ul>
+      <li><strong>API requests</strong> - Encode query parameters with special characters</li>
+      <li><strong>Redirect URLs</strong> - Encode callback URLs passed as parameters</li>
+      <li><strong>Debugging</strong> - Decode encoded URLs from logs or analytics</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

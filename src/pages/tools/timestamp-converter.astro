@@ -1,0 +1,150 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Date & Time Converter"
+  description="Convert between time zones. Find time differences. Date formatting tool. Free date time converter."
+  category="utility"
+  icon="🕐"
+>
+  <div>
+    <!-- Current time -->
+    <div class="text-center mb-6 p-4 bg-blue-50 rounded-xl">
+      <div class="text-xs text-gray-400 mb-1">Current Time (Local)</div>
+      <div id="dtNow" class="text-2xl font-mono font-bold text-blue-600"></div>
+      <div id="dtUtc" class="text-sm text-gray-500 mt-1"></div>
+    </div>
+
+    <!-- Timezone converter -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+        <select id="dtFrom" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">New York (EST/EDT)</option>
+          <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+          <option value="America/Chicago">Chicago (CST/CDT)</option>
+          <option value="Europe/London">London (GMT/BST)</option>
+          <option value="Europe/Paris">Paris (CET/CEST)</option>
+          <option value="Europe/Rome" selected>Rome (CET/CEST)</option>
+          <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+          <option value="Asia/Tokyo">Tokyo (JST)</option>
+          <option value="Asia/Shanghai">Shanghai (CST)</option>
+          <option value="Asia/Dubai">Dubai (GST)</option>
+          <option value="Asia/Kolkata">India (IST)</option>
+          <option value="Asia/Singapore">Singapore (SGT)</option>
+          <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+          <option value="Pacific/Auckland">Auckland (NZST/NZDT)</option>
+        </select>
+        <input type="datetime-local" id="dtInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-2" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+        <select id="dtTo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="UTC">UTC</option>
+          <option value="America/New_York" selected>New York (EST/EDT)</option>
+          <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+          <option value="America/Chicago">Chicago (CST/CDT)</option>
+          <option value="Europe/London">London (GMT/BST)</option>
+          <option value="Europe/Paris">Paris (CET/CEST)</option>
+          <option value="Europe/Rome">Rome (CET/CEST)</option>
+          <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+          <option value="Asia/Tokyo">Tokyo (JST)</option>
+          <option value="Asia/Shanghai">Shanghai (CST)</option>
+          <option value="Asia/Dubai">Dubai (GST)</option>
+          <option value="Asia/Kolkata">India (IST)</option>
+          <option value="Asia/Singapore">Singapore (SGT)</option>
+          <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+          <option value="Pacific/Auckland">Auckland (NZST/NZDT)</option>
+        </select>
+        <div id="dtResult" class="mt-2 p-3 bg-green-50 rounded-lg font-mono text-sm"></div>
+      </div>
+    </div>
+
+    <!-- Date diff -->
+    <div class="pt-6 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Date Difference</h3>
+      <div class="grid gap-4 sm:grid-cols-2 mb-4">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Start Date</label>
+          <input type="date" id="dtDiffA" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">End Date</label>
+          <input type="date" id="dtDiffB" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+      </div>
+      <div id="dtDiffResult" class="p-3 bg-gray-50 rounded-lg text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    // Set default input
+    const now = new Date();
+    const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    (document.getElementById('dtInput') as HTMLInputElement).value = localIso;
+    (document.getElementById('dtDiffA') as HTMLInputElement).value = now.toISOString().split('T')[0];
+    const future = new Date(now); future.setDate(future.getDate() + 30);
+    (document.getElementById('dtDiffB') as HTMLInputElement).value = future.toISOString().split('T')[0];
+
+    function updateClock(): void {
+      const n = new Date();
+      document.getElementById('dtNow')!.textContent = n.toLocaleTimeString('en-US', { hour12: false }) + '.' + n.getMilliseconds().toString().padStart(3, '0');
+      document.getElementById('dtUtc')!.textContent = 'UTC: ' + n.toISOString().replace('T', ' ').slice(0, 19);
+    }
+
+    function convertTz(): void {
+      const input = (document.getElementById('dtInput') as HTMLInputElement).value;
+      const fromTz = (document.getElementById('dtFrom') as HTMLSelectElement).value;
+      const toTz = (document.getElementById('dtTo') as HTMLSelectElement).value;
+
+      if (!input) return;
+
+      try {
+        const fromDate = new Date(input);
+        const result = fromDate.toLocaleString('en-US', { timeZone: toTz, dateStyle: 'full', timeStyle: 'long' });
+        document.getElementById('dtResult')!.textContent = result;
+      } catch {
+        document.getElementById('dtResult')!.textContent = 'Invalid conversion';
+      }
+    }
+
+    function calcDiff(): void {
+      const a = new Date((document.getElementById('dtDiffA') as HTMLInputElement).value);
+      const b = new Date((document.getElementById('dtDiffB') as HTMLInputElement).value);
+      if (isNaN(a.getTime()) || isNaN(b.getTime())) return;
+
+      const diffMs = Math.abs(b.getTime() - a.getTime());
+      const days = Math.floor(diffMs / 86400000);
+      const weeks = Math.floor(days / 7);
+      const months = Math.floor(days / 30.44);
+      const years = Math.floor(days / 365.25);
+      const hours = Math.floor(diffMs / 3600000);
+
+      document.getElementById('dtDiffResult')!.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+          <div><div class="text-xl font-bold text-blue-600">${years}</div><div class="text-xs text-gray-400">years</div></div>
+          <div><div class="text-xl font-bold text-green-600">${months}</div><div class="text-xs text-gray-400">months</div></div>
+          <div><div class="text-xl font-bold text-purple-600">${weeks}</div><div class="text-xs text-gray-400">weeks</div></div>
+          <div><div class="text-xl font-bold text-orange-600">${days.toLocaleString()}</div><div class="text-xs text-gray-400">days</div></div>
+          <div><div class="text-xl font-bold text-pink-600">${hours.toLocaleString()}</div><div class="text-xs text-gray-400">hours</div></div>
+        </div>
+      `;
+    }
+
+    setInterval(updateClock, 100);
+    updateClock();
+
+    ['dtInput', 'dtFrom', 'dtTo'].forEach(id => document.getElementById(id)!.addEventListener('change', convertTz));
+    ['dtDiffA', 'dtDiffB'].forEach(id => document.getElementById(id)!.addEventListener('change', calcDiff));
+
+    convertTz();
+    calcDiff();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Date & Time Converter</h2>
+    <p>Convert between time zones worldwide. Calculate the difference between two dates in years, months, weeks, days and hours. Live clock display with UTC time.</p>
+  </Fragment>
+</ToolLayout>

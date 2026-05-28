@@ -1,0 +1,107 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Word Counter"
+  description="Count words, characters, sentences and paragraphs in your text. Estimate reading and speaking time. Free online word counter tool."
+  category="text"
+  icon="W#"
+>
+  <div>
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div class="bg-blue-50 rounded-lg p-3 text-center">
+        <div id="wordCount" class="text-2xl font-bold text-blue-600">0</div>
+        <div class="text-xs text-gray-500 uppercase tracking-wide">Words</div>
+      </div>
+      <div class="bg-green-50 rounded-lg p-3 text-center">
+        <div id="charCount" class="text-2xl font-bold text-green-600">0</div>
+        <div class="text-xs text-gray-500 uppercase tracking-wide">Characters</div>
+      </div>
+      <div class="bg-purple-50 rounded-lg p-3 text-center">
+        <div id="sentenceCount" class="text-2xl font-bold text-purple-600">0</div>
+        <div class="text-xs text-gray-500 uppercase tracking-wide">Sentences</div>
+      </div>
+      <div class="bg-orange-50 rounded-lg p-3 text-center">
+        <div id="paraCount" class="text-2xl font-bold text-orange-600">0</div>
+        <div class="text-xs text-gray-500 uppercase tracking-wide">Paragraphs</div>
+      </div>
+    </div>
+
+    <!-- Textarea -->
+    <textarea
+      id="textInput"
+      rows="10"
+      placeholder="Paste or type your text here..."
+      class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y text-base"
+    ></textarea>
+
+    <!-- Extra Stats -->
+    <div class="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
+      <span>Reading time: <strong id="readTime">0 min</strong></span>
+      <span>Speaking time: <strong id="speakTime">0 min</strong></span>
+      <span>Characters (no spaces): <strong id="charNoSpace">0</strong></span>
+    </div>
+
+    <!-- Clear button -->
+    <button
+      id="clearBtn"
+      class="mt-4 px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+    >
+      Clear text
+    </button>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('textInput') as HTMLTextAreaElement;
+    const wordCount = document.getElementById('wordCount')!;
+    const charCount = document.getElementById('charCount')!;
+    const sentenceCount = document.getElementById('sentenceCount')!;
+    const paraCount = document.getElementById('paraCount')!;
+    const readTime = document.getElementById('readTime')!;
+    const speakTime = document.getElementById('speakTime')!;
+    const charNoSpace = document.getElementById('charNoSpace')!;
+    const clearBtn = document.getElementById('clearBtn')!;
+
+    function updateCounts(): void {
+      const text = textInput.value;
+
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const chars = text.length;
+      const charsNoSpaces = text.replace(/\s/g, '').length;
+      const sentences = text.trim() ? (text.match(/[.!?]+/g) || []).length || (words > 0 ? 1 : 0) : 0;
+      const paragraphs = text.trim() ? text.split(/\n\s*\n/).filter(p => p.trim()).length : 0;
+
+      const readMinutes = Math.ceil(words / 230);
+      const speakMinutes = Math.ceil(words / 150);
+
+      wordCount.textContent = words.toLocaleString();
+      charCount.textContent = chars.toLocaleString();
+      sentenceCount.textContent = sentences.toLocaleString();
+      paraCount.textContent = Math.max(paragraphs, words > 0 ? 1 : 0).toLocaleString();
+      readTime.textContent = readMinutes + ' min';
+      speakTime.textContent = speakMinutes + ' min';
+      charNoSpace.textContent = charsNoSpaces.toLocaleString();
+    }
+
+    textInput.addEventListener('input', updateCounts);
+    clearBtn.addEventListener('click', () => {
+      textInput.value = '';
+      updateCounts();
+      textInput.focus();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Online Word Counter</h2>
+    <p>Count words, characters, sentences and paragraphs in any text instantly. Our word counter also estimates reading time (based on 230 words per minute) and speaking time (150 words per minute).</p>
+    <h3>Use Cases</h3>
+    <ul>
+      <li><strong>Writers</strong> - Check article length and meet word count requirements</li>
+      <li><strong>Students</strong> - Ensure essays meet minimum or maximum word limits</li>
+      <li><strong>Social Media</strong> - Check character limits for Twitter/X (280), LinkedIn (3000), Instagram (2200)</li>
+      <li><strong>SEO</strong> - Verify meta descriptions stay under 160 characters</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

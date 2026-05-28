@@ -1,0 +1,172 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+}
+
+const { title, description, canonical } = Astro.props;
+const siteUrl = 'https://freetoolbox.io';
+const fullCanonical = canonical || new URL(Astro.url.pathname, siteUrl).href;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <link rel="canonical" href={fullCanonical} />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <!-- Performance: DNS prefetch for external resources -->
+  <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={fullCanonical} />
+  <meta property="og:site_name" content="FreeToolBox" />
+  <meta property="og:image" content={`${siteUrl}/og-image.png`} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={`${siteUrl}/og-image.png`} />
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- Theme color -->
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="msapplication-TileColor" content="#2563eb" />
+
+  <title>{title}</title>
+
+  <!-- Slot for page-specific head content (JSON-LD, etc.) -->
+  <slot name="head-extra" />
+
+  <!-- AdSense placeholder - replace with real code when approved -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXX" crossorigin="anonymous"></script> -->
+
+  <!-- Security: Anti-inspect, anti-debug, anti-copy protection -->
+  <script is:inline>
+  (function(){
+    document.addEventListener('contextmenu',function(e){e.preventDefault();});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='F12'){e.preventDefault();return false;}
+      if(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key.toUpperCase())){e.preventDefault();return false;}
+      if(e.ctrlKey&&e.key.toUpperCase()==='U'){e.preventDefault();return false;}
+      if(e.ctrlKey&&e.key.toUpperCase()==='S'){e.preventDefault();return false;}
+    });
+    var _dc=0;
+    setInterval(function(){
+      var s=performance.now();
+      debugger;
+      if(performance.now()-s>100){
+        _dc++;
+        if(_dc>2)document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;"><div style="text-align:center"><h1 style="font-size:2rem;color:#1e40af;">FreeToolBox</h1><p style="color:#6b7280;margin-top:8px;">Developer tools are disabled on this site.</p></div></div>';
+      }
+    },1000);
+    console.log('%c⚠️ STOP!','color:red;font-size:48px;font-weight:bold;');
+    console.log('%cThis browser feature is intended for developers. If someone told you to paste something here, it\'s likely a scam.','font-size:16px;color:#374151;');
+    console.log('%cFreeToolBox does not require any console commands.','font-size:14px;color:#6b7280;');
+    document.addEventListener('selectstart',function(e){
+      var t=e.target;
+      if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable||t.closest('[contenteditable]')||t.closest('.tool-output'))return;
+      if(t.closest('.bg-white.rounded-xl'))return;
+      e.preventDefault();
+    });
+    document.addEventListener('dragstart',function(e){
+      if(e.target.tagName==='IMG')e.preventDefault();
+    });
+  })();
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+  <!-- Skip to main content (accessibility) -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <a href="/" class="flex items-center gap-2 text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors" aria-label="FreeToolBox Home">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          FreeToolBox
+        </a>
+        <nav class="hidden md:flex items-center gap-6" aria-label="Main navigation">
+          <a href="/#developer" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">Developer</a>
+          <a href="/#pdf" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">PDF</a>
+          <a href="/#text" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">Text</a>
+          <a href="/#security" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">Security</a>
+          <a href="/#seo" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">SEO</a>
+          <a href="/#utility" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">Utility</a>
+          <a href="/#business" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">Business</a>
+        </nav>
+        <!-- Mobile menu button -->
+        <button id="mobileMenuBtn" class="md:hidden p-2 text-gray-600 hover:text-blue-600" aria-label="Open menu" aria-expanded="false">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </div>
+      <!-- Mobile nav -->
+      <nav id="mobileMenu" class="hidden md:hidden pb-4" aria-label="Mobile navigation">
+        <div class="flex flex-wrap gap-2">
+          <a href="/#developer" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">Developer</a>
+          <a href="/#pdf" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">PDF</a>
+          <a href="/#text" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">Text</a>
+          <a href="/#security" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">Security</a>
+          <a href="/#seo" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">SEO</a>
+          <a href="/#utility" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">Utility</a>
+          <a href="/#business" class="px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600">Business</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main id="main-content" class="flex-1">
+    <slot />
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-gray-500">&copy; {new Date().getFullYear()} FreeToolBox. All tools are 100% free.</p>
+        <nav class="flex gap-4" aria-label="Footer navigation">
+          <a href="/about" class="text-sm text-gray-500 hover:text-blue-600">About</a>
+          <a href="/privacy" class="text-sm text-gray-500 hover:text-blue-600">Privacy</a>
+          <a href="/contact" class="text-sm text-gray-500 hover:text-blue-600">Contact</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile menu toggle -->
+  <script is:inline>
+  (function(){
+    var btn=document.getElementById('mobileMenuBtn');
+    var menu=document.getElementById('mobileMenu');
+    if(btn&&menu){
+      btn.addEventListener('click',function(){
+        var open=menu.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded',!open);
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

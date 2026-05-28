@@ -1,0 +1,86 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Readability Checker" description="Analyze text readability with Flesch-Kincaid, Gunning Fog, Coleman-Liau and more. Free readability score tool." category="text" icon="📖">
+  <div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Paste your text</label>
+      <textarea id="rcInput" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y" placeholder="Paste any text to analyze its readability..."></textarea>
+    </div>
+    <button id="rcCheck" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-6">Analyze</button>
+    <div id="rcResult" class="hidden">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Words</div><div class="text-xl font-bold" id="rcWords">0</div></div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Sentences</div><div class="text-xl font-bold" id="rcSent">0</div></div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Syllables</div><div class="text-xl font-bold" id="rcSyll">0</div></div>
+        <div class="p-3 bg-gray-50 rounded-lg text-center"><div class="text-xs text-gray-500">Avg Words/Sentence</div><div class="text-xl font-bold" id="rcAvg">0</div></div>
+      </div>
+      <div class="space-y-3" id="rcScores"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const input = document.getElementById('rcInput') as HTMLTextAreaElement;
+  const checkBtn = document.getElementById('rcCheck')!;
+  const resultEl = document.getElementById('rcResult')!;
+
+  function countSyllables(word: string): number {
+    word = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '').replace(/^y/, '');
+    const m = word.match(/[aeiouy]{1,2}/g);
+    return m ? m.length : 1;
+  }
+
+  checkBtn.addEventListener('click', () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    const words = text.split(/\s+/).filter(Boolean);
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const totalSyll = words.reduce((s, w) => s + countSyllables(w), 0);
+    const complexWords = words.filter(w => countSyllables(w) >= 3).length;
+
+    const W = words.length;
+    const S = sentences.length;
+    const avgWS = W / Math.max(S, 1);
+    const avgSW = totalSyll / Math.max(W, 1);
+
+    document.getElementById('rcWords')!.textContent = String(W);
+    document.getElementById('rcSent')!.textContent = String(S);
+    document.getElementById('rcSyll')!.textContent = String(totalSyll);
+    document.getElementById('rcAvg')!.textContent = avgWS.toFixed(1);
+
+    const fleschEase = 206.835 - 1.015 * avgWS - 84.6 * avgSW;
+    const fleschGrade = 0.39 * avgWS + 11.8 * avgSW - 15.59;
+    const gunningFog = 0.4 * (avgWS + 100 * (complexWords / Math.max(W, 1)));
+    const avgChars = words.reduce((s, w) => s + w.replace(/[^a-zA-Z]/g, '').length, 0) / Math.max(W, 1);
+    const colemanLiau = 0.0588 * (avgChars * 100) - 0.296 * (S / Math.max(W, 1) * 100) - 15.8;
+
+    function level(grade: number): [string, string] {
+      if (grade <= 5) return ['Very Easy', 'bg-green-100 text-green-700'];
+      if (grade <= 8) return ['Easy', 'bg-blue-100 text-blue-700'];
+      if (grade <= 12) return ['Moderate', 'bg-yellow-100 text-yellow-700'];
+      if (grade <= 16) return ['Difficult', 'bg-orange-100 text-orange-700'];
+      return ['Very Difficult', 'bg-red-100 text-red-700'];
+    }
+
+    const scores = [
+      { name: 'Flesch Reading Ease', value: Math.round(fleschEase), desc: fleschEase > 60 ? 'Easy to read' : fleschEase > 30 ? 'Moderate' : 'Difficult', color: fleschEase > 60 ? 'text-green-600' : fleschEase > 30 ? 'text-yellow-600' : 'text-red-600' },
+      { name: 'Flesch-Kincaid Grade', value: Math.max(0, fleschGrade).toFixed(1), desc: `Grade ${Math.round(Math.max(0, fleschGrade))} reading level`, color: level(fleschGrade)[1] },
+      { name: 'Gunning Fog Index', value: gunningFog.toFixed(1), desc: `${gunningFog < 12 ? 'Accessible' : 'Academic'} level`, color: level(gunningFog)[1] },
+      { name: 'Coleman-Liau Index', value: Math.max(0, colemanLiau).toFixed(1), desc: `Grade ${Math.round(Math.max(0, colemanLiau))} reading level`, color: level(colemanLiau)[1] },
+    ];
+
+    document.getElementById('rcScores')!.innerHTML = scores.map(s => `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div><div class="font-medium text-gray-900">${s.name}</div><div class="text-xs text-gray-500">${s.desc}</div></div>
+        <div class="text-2xl font-bold ${s.color}">${s.value}</div>
+      </div>
+    `).join('');
+
+    resultEl.classList.remove('hidden');
+  });
+</script>

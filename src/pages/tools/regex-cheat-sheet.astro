@@ -1,0 +1,299 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Regex Cheat Sheet"
+  description="Complete regular expression cheat sheet with examples. Character classes, anchors, quantifiers, groups, lookahead, lookbehind, flags. Search patterns, click to copy. Free regex reference."
+  category="developer"
+  icon="📝"
+>
+  <div>
+    <!-- Search -->
+    <div class="mb-6">
+      <input type="text" id="searchInput" placeholder="Search patterns (e.g. digit, boundary, group...)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+    </div>
+
+    <!-- Category filter -->
+    <div class="flex flex-wrap gap-2 mb-6" id="categoryFilters">
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-blue-600 text-white" data-cat="all">All</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="characters">Characters</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="anchors">Anchors</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="quantifiers">Quantifiers</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="groups">Groups</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="lookaround">Lookaround</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="flags">Flags</button>
+      <button class="cat-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-cat="escapes">Escapes</button>
+    </div>
+
+    <!-- Reference Table -->
+    <div id="refContent" class="space-y-1 mb-8"></div>
+
+    <!-- Quick Tester -->
+    <div class="border-t pt-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Regex Tester</h3>
+      <div class="grid gap-4 sm:grid-cols-2 mb-4">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Regex Pattern</label>
+          <input type="text" id="testPattern" placeholder="e.g. \d+" class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Flags</label>
+          <div class="flex gap-3 pt-2">
+            <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="flagG" checked class="accent-blue-600" /> g</label>
+            <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="flagI" class="accent-blue-600" /> i</label>
+            <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="flagM" class="accent-blue-600" /> m</label>
+            <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="flagS" class="accent-blue-600" /> s</label>
+          </div>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs text-gray-500 mb-1">Test String</label>
+        <textarea id="testString" rows="3" placeholder="Enter text to test against..." class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Matches</label>
+        <div id="matchResult" class="p-4 bg-gray-50 rounded-lg font-mono text-sm min-h-[60px] border whitespace-pre-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Copy notification -->
+    <div id="copyNotif" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+      Copied!
+    </div>
+  </div>
+
+  <script>
+    interface RegexEntry {
+      syntax: string;
+      description: string;
+      example: string;
+      category: string;
+    }
+
+    const entries: RegexEntry[] = [
+      // Characters
+      { syntax: ".", description: "Any character except newline", example: "a.c matches \"abc\", \"a1c\"", category: "characters" },
+      { syntax: "\\d", description: "Any digit (0-9)", example: "\\d+ matches \"123\" in \"abc123\"", category: "characters" },
+      { syntax: "\\D", description: "Any non-digit", example: "\\D+ matches \"abc\" in \"abc123\"", category: "characters" },
+      { syntax: "\\w", description: "Word character (a-z, A-Z, 0-9, _)", example: "\\w+ matches \"hello_1\"", category: "characters" },
+      { syntax: "\\W", description: "Non-word character", example: "\\W matches \"@\" in \"a@b\"", category: "characters" },
+      { syntax: "\\s", description: "Whitespace (space, tab, newline)", example: "\\s+ matches spaces between words", category: "characters" },
+      { syntax: "\\S", description: "Non-whitespace", example: "\\S+ matches \"hello\"", category: "characters" },
+      { syntax: "[abc]", description: "Any of a, b, or c", example: "[aeiou] matches vowels", category: "characters" },
+      { syntax: "[^abc]", description: "NOT a, b, or c", example: "[^0-9] matches non-digits", category: "characters" },
+      { syntax: "[a-z]", description: "Any character in range a to z", example: "[a-zA-Z] matches any letter", category: "characters" },
+      { syntax: "[0-9]", description: "Any digit (same as \\d)", example: "[0-9]+ matches \"42\"", category: "characters" },
+
+      // Anchors
+      { syntax: "^", description: "Start of string (or line with m flag)", example: "^Hello matches \"Hello world\"", category: "anchors" },
+      { syntax: "$", description: "End of string (or line with m flag)", example: "world$ matches \"Hello world\"", category: "anchors" },
+      { syntax: "\\b", description: "Word boundary", example: "\\bcat\\b matches \"cat\" not \"cats\"", category: "anchors" },
+      { syntax: "\\B", description: "Non-word boundary", example: "\\Bcat matches \"cat\" in \"scatter\"", category: "anchors" },
+
+      // Quantifiers
+      { syntax: "*", description: "0 or more", example: "ab*c matches \"ac\", \"abc\", \"abbc\"", category: "quantifiers" },
+      { syntax: "+", description: "1 or more", example: "ab+c matches \"abc\", \"abbc\" not \"ac\"", category: "quantifiers" },
+      { syntax: "?", description: "0 or 1 (optional)", example: "colou?r matches \"color\", \"colour\"", category: "quantifiers" },
+      { syntax: "*?", description: "0 or more (lazy/non-greedy)", example: "<.*?> matches first tag only", category: "quantifiers" },
+      { syntax: "+?", description: "1 or more (lazy/non-greedy)", example: "\\d+? matches single digit first", category: "quantifiers" },
+      { syntax: "&#123;n&#125;", description: "Exactly n times", example: "\\d&#123;3&#125; matches \"123\" not \"12\"", category: "quantifiers" },
+      { syntax: "&#123;n,&#125;", description: "n or more times", example: "\\d&#123;2,&#125; matches \"12\", \"123\", \"1234\"", category: "quantifiers" },
+      { syntax: "&#123;n,m&#125;", description: "Between n and m times", example: "\\d&#123;2,4&#125; matches \"12\" to \"1234\"", category: "quantifiers" },
+
+      // Groups
+      { syntax: "(abc)", description: "Capturing group", example: "(\\d+)-(\\d+) captures both numbers", category: "groups" },
+      { syntax: "(?:abc)", description: "Non-capturing group", example: "(?:ab)+ matches \"ababab\"", category: "groups" },
+      { syntax: "(?&lt;name&gt;abc)", description: "Named capturing group", example: "(?&lt;year&gt;\\d&#123;4&#125;) captures as 'year'", category: "groups" },
+      { syntax: "\\1", description: "Backreference to group 1", example: "(\\w)\\1 matches \"aa\", \"bb\"", category: "groups" },
+      { syntax: "(a|b)", description: "Alternation (a or b)", example: "(cat|dog) matches either word", category: "groups" },
+
+      // Lookaround
+      { syntax: "(?=abc)", description: "Positive lookahead", example: "\\d(?=px) matches \"5\" in \"5px\"", category: "lookaround" },
+      { syntax: "(?!abc)", description: "Negative lookahead", example: "\\d(?!px) matches \"5\" in \"5em\"", category: "lookaround" },
+      { syntax: "(?&lt;=abc)", description: "Positive lookbehind", example: "(?&lt;=\\$)\\d+ matches \"10\" in \"$10\"", category: "lookaround" },
+      { syntax: "(?&lt;!abc)", description: "Negative lookbehind", example: "(?&lt;!\\$)\\d+ matches \"10\" in \"A10\"", category: "lookaround" },
+
+      // Flags
+      { syntax: "g", description: "Global - find all matches", example: "/test/g finds all occurrences", category: "flags" },
+      { syntax: "i", description: "Case insensitive", example: "/hello/i matches \"HELLO\", \"hello\"", category: "flags" },
+      { syntax: "m", description: "Multiline - ^ and $ match line boundaries", example: "/^line/m matches each line start", category: "flags" },
+      { syntax: "s", description: "Dotall - dot matches newline too", example: "/a.b/s matches \"a\\nb\"", category: "flags" },
+      { syntax: "u", description: "Unicode - full unicode support", example: "/\\p&#123;Emoji&#125;/u matches emoji", category: "flags" },
+      { syntax: "y", description: "Sticky - match from lastIndex", example: "/\\d+/y matches at exact position", category: "flags" },
+
+      // Escapes
+      { syntax: "\\.", description: "Literal dot", example: "3\\.14 matches \"3.14\"", category: "escapes" },
+      { syntax: "\\*", description: "Literal asterisk", example: "\\*bold\\* matches \"*bold*\"", category: "escapes" },
+      { syntax: "\\+", description: "Literal plus", example: "1\\+1 matches \"1+1\"", category: "escapes" },
+      { syntax: "\\?", description: "Literal question mark", example: "why\\? matches \"why?\"", category: "escapes" },
+      { syntax: "\\\\", description: "Literal backslash", example: "path\\\\file matches \"path\\file\"", category: "escapes" },
+      { syntax: "\\(", description: "Literal parenthesis", example: "fn\\(\\) matches \"fn()\"", category: "escapes" },
+      { syntax: "\\[", description: "Literal bracket", example: "arr\\[0\\] matches \"arr[0]\"", category: "escapes" },
+      { syntax: "\\n", description: "Newline", example: "line1\\nline2 matches across lines", category: "escapes" },
+      { syntax: "\\t", description: "Tab character", example: "col1\\tcol2 matches tab-separated", category: "escapes" },
+    ];
+
+    const categoryLabels: Record<string, string> = {
+      characters: "Character Classes",
+      anchors: "Anchors & Boundaries",
+      quantifiers: "Quantifiers",
+      groups: "Groups & Alternation",
+      lookaround: "Lookahead & Lookbehind",
+      flags: "Flags",
+      escapes: "Special Characters & Escapes",
+    };
+
+    const refContent = document.getElementById("refContent")!;
+    const searchInput = document.getElementById("searchInput") as HTMLInputElement;
+    const copyNotif = document.getElementById("copyNotif")!;
+    let activeCat = "all";
+
+    function showNotif(text: string): void {
+      copyNotif.textContent = text;
+      copyNotif.style.opacity = "1";
+      setTimeout(() => { copyNotif.style.opacity = "0"; }, 1500);
+    }
+
+    function renderEntries(): void {
+      const query = searchInput.value.toLowerCase().trim();
+      const filtered = entries.filter(e => {
+        const matchCat = activeCat === "all" || e.category === activeCat;
+        const matchSearch = !query ||
+          e.syntax.toLowerCase().includes(query) ||
+          e.description.toLowerCase().includes(query) ||
+          e.example.toLowerCase().includes(query) ||
+          e.category.toLowerCase().includes(query);
+        return matchCat && matchSearch;
+      });
+
+      // Group by category
+      const grouped: Record<string, RegexEntry[]> = {};
+      for (const e of filtered) {
+        if (!grouped[e.category]) grouped[e.category] = [];
+        grouped[e.category].push(e);
+      }
+
+      const order = ["characters", "anchors", "quantifiers", "groups", "lookaround", "flags", "escapes"];
+      let html = "";
+
+      for (const cat of order) {
+        if (!grouped[cat]) continue;
+        html += `<div class="mb-4">
+          <h3 class="text-sm font-semibold text-gray-800 mb-2 px-2">${categoryLabels[cat] || cat}</h3>
+          <div class="border rounded-lg overflow-hidden">`;
+        for (let i = 0; i < grouped[cat].length; i++) {
+          const e = grouped[cat][i];
+          const bg = i % 2 === 0 ? "bg-white" : "bg-gray-50";
+          html += `
+            <div class="regex-row flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-4 py-3 ${bg} hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors" data-syntax="${e.syntax.replace(/"/g, '&quot;')}">
+              <code class="text-blue-600 font-mono font-bold text-sm min-w-[120px] shrink-0">${e.syntax}</code>
+              <span class="text-gray-700 text-sm flex-1">${e.description}</span>
+              <span class="text-gray-400 text-xs font-mono">${e.example}</span>
+            </div>`;
+        }
+        html += `</div></div>`;
+      }
+
+      if (!html) {
+        html = `<div class="text-center text-gray-400 py-8">No patterns found matching your search.</div>`;
+      }
+
+      refContent.innerHTML = html;
+
+      // Click to copy
+      refContent.querySelectorAll(".regex-row").forEach(row => {
+        row.addEventListener("click", async () => {
+          const syntax = (row as HTMLElement).dataset.syntax || "";
+          // Decode HTML entities back for copy
+          const decoded = syntax.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&#123;/g, "{").replace(/&#125;/g, "}").replace(/&quot;/g, '"');
+          await navigator.clipboard.writeText(decoded);
+          showNotif(`Copied: ${decoded}`);
+        });
+      });
+    }
+
+    // Category filter buttons
+    document.querySelectorAll(".cat-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".cat-btn").forEach(b => {
+          b.classList.remove("bg-blue-600", "text-white");
+          b.classList.add("bg-gray-100", "text-gray-700");
+        });
+        btn.classList.remove("bg-gray-100", "text-gray-700");
+        btn.classList.add("bg-blue-600", "text-white");
+        activeCat = (btn as HTMLElement).dataset.cat!;
+        renderEntries();
+      });
+    });
+
+    searchInput.addEventListener("input", renderEntries);
+
+    // Quick Tester
+    const testPattern = document.getElementById("testPattern") as HTMLInputElement;
+    const testString = document.getElementById("testString") as HTMLTextAreaElement;
+    const matchResult = document.getElementById("matchResult")!;
+    const flagG = document.getElementById("flagG") as HTMLInputElement;
+    const flagI = document.getElementById("flagI") as HTMLInputElement;
+    const flagM = document.getElementById("flagM") as HTMLInputElement;
+    const flagS = document.getElementById("flagS") as HTMLInputElement;
+
+    function runTest(): void {
+      const pattern = testPattern.value;
+      const str = testString.value;
+
+      if (!pattern || !str) {
+        matchResult.innerHTML = `<span class="text-gray-400">Enter pattern and test string above</span>`;
+        return;
+      }
+
+      let flags = "";
+      if (flagG.checked) flags += "g";
+      if (flagI.checked) flags += "i";
+      if (flagM.checked) flags += "m";
+      if (flagS.checked) flags += "s";
+
+      try {
+        const regex = new RegExp(pattern, flags);
+        const matches: string[] = [];
+
+        if (flags.includes("g")) {
+          let m: RegExpExecArray | null;
+          while ((m = regex.exec(str)) !== null) {
+            matches.push(`Match ${matches.length + 1}: "${m[0]}" at index ${m.index}`);
+            if (m.index === regex.lastIndex) regex.lastIndex++;
+          }
+        } else {
+          const m = regex.exec(str);
+          if (m) {
+            matches.push(`Match: "${m[0]}" at index ${m.index}`);
+            for (let i = 1; i < m.length; i++) {
+              matches.push(`  Group ${i}: "${m[i]}"`);
+            }
+          }
+        }
+
+        if (matches.length === 0) {
+          matchResult.innerHTML = `<span class="text-red-500">No matches found</span>`;
+        } else {
+          matchResult.innerHTML = `<span class="text-green-600">${matches.length} match${matches.length > 1 ? "es" : ""} found</span>\n\n` +
+            matches.map(m => `<span class="text-gray-800">${m.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>`).join("\n");
+        }
+      } catch (e: any) {
+        matchResult.innerHTML = `<span class="text-red-500">Invalid regex: ${e.message}</span>`;
+      }
+    }
+
+    testPattern.addEventListener("input", runTest);
+    testString.addEventListener("input", runTest);
+    [flagG, flagI, flagM, flagS].forEach(f => f.addEventListener("change", runTest));
+
+    renderEntries();
+    runTest();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Regex Cheat Sheet</h2>
+    <p>Complete regular expression reference with character classes, anchors, quantifiers, groups, lookahead, lookbehind, and flags. Each pattern includes syntax, description, and examples. Search and filter patterns, click to copy, and test your regex with the built-in quick tester.</p>
+  </Fragment>
+</ToolLayout>

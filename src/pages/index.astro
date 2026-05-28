@@ -1,0 +1,312 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ToolCard from '../components/ToolCard.astro';
+---
+
+<Layout
+  title="FreeToolBox - 150+ Free Online Tools for Developers, Writers & Marketers"
+  description="Free online tools: PDF merge, image compressor, JSON formatter, password generator, hash generator, regex tester, color converter & 140+ more. No signup, no limits, 100% free."
+>
+  <!-- JSON-LD WebSite + Organization schema -->
+  <Fragment slot="head-extra">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "FreeToolBox",
+      "url": "https://freetoolbox.io",
+      "description": "150+ free online tools for developers, writers and marketers. No signup, no limits.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "FreeToolBox",
+        "url": "https://freetoolbox.io",
+        "logo": { "@type": "ImageObject", "url": "https://freetoolbox.io/favicon.svg" }
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://freetoolbox.io/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Free Online Tools",
+      "numberOfItems": 150,
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "JSON Formatter", "url": "https://freetoolbox.io/tools/json-formatter" },
+        { "@type": "ListItem", "position": 2, "name": "Password Generator", "url": "https://freetoolbox.io/tools/password-generator" },
+        { "@type": "ListItem", "position": 3, "name": "PDF Merge", "url": "https://freetoolbox.io/tools/pdf-merge" },
+        { "@type": "ListItem", "position": 4, "name": "Image Compressor", "url": "https://freetoolbox.io/tools/image-compressor" },
+        { "@type": "ListItem", "position": 5, "name": "QR Code Generator", "url": "https://freetoolbox.io/tools/qr-code-generator" },
+        { "@type": "ListItem", "position": 6, "name": "Word Counter", "url": "https://freetoolbox.io/tools/word-counter" },
+        { "@type": "ListItem", "position": 7, "name": "Color Converter", "url": "https://freetoolbox.io/tools/color-converter" },
+        { "@type": "ListItem", "position": 8, "name": "Base64 Encoder", "url": "https://freetoolbox.io/tools/base64-encoder-decoder" },
+        { "@type": "ListItem", "position": 9, "name": "Regex Tester", "url": "https://freetoolbox.io/tools/regex-tester" },
+        { "@type": "ListItem", "position": 10, "name": "Meta Tag Generator", "url": "https://freetoolbox.io/tools/meta-tag-generator" }
+      ]
+    })} />
+  </Fragment>
+
+  <!-- Hero -->
+  <section class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+        Free Online Tools
+      </h1>
+      <p class="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-2">
+        No signup. No limits. No BS. Just tools that work.
+      </p>
+      <p class="text-sm text-blue-200 mb-8">150+ tools and counting — all free, all client-side</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="#developer" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Developer (48)</a>
+        <a href="#pdf" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">PDF (6)</a>
+        <a href="#text" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Text (17)</a>
+        <a href="#seo" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">SEO (15)</a>
+        <a href="#utility" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Utility (50)</a>
+        <a href="#security" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Security (9)</a>
+        <a href="#business" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Business (5)</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tools Grid -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+    <!-- Developer Tools (48) -->
+    <div id="developer" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-purple-600">&lt;/&gt;</span> Developer Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="JSON Formatter" description="Format, beautify, validate and minify JSON data with syntax highlighting." href="/tools/json-formatter" icon="{ }" category="developer" />
+        <ToolCard title="JSON to TypeScript" description="Generate TypeScript interfaces from JSON data automatically." href="/tools/json-to-typescript" icon="TS" category="developer" />
+        <ToolCard title="JSON Path Finder" description="Explore JSON as an interactive tree. Click any value to get its path." href="/tools/json-path-finder" icon="{.}" category="developer" />
+        <ToolCard title="JSON Schema Generator" description="Generate JSON Schema from JSON data. Validate JSON against schemas." href="/tools/json-schema-generator" icon="📋" category="developer" />
+        <ToolCard title="JSON to CSV" description="Convert JSON arrays to CSV and CSV to JSON. Custom delimiters." href="/tools/json-to-csv" icon="📊" category="developer" />
+        <ToolCard title="JSON Diff Checker" description="Compare two JSON objects. See added, removed and changed values." href="/tools/json-diff" icon="±" category="developer" />
+        <ToolCard title="Base64 Encoder / Decoder" description="Encode text to Base64 or decode Base64 to text. Supports UTF-8." href="/tools/base64-encoder-decoder" icon="B64" category="developer" />
+        <ToolCard title="UUID Generator" description="Generate random UUID v4 identifiers. Bulk generate and validate UUIDs." href="/tools/uuid-generator" icon="ID" category="developer" />
+        <ToolCard title="Regex Tester" description="Test regex patterns with real-time highlighting and capture groups." href="/tools/regex-tester" icon="/.*/" category="developer" />
+        <ToolCard title="Regex Cheat Sheet" description="Complete regex reference with search, examples and quick tester." href="/tools/regex-cheat-sheet" icon="📝" category="developer" />
+        <ToolCard title="Unix Timestamp Converter" description="Convert Unix timestamps to dates and vice versa. Live epoch time." href="/tools/unix-timestamp-converter" icon="⏱" category="developer" />
+        <ToolCard title="Hash Generator" description="Generate MD5, SHA-1, SHA-256, SHA-384 and SHA-512 hashes." href="/tools/hash-generator" icon="#H" category="developer" />
+        <ToolCard title="Color Converter" description="Convert between HEX, RGB, HSL and HSV with live preview and shades." href="/tools/color-converter" icon="🎨" category="developer" />
+        <ToolCard title="Color Picker" description="Pick colors visually. Get HEX, RGB, HSL values. RGB sliders." href="/tools/color-picker" icon="🖌" category="developer" />
+        <ToolCard title="Color Palette Generator" description="Generate color schemes: complementary, triadic, analogous and more." href="/tools/color-palette-generator" icon="🎨" category="developer" />
+        <ToolCard title="URL Encoder / Decoder" description="Encode or decode URLs and query strings with percent-encoding." href="/tools/url-encoder-decoder" icon="%U" category="developer" />
+        <ToolCard title="JWT Decoder" description="Decode and inspect JSON Web Tokens. View header, payload and claims." href="/tools/jwt-decoder" icon="JWT" category="developer" />
+        <ToolCard title="HTML Entity Encoder" description="Encode special characters to HTML entities or decode them back." href="/tools/html-entity-encoder" icon="&lt;&gt;" category="developer" />
+        <ToolCard title="Cron Expression Builder" description="Build cron expressions visually. See next run times and descriptions." href="/tools/cron-expression-builder" icon="⏰" category="developer" />
+        <ToolCard title="Number Base Converter" description="Convert between binary, octal, decimal and hex with bit visualization." href="/tools/number-base-converter" icon="0x" category="developer" />
+        <ToolCard title="Text to Binary" description="Convert text to binary, octal, decimal and hex representations." href="/tools/text-to-binary" icon="01" category="developer" />
+        <ToolCard title="Binary Calculator" description="Binary arithmetic and bitwise operations. AND, OR, XOR, NOT, shifts." href="/tools/binary-calculator" icon="10" category="developer" />
+        <ToolCard title="Chmod Calculator" description="Calculate Unix file permissions. Convert between symbolic and numeric." href="/tools/chmod-calculator" icon="rwx" category="developer" />
+        <ToolCard title="Markdown Preview" description="Write Markdown with real-time HTML preview. Full syntax support." href="/tools/markdown-preview" icon="MD" category="developer" />
+        <ToolCard title="Markdown Table Generator" description="Create Markdown tables visually. Set alignment, import from CSV." href="/tools/markdown-table-generator" icon="📋" category="developer" />
+        <ToolCard title="CSS Minifier / Beautifier" description="Minify CSS for production or beautify compressed CSS for readability." href="/tools/css-minifier" icon="CSS" category="developer" />
+        <ToolCard title="JavaScript Minifier" description="Minify JavaScript to reduce file size or beautify compressed JS." href="/tools/javascript-minifier" icon="JS" category="developer" />
+        <ToolCard title="SQL Formatter" description="Format, beautify and indent SQL queries. Uppercase keywords." href="/tools/sql-formatter" icon="SQL" category="developer" />
+        <ToolCard title="CSV to JSON Converter" description="Convert CSV to JSON and back. Custom delimiters and table preview." href="/tools/csv-to-json" icon="CSV" category="developer" />
+        <ToolCard title="YAML to JSON Converter" description="Convert YAML to JSON and JSON to YAML. Validate YAML syntax." href="/tools/yaml-to-json" icon="YML" category="developer" />
+        <ToolCard title="HTML to Markdown" description="Convert HTML to Markdown and Markdown to HTML. Clean output." href="/tools/html-to-markdown" icon="H→M" category="developer" />
+        <ToolCard title="CSS Gradient Generator" description="Create linear, radial and conic CSS gradients visually with presets." href="/tools/gradient-generator" icon="🌈" category="developer" />
+        <ToolCard title="Box Shadow Generator" description="Create CSS box shadows visually. Presets from Material and Tailwind." href="/tools/box-shadow-generator" icon="▦" category="developer" />
+        <ToolCard title="Border Radius Generator" description="Create CSS border-radius shapes visually. Control each corner." href="/tools/border-radius-generator" icon="◐" category="developer" />
+        <ToolCard title="CSS Flexbox Generator" description="Create CSS Flexbox layouts visually. All flex properties." href="/tools/flexbox-generator" icon="⬛" category="developer" />
+        <ToolCard title="CSS Grid Generator" description="Create CSS Grid layouts visually. Columns, rows, gap, presets." href="/tools/css-grid-generator" icon="⊞" category="developer" />
+        <ToolCard title="CSS Animation Generator" description="Create CSS animations visually. 12 presets, custom timing." href="/tools/css-animation-generator" icon="✨" category="developer" />
+        <ToolCard title="CSS Text Shadow Generator" description="Create CSS text shadows with multiple layers and presets." href="/tools/css-text-shadow-generator" icon="🔤" category="developer" />
+        <ToolCard title="CSS Clip Path Generator" description="Create CSS clip-path shapes visually. 16 shape presets." href="/tools/css-clip-path-generator" icon="✂" category="developer" />
+        <ToolCard title="Tailwind to CSS" description="Convert Tailwind classes to CSS and CSS to Tailwind classes." href="/tools/tailwind-to-css" icon="🌊" category="developer" />
+        <ToolCard title="HTML Table Generator" description="Create HTML tables visually. Edit cells, choose styles, copy HTML." href="/tools/html-table-generator" icon="▦" category="developer" />
+        <ToolCard title="HTTP Status Codes" description="Searchable reference of all HTTP status codes with descriptions." href="/tools/http-status-codes" icon="🔢" category="developer" />
+        <ToolCard title=".htaccess Generator" description="Generate Apache .htaccess: redirects, GZIP, caching, security." href="/tools/htaccess-generator" icon="⚙" category="developer" />
+        <ToolCard title="Font Pair Suggester" description="Find beautiful font pairings. Preview heading + body combinations." href="/tools/font-pair-suggester" icon="Ff" category="developer" />
+        <ToolCard title="Placeholder Image Generator" description="Generate placeholder images with custom size, color and text." href="/tools/placeholder-image" icon="🖼" category="developer" />
+        <ToolCard title="Random Image Placeholder" description="Generate random photo placeholders from Lorem Picsum." href="/tools/lorem-picsum" icon="🏞" category="developer" />
+        <ToolCard title="Favicon Generator" description="Create favicons from text or emoji. Download in multiple sizes." href="/tools/favicon-generator" icon="⬛" category="developer" />
+        <ToolCard title="Fake Data Generator" description="Generate fake test data: names, emails, addresses. Export JSON/CSV." href="/tools/fake-data-generator" icon="🧪" category="developer" />
+      </div>
+    </div>
+
+    <!-- PDF Tools (6) -->
+    <div id="pdf" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-red-600">📄</span> PDF Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="PDF Merge" description="Combine multiple PDF files into one. Drag to reorder. Free online PDF merger." href="/tools/pdf-merge" icon="📑" category="pdf" />
+        <ToolCard title="PDF Split" description="Split PDF into separate pages or extract page ranges. Free PDF splitter." href="/tools/pdf-split" icon="✂️" category="pdf" />
+        <ToolCard title="PDF Compress" description="Compress PDF files to reduce size. Three compression levels." href="/tools/pdf-compress" icon="📦" category="pdf" />
+        <ToolCard title="PDF to Image" description="Convert PDF pages to JPG or PNG. Choose scale 1x-3x." href="/tools/pdf-to-image" icon="📸" category="pdf" />
+        <ToolCard title="Image to PDF" description="Convert images to PDF. Combine multiple images into one document." href="/tools/image-to-pdf" icon="🖼️" category="pdf" />
+        <ToolCard title="PDF Page Reorder" description="Reorder, rearrange and delete pages in a PDF. Drag and drop." href="/tools/pdf-page-reorder" icon="🔀" category="pdf" />
+      </div>
+    </div>
+
+    <!-- Text Tools (17) -->
+    <div id="text" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-green-600">Aa</span> Text Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="Word Counter" description="Count words, characters, sentences and paragraphs. Reading time estimate." href="/tools/word-counter" icon="W#" category="text" />
+        <ToolCard title="Character Counter" description="Check character limits for Twitter/X, Instagram, LinkedIn and more." href="/tools/character-counter" icon="280" category="text" />
+        <ToolCard title="Word Frequency Counter" description="Analyze word frequency, bigrams and trigrams. Stop word filter." href="/tools/word-frequency-counter" icon="📊" category="text" />
+        <ToolCard title="Lorem Ipsum Generator" description="Generate placeholder text in paragraphs, sentences or words." href="/tools/lorem-ipsum-generator" icon="Li" category="text" />
+        <ToolCard title="Case Converter" description="Convert between UPPERCASE, lowercase, camelCase, snake_case and 8 more." href="/tools/case-converter" icon="Aa" category="text" />
+        <ToolCard title="Text Diff Checker" description="Compare two texts and highlight additions, deletions and changes." href="/tools/text-diff-checker" icon="±" category="text" />
+        <ToolCard title="Emoji Picker" description="Search and copy emojis by name or category. Hundreds of emojis." href="/tools/emoji-picker" icon="😀" category="text" />
+        <ToolCard title="Text to Speech" description="Convert text to speech with adjustable speed, pitch and voice." href="/tools/text-to-speech" icon="🔊" category="text" />
+        <ToolCard title="Text Repeater" description="Repeat any text multiple times with custom separator." href="/tools/text-repeater" icon="×N" category="text" />
+        <ToolCard title="Text Sorter" description="Sort lines A-Z, Z-A, by length, numeric, random. Remove duplicates." href="/tools/text-sorter" icon="↕" category="text" />
+        <ToolCard title="Duplicate Remover" description="Remove or find duplicate lines in text. Case-sensitive options." href="/tools/duplicate-remover" icon="✂" category="text" />
+        <ToolCard title="String Reverse" description="Reverse strings, words, sentences. Palindrome checker." href="/tools/string-reverse" icon="🔄" category="text" />
+        <ToolCard title="Text to HTML" description="Convert plain text to HTML. Auto-link URLs and emails." href="/tools/text-to-html" icon="<>" category="text" />
+        <ToolCard title="Text Summarizer" description="Summarize long text into key points. Extractive summarization." href="/tools/text-summarizer" icon="📝" category="text" />
+        <ToolCard title="Grammar Checker" description="Check text for grammar, spelling and style mistakes. Auto-correct." href="/tools/grammar-checker" icon="✅" category="text" />
+        <ToolCard title="Number to Words" description="Convert numbers to words, currency format and ordinals." href="/tools/number-to-words" icon="1→A" category="text" />
+        <ToolCard title="Text to Morse Code" description="Convert text to Morse code and back. Audio playback included." href="/tools/text-to-morse" icon="·—" category="text" />
+      </div>
+    </div>
+
+    <!-- Utility Tools (50) -->
+    <div id="utility" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-blue-600">⚡</span> Utility Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="Password Generator" description="Generate secure random passwords with custom length and complexity." href="/tools/password-generator" icon="🔐" category="utility" />
+        <ToolCard title="QR Code Generator" description="Create QR codes for URLs, text, WiFi, email. Download as PNG." href="/tools/qr-code-generator" icon="QR" category="utility" />
+        <ToolCard title="Image to Base64" description="Convert images to Base64 data URLs. Drag & drop, copy as HTML/CSS." href="/tools/image-to-base64" icon="🖼" category="utility" />
+        <ToolCard title="Image Resizer" description="Resize images online. Lock aspect ratio, choose format and quality." href="/tools/image-resizer" icon="📐" category="utility" />
+        <ToolCard title="Image Compressor" description="Compress images to reduce file size. Adjustable quality slider." href="/tools/image-compressor" icon="📦" category="utility" />
+        <ToolCard title="Image Format Converter" description="Convert between PNG, JPG, WebP, BMP. Batch conversion support." href="/tools/image-format-converter" icon="🔄" category="utility" />
+        <ToolCard title="Image Cropper" description="Crop images with preset aspect ratios or custom selection." href="/tools/image-cropper" icon="✂️" category="utility" />
+        <ToolCard title="Image Rotate & Flip" description="Rotate images 90°, 180°, 270°. Flip horizontal or vertical." href="/tools/image-rotate" icon="🔃" category="utility" />
+        <ToolCard title="Image Watermark" description="Add text watermarks to images. Custom position, opacity, tiling." href="/tools/image-watermark" icon="💧" category="utility" />
+        <ToolCard title="Image to ASCII Art" description="Convert images to ASCII text art. Adjustable width and charset." href="/tools/image-to-ascii" icon="🎭" category="utility" />
+        <ToolCard title="SVG to PNG Converter" description="Convert SVG to PNG with custom scale and background color." href="/tools/svg-to-png" icon="🔄" category="utility" />
+        <ToolCard title="Color Blindness Simulator" description="Simulate how colors appear with different types of color vision." href="/tools/color-blindness-simulator" icon="👁" category="utility" />
+        <ToolCard title="Random Number Generator" description="Random numbers, dice rolls, coin flips. Cryptographically secure." href="/tools/random-number-generator" icon="🎲" category="utility" />
+        <ToolCard title="Random Picker" description="Pick from a list, flip coins, roll dice, yes/no, random colors." href="/tools/random-picker" icon="🎰" category="utility" />
+        <ToolCard title="Random Name Generator" description="Generate random names for characters, fiction or testing." href="/tools/random-name-generator" icon="🎲" category="utility" />
+        <ToolCard title="Percentage Calculator" description="Calculate X% of Y, percentage change, tip calculator and more." href="/tools/percentage-calculator" icon="%" category="utility" />
+        <ToolCard title="Scientific Calculator" description="Trigonometry, logarithms, powers, roots. Full scientific keypad." href="/tools/scientific-calculator" icon="🔬" category="utility" />
+        <ToolCard title="Fraction Calculator" description="Add, subtract, multiply, divide fractions. Simplify and convert." href="/tools/fraction-calculator" icon="🔢" category="utility" />
+        <ToolCard title="Unit Converter" description="Convert length, weight, temperature, volume, speed, area, data, time." href="/tools/unit-converter" icon="⚖" category="utility" />
+        <ToolCard title="Temperature Converter" description="Convert between Celsius, Fahrenheit and Kelvin with formulas." href="/tools/temperature-converter" icon="🌡" category="utility" />
+        <ToolCard title="Cooking Unit Converter" description="Convert kitchen units: cups, tablespoons, teaspoons, ml, oz, grams." href="/tools/cooking-converter" icon="🍳" category="utility" />
+        <ToolCard title="Roman Numeral Converter" description="Convert between Roman numerals and Arabic numbers. Both directions." href="/tools/roman-numeral-converter" icon="Ⅳ" category="utility" />
+        <ToolCard title="Aspect Ratio Calculator" description="Calculate aspect ratios, resize proportionally. Common presets." href="/tools/aspect-ratio-calculator" icon="▢" category="utility" />
+        <ToolCard title="Screen Resolution Tester" description="Check screen size, viewport, DPI, pixel ratio and breakpoints." href="/tools/screen-resolution-tester" icon="📐" category="utility" />
+        <ToolCard title="Barcode Generator" description="Generate Code 128 and Code 39 barcodes. Download as PNG." href="/tools/barcode-generator" icon="|||" category="utility" />
+        <ToolCard title="Pomodoro Timer" description="25-minute work sessions with breaks. Track productivity sessions." href="/tools/pomodoro-timer" icon="🍅" category="utility" />
+        <ToolCard title="Stopwatch" description="Millisecond-precision stopwatch with lap times. Fastest/slowest." href="/tools/stopwatch" icon="⏱" category="utility" />
+        <ToolCard title="Countdown Timer" description="Set countdowns to any date. Days, hours, minutes, seconds display." href="/tools/countdown-timer" icon="⏳" category="utility" />
+        <ToolCard title="World Clock" description="See current time in multiple cities. Add favorites, live updating." href="/tools/world-clock" icon="🌍" category="utility" />
+        <ToolCard title="Date & Time Converter" description="Convert between time zones. Calculate date differences." href="/tools/timestamp-converter" icon="🕐" category="utility" />
+        <ToolCard title="IP Address Lookup" description="Find your public IP and geolocation. Look up any IP address." href="/tools/ip-address-lookup" icon="🌐" category="utility" />
+        <ToolCard title="Email Validator" description="Validate email format. Detect typos, identify providers. Bulk mode." href="/tools/email-validator" icon="✉" category="utility" />
+        <ToolCard title="Text Encryption" description="Encrypt and decrypt text with AES-256. Password-based, client-side." href="/tools/text-encryption" icon="🔐" category="utility" />
+        <ToolCard title="Age Calculator" description="Calculate exact age in years, months, days. Next birthday countdown." href="/tools/age-calculator" icon="🎂" category="utility" />
+        <ToolCard title="BMI Calculator" description="Calculate Body Mass Index. Metric and imperial. Healthy weight range." href="/tools/bmi-calculator" icon="⚖" category="utility" />
+        <ToolCard title="GPA Calculator" description="Calculate your GPA on a 4.0 scale. Add courses dynamically." href="/tools/gpa-calculator" icon="🎓" category="utility" />
+        <ToolCard title="Typing Speed Test" description="Test your WPM, CPM and accuracy. Real-time typing statistics." href="/tools/typing-speed-test" icon="⌨️" category="utility" />
+        <ToolCard title="Username Generator" description="Generate unique usernames: cool, gaming, professional, funny styles." href="/tools/username-generator" icon="👤" category="utility" />
+        <ToolCard title="Flashcard Maker" description="Create study flashcards. Flip to study, import/export CSV decks." href="/tools/flashcard-maker" icon="🃏" category="utility" />
+        <ToolCard title="Online Notepad" description="Simple notepad with auto-save. Word count, download as TXT." href="/tools/notepad" icon="📝" category="utility" />
+        <ToolCard title="Drawing Pad" description="Draw with mouse or touch. Colors, brush size. Download as PNG." href="/tools/draw-tool" icon="🎨" category="utility" />
+        <ToolCard title="White Noise Generator" description="White, pink and brown noise for focus, sleep and relaxation." href="/tools/noise-generator" icon="🔊" category="utility" />
+        <ToolCard title="Breathing Exercise" description="Guided breathing: Box, 4-7-8, Deep Calm. Animated visual guide." href="/tools/breathing-exercise" icon="🫁" category="utility" />
+        <ToolCard title="Loan Calculator" description="Calculate monthly payments, total interest. Amortization table." href="/tools/loan-calculator" icon="💰" category="utility" />
+        <ToolCard title="Mortgage Calculator" description="Home price, down payment, rates. Monthly breakdown, extra payments." href="/tools/mortgage-calculator" icon="🏠" category="utility" />
+        <ToolCard title="Compound Interest Calculator" description="Calculate compound interest growth. Year-by-year breakdown." href="/tools/compound-interest-calculator" icon="📈" category="utility" />
+        <ToolCard title="Tip Calculator" description="Calculate tips, split bills. Preset percentages, round-up option." href="/tools/tip-calculator" icon="🍽" category="utility" />
+        <ToolCard title="Sales Tax Calculator" description="Calculate sales tax. US state presets. Reverse and bulk modes." href="/tools/sales-tax-calculator" icon="🧾" category="utility" />
+        <ToolCard title="Fuel Cost Calculator" description="Calculate trip fuel cost. MPG or km/L, distance, fuel price." href="/tools/fuel-cost-calculator" icon="⛽" category="utility" />
+        <ToolCard title="Electricity Cost Calculator" description="Calculate appliance electricity cost. Daily, monthly, yearly." href="/tools/electricity-cost-calculator" icon="💡" category="utility" />
+      </div>
+    </div>
+
+    <!-- SEO Tools (15) -->
+    <div id="seo" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-orange-600">📈</span> SEO & Marketing Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="Meta Tag Generator" description="Generate SEO meta tags, Open Graph and Twitter Card markup." href="/tools/meta-tag-generator" icon="<>" category="seo" />
+        <ToolCard title="Open Graph Preview" description="Preview social media cards for Facebook, Twitter/X and LinkedIn." href="/tools/open-graph-preview" icon="OG" category="seo" />
+        <ToolCard title="Twitter Card Validator" description="Preview Twitter/X cards. Generate twitter:card meta tags." href="/tools/twitter-card-validator" icon="🐦" category="seo" />
+        <ToolCard title="Schema Markup Generator" description="Generate JSON-LD structured data for 8 schema types." href="/tools/schema-markup-generator" icon="{}" category="seo" />
+        <ToolCard title="Slug Generator" description="Convert titles into clean, SEO-friendly URL slugs. Bulk mode." href="/tools/slug-generator" icon="/s" category="seo" />
+        <ToolCard title="Keyword Density Checker" description="Analyze keyword frequency and density in your content for SEO." href="/tools/keyword-density-checker" icon="KW" category="seo" />
+        <ToolCard title="Heading Checker" description="Analyze heading hierarchy. Flag missing H1, skipped levels. SEO score." href="/tools/heading-checker" icon="H1" category="seo" />
+        <ToolCard title="Robots.txt Generator" description="Create robots.txt files to control search engine crawling." href="/tools/robots-txt-generator" icon="🤖" category="seo" />
+        <ToolCard title="XML Sitemap Generator" description="Generate XML sitemaps with priority and change frequency." href="/tools/sitemap-generator" icon="🗺" category="seo" />
+        <ToolCard title="Redirect Rule Generator" description="Generate redirect rules for Apache, Nginx, Cloudflare, Vercel." href="/tools/redirect-checker" icon="↪" category="seo" />
+        <ToolCard title="UTM Link Builder" description="Build UTM campaign URLs for Google Analytics tracking." href="/tools/utm-builder" icon="🔗" category="seo" />
+        <ToolCard title="Headline Analyzer" description="Score headlines for SEO. Power words, emotional words, length." href="/tools/headline-analyzer" icon="📰" category="seo" />
+        <ToolCard title="Readability Checker" description="Flesch, Gunning Fog, Coleman-Liau readability scores for your text." href="/tools/readability-checker" icon="📖" category="seo" />
+        <ToolCard title="Hashtag Generator" description="Generate hashtags for Instagram, Twitter/X, TikTok and LinkedIn." href="/tools/hashtag-generator" icon="#️⃣" category="seo" />
+        <ToolCard title="Social Post Formatter" description="Format text with bold, italic, unicode fonts for social media." href="/tools/social-post-formatter" icon="✨" category="seo" />
+      </div>
+    </div>
+
+    <!-- Security Tools (9) -->
+    <div id="security" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-emerald-600">🛡️</span> Security Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="Password Strength Checker" description="Check password strength, entropy and estimated crack time." href="/tools/password-strength-checker" icon="🔒" category="security" />
+        <ToolCard title="Passphrase Generator" description="Generate strong, memorable passphrases from random words." href="/tools/passphrase-generator" icon="🔑" category="security" />
+        <ToolCard title="Hash Identifier" description="Identify hash types: MD5, SHA-1, SHA-256, bcrypt and more." href="/tools/hash-identifier" icon="🔍" category="security" />
+        <ToolCard title="Bcrypt Hash Generator" description="Generate and verify bcrypt password hashes. Adjustable rounds." href="/tools/bcrypt-generator" icon="#B" category="security" />
+        <ToolCard title="Subnet Calculator" description="Calculate CIDR subnets, IP ranges, hosts count, wildcard masks." href="/tools/subnet-calculator" icon="🌐" category="security" />
+        <ToolCard title="MAC Address Generator" description="Generate random MAC addresses. Multiple formats and bulk mode." href="/tools/mac-address-generator" icon="🔢" category="security" />
+        <ToolCard title="CSP Header Generator" description="Build Content Security Policy headers. HTTP and meta tag output." href="/tools/csp-header-generator" icon="🛡" category="security" />
+        <ToolCard title="CORS Header Generator" description="Generate CORS headers with Express and Nginx configuration output." href="/tools/cors-header-generator" icon="🔗" category="security" />
+        <ToolCard title="Security Headers Checker" description="Analyze and score website security headers. Get recommendations." href="/tools/security-headers-checker" icon="✅" category="security" />
+      </div>
+    </div>
+
+    <!-- Business Tools (5) -->
+    <div id="business" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="text-pink-600">💼</span> Business Tools
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ToolCard title="Invoice Generator" description="Create professional invoices with line items, tax and discounts. Print as PDF." href="/tools/invoice-generator" icon="$" category="business" />
+        <ToolCard title="Privacy Policy Generator" description="Generate privacy policies covering GDPR, CCPA, cookies and analytics." href="/tools/privacy-policy-generator" icon="🔒" category="business" />
+        <ToolCard title="Discount Calculator" description="Calculate discounts, savings, final price. Stack multiple discounts." href="/tools/discount-calculator" icon="🏷" category="business" />
+        <ToolCard title="ROI Calculator" description="Calculate return on investment, annualized ROI and net profit." href="/tools/roi-calculator" icon="📊" category="business" />
+        <ToolCard title="Markup & Margin Calculator" description="Calculate markup %, profit margin, cost and selling price." href="/tools/markup-calculator" icon="💰" category="business" />
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Bottom SEO Content -->
+  <section class="bg-white border-t border-gray-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Why FreeToolBox?</h2>
+      <div class="prose prose-gray max-w-none">
+        <p>FreeToolBox offers a growing collection of <strong>150+ free online tools</strong> for developers, writers, marketers and everyone else. No signup required, no usage limits, no hidden fees.</p>
+        <p>Every tool runs entirely in your browser. Your data never leaves your device. We believe useful tools should be accessible to everyone, without barriers.</p>
+        <h3>Categories</h3>
+        <ul>
+          <li><strong>Developer Tools (48)</strong> — JSON formatter, regex tester, hash generator, color tools, CSS generators (flexbox, grid, animation, shadows, clip-path), code formatters, converters, fake data generator and more</li>
+          <li><strong>PDF Tools (6)</strong> — PDF merge, split, compress, PDF to image, image to PDF, page reorder — all client-side</li>
+          <li><strong>Text Tools (17)</strong> — Word counter, case converter, diff checker, text sorter, text-to-speech, summarizer, grammar checker, Morse code converter</li>
+          <li><strong>SEO & Marketing (15)</strong> — Meta tags, Open Graph, schema markup, UTM builder, headline analyzer, hashtag generator, social post formatter, readability checker</li>
+          <li><strong>Utility Tools (50)</strong> — Image tools (resize, compress, crop, rotate, watermark, ASCII art), calculators, timers, world clock, drawing pad, noise generator, breathing exercises, flashcards, notepad</li>
+          <li><strong>Security Tools (9)</strong> — Password strength checker, passphrase generator, hash identifier, bcrypt, subnet calculator, CSP/CORS headers, security headers checker</li>
+          <li><strong>Business Tools (5)</strong> — Invoice generator, privacy policy, discount calculator, ROI calculator, markup & margin</li>
+        </ul>
+        <h3>Privacy First</h3>
+        <p>All tools process data locally in your browser using JavaScript. Nothing is sent to any server. Your data stays on your device.</p>
+      </div>
+    </div>
+  </section>
+</Layout>

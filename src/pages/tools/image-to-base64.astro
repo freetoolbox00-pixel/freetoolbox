@@ -1,0 +1,118 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Image to Base64 Converter"
+  description="Convert images to Base64 encoded strings for use in HTML, CSS and data URLs. Drag & drop or upload any image. Free image encoder."
+  category="utility"
+  icon="🖼"
+>
+  <div>
+    <!-- Drop Zone -->
+    <div id="dropZone" class="mb-6 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+      <div class="text-4xl mb-2">📁</div>
+      <p class="text-gray-600 font-medium">Drop image here or click to upload</p>
+      <p class="text-xs text-gray-400 mt-1">PNG, JPG, GIF, SVG, WebP, ICO</p>
+      <input type="file" id="fileInput" accept="image/*" class="hidden" />
+    </div>
+
+    <!-- Preview -->
+    <div id="previewWrap" class="mb-6 hidden">
+      <div class="flex items-start gap-4">
+        <img id="imgPreview" class="max-w-[200px] max-h-[200px] rounded-lg border border-gray-200" />
+        <div class="text-sm text-gray-600">
+          <div>Name: <strong id="fileName">—</strong></div>
+          <div>Size: <strong id="fileSize">—</strong></div>
+          <div>Type: <strong id="fileType">—</strong></div>
+          <div>Dimensions: <strong id="fileDims">—</strong></div>
+          <div>Base64 size: <strong id="b64Size">—</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Options -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button id="copyDataUrl" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Copy Data URL</button>
+      <button id="copyBase64Only" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy Base64 Only</button>
+      <button id="copyHtmlImg" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy &lt;img&gt; Tag</button>
+      <button id="copyCssBg" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy CSS Background</button>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Data URL</label>
+      <textarea id="b64Output" rows="6" readonly class="w-full p-4 font-mono text-xs bg-gray-50 border border-gray-300 rounded-lg resize-y break-all"></textarea>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone')!;
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    const output = document.getElementById('b64Output') as HTMLTextAreaElement;
+    let currentDataUrl = '';
+
+    function formatBytes(bytes: number): string {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function processFile(file: File): void {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentDataUrl = e.target?.result as string;
+        output.value = currentDataUrl;
+
+        document.getElementById('previewWrap')!.classList.remove('hidden');
+        const img = document.getElementById('imgPreview') as HTMLImageElement;
+        img.src = currentDataUrl;
+        img.onload = () => {
+          document.getElementById('fileDims')!.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+        };
+        document.getElementById('fileName')!.textContent = file.name;
+        document.getElementById('fileSize')!.textContent = formatBytes(file.size);
+        document.getElementById('fileType')!.textContent = file.type;
+        document.getElementById('b64Size')!.textContent = formatBytes(currentDataUrl.length);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-400', 'bg-blue-50'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-400', 'bg-blue-50'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      const file = e.dataTransfer?.files[0];
+      if (file && file.type.startsWith('image/')) processFile(file);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files?.[0]) processFile(fileInput.files[0]);
+    });
+
+    document.getElementById('copyDataUrl')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(currentDataUrl);
+    });
+    document.getElementById('copyBase64Only')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(currentDataUrl.split(',')[1] || '');
+    });
+    document.getElementById('copyHtmlImg')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(`<img src="${currentDataUrl}" alt="" />`);
+    });
+    document.getElementById('copyCssBg')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(`background-image: url('${currentDataUrl}');`);
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Image to Base64 Converter</h2>
+    <p>Convert any image to a Base64 encoded data URL for embedding directly in HTML, CSS or JavaScript. Supports PNG, JPG, GIF, SVG and WebP.</p>
+    <h3>When to Use Base64 Images</h3>
+    <ul>
+      <li><strong>Email templates</strong> - Embed images without external hosting</li>
+      <li><strong>CSS sprites</strong> - Include small icons as data URLs</li>
+      <li><strong>Single file apps</strong> - Bundle everything in one HTML file</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

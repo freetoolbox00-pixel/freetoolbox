@@ -1,0 +1,212 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Flashcard Maker" description="Create study flashcards online. Add questions and answers, flip cards to study. Export and import your deck." category="utility" icon="🃏">
+  <div>
+    <div class="grid gap-3 sm:grid-cols-2 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Question (Front)</label>
+        <textarea id="fcFront" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="What is the capital of France?"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Answer (Back)</label>
+        <textarea id="fcBack" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Paris"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mb-6">
+      <button id="fcAdd" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Add Card</button>
+      <button id="fcImport" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Import CSV</button>
+      <button id="fcExport" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Export CSV</button>
+      <input type="file" id="fcFile" accept=".csv,.txt" class="hidden" />
+    </div>
+
+    <div id="fcEmpty" class="text-center py-12 text-gray-400">
+      <div class="text-4xl mb-2">🃏</div>
+      <div>Add cards to start studying</div>
+    </div>
+
+    <div id="fcStudy" class="hidden">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm text-gray-500">Card <span id="fcIdx">1</span> of <span id="fcTotal">0</span></span>
+        <div class="flex gap-2">
+          <button id="fcShuffle" class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs hover:bg-yellow-200">Shuffle</button>
+          <button id="fcReset" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs hover:bg-red-200">Clear All</button>
+        </div>
+      </div>
+
+      <div id="fcCard" class="relative w-full min-h-[220px] bg-white border-2 border-blue-200 rounded-2xl shadow-lg cursor-pointer flex items-center justify-center p-8 mb-4 select-none transition-all hover:shadow-xl" style="perspective:1000px;">
+        <div id="fcCardInner" class="text-center transition-all duration-300">
+          <div class="text-xs text-blue-400 mb-2 uppercase tracking-wider" id="fcSide">Question</div>
+          <div class="text-xl font-semibold text-gray-800" id="fcText">—</div>
+        </div>
+      </div>
+      <div class="text-center text-xs text-gray-400 mb-4">Click card to flip</div>
+
+      <div class="flex justify-center gap-3">
+        <button id="fcPrev" class="px-5 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">← Prev</button>
+        <button id="fcFlip" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Flip</button>
+        <button id="fcNext" class="px-5 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">Next →</button>
+      </div>
+    </div>
+
+    <div id="fcList" class="mt-6 hidden">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">All Cards</h3>
+      <div id="fcCards" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  interface Card { front: string; back: string; }
+  let deck: Card[] = [];
+  let current = 0;
+  let showingFront = true;
+
+  const frontIn = document.getElementById('fcFront') as HTMLTextAreaElement;
+  const backIn = document.getElementById('fcBack') as HTMLTextAreaElement;
+  const emptyEl = document.getElementById('fcEmpty')!;
+  const studyEl = document.getElementById('fcStudy')!;
+  const listEl = document.getElementById('fcList')!;
+  const cardsEl = document.getElementById('fcCards')!;
+  const idxEl = document.getElementById('fcIdx')!;
+  const totalEl = document.getElementById('fcTotal')!;
+  const sideEl = document.getElementById('fcSide')!;
+  const textEl = document.getElementById('fcText')!;
+  const cardEl = document.getElementById('fcCard')!;
+
+  function render() {
+    if (deck.length === 0) {
+      emptyEl.classList.remove('hidden');
+      studyEl.classList.add('hidden');
+      listEl.classList.add('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    studyEl.classList.remove('hidden');
+    listEl.classList.remove('hidden');
+    totalEl.textContent = String(deck.length);
+    showCard();
+    renderList();
+  }
+
+  function showCard() {
+    if (deck.length === 0) return;
+    showingFront = true;
+    idxEl.textContent = String(current + 1);
+    sideEl.textContent = 'Question';
+    textEl.textContent = deck[current].front;
+    cardEl.style.borderColor = '#bfdbfe';
+    cardEl.style.background = '#ffffff';
+  }
+
+  function flip() {
+    if (deck.length === 0) return;
+    showingFront = !showingFront;
+    if (showingFront) {
+      sideEl.textContent = 'Question';
+      textEl.textContent = deck[current].front;
+      cardEl.style.borderColor = '#bfdbfe';
+      cardEl.style.background = '#ffffff';
+    } else {
+      sideEl.textContent = 'Answer';
+      textEl.textContent = deck[current].back;
+      cardEl.style.borderColor = '#86efac';
+      cardEl.style.background = '#f0fdf4';
+    }
+  }
+
+  function renderList() {
+    cardsEl.innerHTML = deck.map((c, i) =>
+      `<div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm">
+        <span class="text-xs text-gray-400 w-6">${i + 1}</span>
+        <span class="flex-1 truncate"><strong>${esc(c.front)}</strong> → ${esc(c.back)}</span>
+        <button class="fc-del text-red-400 hover:text-red-600 text-xs" data-i="${i}">✕</button>
+      </div>`
+    ).join('');
+  }
+
+  function esc(s: string) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  document.getElementById('fcAdd')!.addEventListener('click', () => {
+    const f = frontIn.value.trim();
+    const b = backIn.value.trim();
+    if (!f || !b) return;
+    deck.push({ front: f, back: b });
+    frontIn.value = ''; backIn.value = '';
+    current = deck.length - 1;
+    render();
+  });
+
+  cardEl.addEventListener('click', flip);
+  document.getElementById('fcFlip')!.addEventListener('click', flip);
+
+  document.getElementById('fcPrev')!.addEventListener('click', () => {
+    if (deck.length === 0) return;
+    current = (current - 1 + deck.length) % deck.length;
+    showCard();
+  });
+
+  document.getElementById('fcNext')!.addEventListener('click', () => {
+    if (deck.length === 0) return;
+    current = (current + 1) % deck.length;
+    showCard();
+  });
+
+  document.getElementById('fcShuffle')!.addEventListener('click', () => {
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    current = 0;
+    render();
+  });
+
+  document.getElementById('fcReset')!.addEventListener('click', () => {
+    if (!confirm('Delete all cards?')) return;
+    deck = []; current = 0;
+    render();
+  });
+
+  cardsEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.fc-del') as HTMLElement;
+    if (!btn) return;
+    const i = parseInt(btn.dataset.i!);
+    deck.splice(i, 1);
+    if (current >= deck.length) current = Math.max(0, deck.length - 1);
+    render();
+  });
+
+  document.getElementById('fcExport')!.addEventListener('click', () => {
+    if (deck.length === 0) return;
+    const csv = deck.map(c => `"${c.front.replace(/"/g,'""')}","${c.back.replace(/"/g,'""')}"`).join('\n');
+    const blob = new Blob(['front,back\n' + csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'flashcards.csv';
+    a.click();
+  });
+
+  document.getElementById('fcImport')!.addEventListener('click', () => {
+    (document.getElementById('fcFile') as HTMLInputElement).click();
+  });
+
+  document.getElementById('fcFile')!.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const lines = (reader.result as string).split('\n').filter(l => l.trim());
+      lines.forEach((line, i) => {
+        if (i === 0 && line.toLowerCase().includes('front')) return;
+        const match = line.match(/^"?([^"]*)"?\s*,\s*"?([^"]*)"?$/);
+        if (match) deck.push({ front: match[1].trim(), back: match[2].trim() });
+      });
+      current = 0;
+      render();
+    };
+    reader.readAsText(file);
+  });
+
+  render();
+</script>

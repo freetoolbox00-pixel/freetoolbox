@@ -1,0 +1,139 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Online Stopwatch"
+  description="Free online stopwatch with lap times. Millisecond precision. Start, stop, lap and reset. Export lap data."
+  category="utility"
+  icon="⏱"
+>
+  <div>
+    <!-- Display -->
+    <div class="text-center mb-8">
+      <div id="swDisplay" class="text-6xl sm:text-7xl font-mono font-bold text-gray-900 mb-2">00:00:00<span class="text-3xl text-gray-400">.000</span></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex justify-center gap-3 mb-8">
+      <button id="swStart" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">Start</button>
+      <button id="swLap" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-40" disabled>Lap</button>
+      <button id="swReset" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors">Reset</button>
+    </div>
+
+    <!-- Laps -->
+    <div id="swLaps" class="hidden">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-medium text-gray-700">Lap Times</h3>
+        <button id="swExport" class="text-xs text-blue-600 hover:text-blue-800">Export CSV</button>
+      </div>
+      <div class="max-h-64 overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-3 py-2 text-left text-gray-500">#</th>
+              <th class="px-3 py-2 text-left text-gray-500">Lap Time</th>
+              <th class="px-3 py-2 text-left text-gray-500">Total Time</th>
+            </tr>
+          </thead>
+          <tbody id="swLapBody" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let running = false;
+    let startTime = 0;
+    let elapsed = 0;
+    let rafId: number;
+    let laps: { lap: number; split: number; total: number }[] = [];
+    let lastLapTime = 0;
+
+    function formatTime(ms: number): string {
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      const mil = ms % 1000;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}<span class="text-3xl text-gray-400">.${mil.toString().padStart(3, '0')}</span>`;
+    }
+
+    function tick(): void {
+      elapsed = Date.now() - startTime;
+      document.getElementById('swDisplay')!.innerHTML = formatTime(elapsed);
+      document.title = `${formatMs(elapsed)} - Stopwatch`;
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function formatMs(ms: number): string {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    document.getElementById('swStart')!.addEventListener('click', () => {
+      if (!running) {
+        startTime = Date.now() - elapsed;
+        running = true;
+        rafId = requestAnimationFrame(tick);
+        document.getElementById('swStart')!.textContent = 'Stop';
+        document.getElementById('swStart')!.className = 'px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors';
+        (document.getElementById('swLap') as HTMLButtonElement).disabled = false;
+      } else {
+        running = false;
+        cancelAnimationFrame(rafId);
+        document.getElementById('swStart')!.textContent = 'Start';
+        document.getElementById('swStart')!.className = 'px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors';
+      }
+    });
+
+    document.getElementById('swLap')!.addEventListener('click', () => {
+      if (!running) return;
+      const lapTime = elapsed - lastLapTime;
+      lastLapTime = elapsed;
+      laps.push({ lap: laps.length + 1, split: lapTime, total: elapsed });
+
+      document.getElementById('swLaps')!.classList.remove('hidden');
+      const row = document.createElement('tr');
+      row.innerHTML = `<td class="px-3 py-2 font-mono">${laps.length}</td><td class="px-3 py-2 font-mono">${formatMsFull(lapTime)}</td><td class="px-3 py-2 font-mono">${formatMsFull(elapsed)}</td>`;
+      document.getElementById('swLapBody')!.prepend(row);
+    });
+
+    function formatMsFull(ms: number): string {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      const mil = ms % 1000;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${mil.toString().padStart(3, '0')}`;
+    }
+
+    document.getElementById('swReset')!.addEventListener('click', () => {
+      running = false;
+      cancelAnimationFrame(rafId);
+      elapsed = 0;
+      lastLapTime = 0;
+      laps = [];
+      document.getElementById('swDisplay')!.innerHTML = formatTime(0);
+      document.getElementById('swStart')!.textContent = 'Start';
+      document.getElementById('swStart')!.className = 'px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors';
+      (document.getElementById('swLap') as HTMLButtonElement).disabled = true;
+      document.getElementById('swLapBody')!.innerHTML = '';
+      document.getElementById('swLaps')!.classList.add('hidden');
+      document.title = 'Stopwatch';
+    });
+
+    document.getElementById('swExport')!.addEventListener('click', () => {
+      let csv = 'Lap,Split Time,Total Time\n';
+      laps.forEach(l => { csv += `${l.lap},${formatMsFull(l.split)},${formatMsFull(l.total)}\n`; });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'lap-times.csv';
+      a.click();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Online Stopwatch</h2>
+    <p>Millisecond-precision stopwatch with lap tracking. Start, stop, lap and reset. Export lap times as CSV. Updates the page title so you can see the time in your browser tab.</p>
+  </Fragment>
+</ToolLayout>

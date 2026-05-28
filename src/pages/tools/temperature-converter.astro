@@ -1,0 +1,63 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Temperature Converter" description="Convert between Celsius, Fahrenheit and Kelvin. Instant conversion with formula display." category="utility" icon="🌡️">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Celsius (°C)</label>
+        <input type="number" id="tcC" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" step="0.1" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Fahrenheit (°F)</label>
+        <input type="number" id="tcF" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" step="0.1" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Kelvin (K)</label>
+        <input type="number" id="tcK" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" step="0.1" />
+      </div>
+    </div>
+    <div id="tcFormula" class="p-3 bg-gray-50 rounded-lg text-sm text-gray-600 font-mono mb-6"></div>
+    <h3 class="text-sm font-medium text-gray-700 mb-2">Common Temperatures</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="p-2 bg-blue-50 rounded-lg text-center cursor-pointer hover:bg-blue-100" onclick="document.getElementById('tcC').value='0';document.getElementById('tcC').dispatchEvent(new Event('input'))"><div class="text-xs text-blue-600">Water Freezes</div><div class="font-mono text-sm">0°C</div></div>
+      <div class="p-2 bg-red-50 rounded-lg text-center cursor-pointer hover:bg-red-100" onclick="document.getElementById('tcC').value='100';document.getElementById('tcC').dispatchEvent(new Event('input'))"><div class="text-xs text-red-600">Water Boils</div><div class="font-mono text-sm">100°C</div></div>
+      <div class="p-2 bg-green-50 rounded-lg text-center cursor-pointer hover:bg-green-100" onclick="document.getElementById('tcC').value='37';document.getElementById('tcC').dispatchEvent(new Event('input'))"><div class="text-xs text-green-600">Body Temp</div><div class="font-mono text-sm">37°C</div></div>
+      <div class="p-2 bg-purple-50 rounded-lg text-center cursor-pointer hover:bg-purple-100" onclick="document.getElementById('tcC').value='-40';document.getElementById('tcC').dispatchEvent(new Event('input'))"><div class="text-xs text-purple-600">C = F</div><div class="font-mono text-sm">-40°</div></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const cIn = document.getElementById('tcC') as HTMLInputElement;
+  const fIn = document.getElementById('tcF') as HTMLInputElement;
+  const kIn = document.getElementById('tcK') as HTMLInputElement;
+  const formulaEl = document.getElementById('tcFormula')!;
+
+  cIn.addEventListener('input', () => {
+    const c = parseFloat(cIn.value);
+    if (isNaN(c)) return;
+    fIn.value = (c * 9/5 + 32).toFixed(2);
+    kIn.value = (c + 273.15).toFixed(2);
+    formulaEl.textContent = `${c}°C × 9/5 + 32 = ${fIn.value}°F  |  ${c}°C + 273.15 = ${kIn.value}K`;
+  });
+
+  fIn.addEventListener('input', () => {
+    const f = parseFloat(fIn.value);
+    if (isNaN(f)) return;
+    const c = (f - 32) * 5/9;
+    cIn.value = c.toFixed(2);
+    kIn.value = (c + 273.15).toFixed(2);
+    formulaEl.textContent = `(${f}°F − 32) × 5/9 = ${cIn.value}°C  |  ${cIn.value}°C + 273.15 = ${kIn.value}K`;
+  });
+
+  kIn.addEventListener('input', () => {
+    const k = parseFloat(kIn.value);
+    if (isNaN(k)) return;
+    const c = k - 273.15;
+    cIn.value = c.toFixed(2);
+    fIn.value = (c * 9/5 + 32).toFixed(2);
+    formulaEl.textContent = `${k}K − 273.15 = ${cIn.value}°C  |  ${cIn.value}°C × 9/5 + 32 = ${fIn.value}°F`;
+  });
+</script>

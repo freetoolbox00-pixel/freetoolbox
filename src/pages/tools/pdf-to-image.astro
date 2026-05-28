@@ -1,0 +1,143 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="PDF to Image"
+  description="Convert PDF pages to JPG or PNG images. Extract all pages as images. Free online PDF to image converter — 100% client-side."
+  category="pdf"
+  icon="📸"
+>
+  <div>
+    <div id="piDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">📄</div>
+      <div class="text-sm text-gray-600 font-medium">Drop a PDF file here or click to upload</div>
+      <input type="file" id="piFile" accept=".pdf" class="hidden" />
+    </div>
+
+    <div id="piPanel" class="hidden">
+      <div class="flex gap-4 mb-4 flex-wrap">
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="piName">-</span></div>
+        <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium"><span id="piPages">0</span> pages</div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+          <select id="piFormat" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="image/jpeg">JPG</option>
+            <option value="image/png">PNG</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Scale</label>
+          <select id="piScale" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="1">1x (72 DPI)</option>
+            <option value="2" selected>2x (144 DPI)</option>
+            <option value="3">3x (216 DPI)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="piProgress" class="hidden mb-4">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="piBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1 text-center" id="piStatus">Converting...</div>
+      </div>
+
+      <div class="flex gap-3 mb-6">
+        <button id="piConvert" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Convert All Pages</button>
+        <button id="piReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+
+      <div id="piResults" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+</ToolLayout>
+
+<script type="module">
+  const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
+  const drop = document.getElementById('piDrop');
+  const fileIn = document.getElementById('piFile');
+  const panel = document.getElementById('piPanel');
+  const nameEl = document.getElementById('piName');
+  const pagesEl = document.getElementById('piPages');
+  const formatSel = document.getElementById('piFormat');
+  const scaleSel = document.getElementById('piScale');
+  const progressEl = document.getElementById('piProgress');
+  const barEl = document.getElementById('piBar');
+  const statusEl = document.getElementById('piStatus');
+  const convertBtn = document.getElementById('piConvert');
+  const resetBtn = document.getElementById('piReset');
+  const resultsEl = document.getElementById('piResults');
+
+  let pdfDoc = null;
+
+  async function loadPdf(file) {
+    const buf = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    nameEl.textContent = file.name;
+    pagesEl.textContent = pdfDoc.numPages;
+    panel.classList.remove('hidden');
+    drop.classList.add('hidden');
+    resultsEl.innerHTML = '';
+  }
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50');
+    const f = e.dataTransfer?.files[0];
+    if (f && f.type === 'application/pdf') loadPdf(f);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadPdf(fileIn.files[0]); });
+
+  resetBtn.addEventListener('click', () => {
+    pdfDoc = null;
+    panel.classList.add('hidden');
+    drop.classList.remove('hidden');
+    fileIn.value = '';
+  });
+
+  convertBtn.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    convertBtn.disabled = true;
+    progressEl.classList.remove('hidden');
+    resultsEl.innerHTML = '';
+    const scale = parseFloat(scaleSel.value);
+    const format = formatSel.value;
+    const ext = format === 'image/png' ? '.png' : '.jpg';
+    const total = pdfDoc.numPages;
+
+    for (let i = 1; i <= total; i++) {
+      statusEl.textContent = `Converting page ${i} of ${total}...`;
+      barEl.style.width = `${(i / total * 100).toFixed(0)}%`;
+      const page = await pdfDoc.getPage(i);
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width;
+      canvas.height = vp.height;
+      const ctx = canvas.getContext('2d');
+      if (format === 'image/jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      const blob = await new Promise(res => canvas.toBlob(res, format, 0.92));
+      const url = URL.createObjectURL(blob);
+      const card = document.createElement('div');
+      card.className = 'border border-gray-200 rounded-lg overflow-hidden';
+      card.innerHTML = `<img src="${url}" class="w-full" /><div class="p-2 flex items-center justify-between"><span class="text-xs text-gray-500">Page ${i}</span><a href="${url}" download="page-${i}${ext}" class="text-xs text-blue-600 hover:underline font-medium">Download</a></div>`;
+      resultsEl.appendChild(card);
+    }
+    statusEl.textContent = `Done! ${total} pages converted.`;
+    convertBtn.disabled = false;
+  });
+</script>

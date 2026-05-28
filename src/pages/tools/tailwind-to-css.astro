@@ -1,0 +1,795 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Tailwind to CSS Converter"
+  description="Convert Tailwind CSS classes to plain CSS and vice versa. Real-time conversion with extensive class mappings. Supports spacing, colors, typography, layout, flexbox, grid and more. Free Tailwind converter."
+  category="developer"
+  icon="🌊"
+>
+  <div>
+    <!-- Mode Toggle -->
+    <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+      <button id="modeT2C" class="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-white shadow text-blue-600 transition-all">Tailwind &rarr; CSS</button>
+      <button id="modeC2T" class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 transition-all">CSS &rarr; Tailwind</button>
+    </div>
+
+    <!-- Tailwind to CSS -->
+    <div id="t2cSection">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tailwind Classes</label>
+        <textarea id="twInput" rows="3" placeholder="p-4 bg-blue-500 text-white rounded-lg flex items-center gap-2 hover:bg-blue-600" class="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">CSS Output</label>
+          <button id="copyCSS" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy</button>
+        </div>
+        <pre id="cssOutput" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap min-h-[120px]"></pre>
+      </div>
+    </div>
+
+    <!-- CSS to Tailwind -->
+    <div id="c2tSection" class="hidden">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">CSS Properties</label>
+        <textarea id="cssInput" rows="5" placeholder="padding: 1rem;&#10;background-color: #3b82f6;&#10;color: white;&#10;border-radius: 0.5rem;&#10;display: flex;&#10;align-items: center;" class="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-gray-700">Tailwind Classes</label>
+          <button id="copyTW" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy</button>
+        </div>
+        <pre id="twOutput" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap min-h-[120px]"></pre>
+      </div>
+    </div>
+
+    <!-- Common examples -->
+    <div class="mt-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Quick Examples (click to load)</h3>
+      <div class="flex flex-wrap gap-2" id="exampleBtns">
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="p-4 m-2 bg-blue-500 text-white font-bold rounded-lg">Card</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="flex items-center justify-between gap-4 w-full">Flex Row</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="grid grid-cols-3 gap-4 p-6">Grid</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="text-2xl font-semibold text-gray-900 tracking-tight leading-tight">Typography</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer">Button</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="absolute top-0 left-0 w-full h-full opacity-50 z-10">Overlay</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="border-2 border-dashed border-gray-300 rounded-xl shadow-lg">Border</button>
+        <button class="example-btn px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border rounded text-xs" data-tw="max-w-md mx-auto overflow-hidden truncate">Container</button>
+      </div>
+    </div>
+
+    <!-- Copy notification -->
+    <div id="copyNotif" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+      Copied!
+    </div>
+  </div>
+
+  <script>
+    // Tailwind to CSS mapping
+    const twToCSS: Record<string, string> = {
+      // Display
+      "block": "display: block;",
+      "inline-block": "display: inline-block;",
+      "inline": "display: inline;",
+      "flex": "display: flex;",
+      "inline-flex": "display: inline-flex;",
+      "grid": "display: grid;",
+      "inline-grid": "display: inline-grid;",
+      "hidden": "display: none;",
+      "table": "display: table;",
+      "table-row": "display: table-row;",
+      "table-cell": "display: table-cell;",
+
+      // Position
+      "static": "position: static;",
+      "fixed": "position: fixed;",
+      "absolute": "position: absolute;",
+      "relative": "position: relative;",
+      "sticky": "position: sticky;",
+
+      // Flex
+      "flex-row": "flex-direction: row;",
+      "flex-row-reverse": "flex-direction: row-reverse;",
+      "flex-col": "flex-direction: column;",
+      "flex-col-reverse": "flex-direction: column-reverse;",
+      "flex-wrap": "flex-wrap: wrap;",
+      "flex-nowrap": "flex-wrap: nowrap;",
+      "flex-wrap-reverse": "flex-wrap: wrap-reverse;",
+      "flex-1": "flex: 1 1 0%;",
+      "flex-auto": "flex: 1 1 auto;",
+      "flex-initial": "flex: 0 1 auto;",
+      "flex-none": "flex: none;",
+      "flex-grow": "flex-grow: 1;",
+      "flex-grow-0": "flex-grow: 0;",
+      "flex-shrink": "flex-shrink: 1;",
+      "flex-shrink-0": "flex-shrink: 0;",
+      "items-start": "align-items: flex-start;",
+      "items-end": "align-items: flex-end;",
+      "items-center": "align-items: center;",
+      "items-baseline": "align-items: baseline;",
+      "items-stretch": "align-items: stretch;",
+      "justify-start": "justify-content: flex-start;",
+      "justify-end": "justify-content: flex-end;",
+      "justify-center": "justify-content: center;",
+      "justify-between": "justify-content: space-between;",
+      "justify-around": "justify-content: space-around;",
+      "justify-evenly": "justify-content: space-evenly;",
+      "self-auto": "align-self: auto;",
+      "self-start": "align-self: flex-start;",
+      "self-end": "align-self: flex-end;",
+      "self-center": "align-self: center;",
+      "self-stretch": "align-self: stretch;",
+      "content-start": "align-content: flex-start;",
+      "content-end": "align-content: flex-end;",
+      "content-center": "align-content: center;",
+      "content-between": "align-content: space-between;",
+      "content-around": "align-content: space-around;",
+      "content-evenly": "align-content: space-evenly;",
+      "place-content-center": "place-content: center;",
+      "place-items-center": "place-items: center;",
+
+      // Overflow
+      "overflow-auto": "overflow: auto;",
+      "overflow-hidden": "overflow: hidden;",
+      "overflow-visible": "overflow: visible;",
+      "overflow-scroll": "overflow: scroll;",
+      "overflow-x-auto": "overflow-x: auto;",
+      "overflow-x-hidden": "overflow-x: hidden;",
+      "overflow-y-auto": "overflow-y: auto;",
+      "overflow-y-hidden": "overflow-y: hidden;",
+
+      // Text alignment
+      "text-left": "text-align: left;",
+      "text-center": "text-align: center;",
+      "text-right": "text-align: right;",
+      "text-justify": "text-align: justify;",
+
+      // Text decoration
+      "underline": "text-decoration-line: underline;",
+      "overline": "text-decoration-line: overline;",
+      "line-through": "text-decoration-line: line-through;",
+      "no-underline": "text-decoration-line: none;",
+
+      // Text transform
+      "uppercase": "text-transform: uppercase;",
+      "lowercase": "text-transform: lowercase;",
+      "capitalize": "text-transform: capitalize;",
+      "normal-case": "text-transform: none;",
+
+      // Font weight
+      "font-thin": "font-weight: 100;",
+      "font-extralight": "font-weight: 200;",
+      "font-light": "font-weight: 300;",
+      "font-normal": "font-weight: 400;",
+      "font-medium": "font-weight: 500;",
+      "font-semibold": "font-weight: 600;",
+      "font-bold": "font-weight: 700;",
+      "font-extrabold": "font-weight: 800;",
+      "font-black": "font-weight: 900;",
+
+      // Font style
+      "italic": "font-style: italic;",
+      "not-italic": "font-style: normal;",
+
+      // Font family
+      "font-sans": "font-family: ui-sans-serif, system-ui, sans-serif;",
+      "font-serif": "font-family: ui-serif, Georgia, serif;",
+      "font-mono": "font-family: ui-monospace, monospace;",
+
+      // Text size
+      "text-xs": "font-size: 0.75rem; line-height: 1rem;",
+      "text-sm": "font-size: 0.875rem; line-height: 1.25rem;",
+      "text-base": "font-size: 1rem; line-height: 1.5rem;",
+      "text-lg": "font-size: 1.125rem; line-height: 1.75rem;",
+      "text-xl": "font-size: 1.25rem; line-height: 1.75rem;",
+      "text-2xl": "font-size: 1.5rem; line-height: 2rem;",
+      "text-3xl": "font-size: 1.875rem; line-height: 2.25rem;",
+      "text-4xl": "font-size: 2.25rem; line-height: 2.5rem;",
+      "text-5xl": "font-size: 3rem; line-height: 1;",
+      "text-6xl": "font-size: 3.75rem; line-height: 1;",
+      "text-7xl": "font-size: 4.5rem; line-height: 1;",
+      "text-8xl": "font-size: 6rem; line-height: 1;",
+      "text-9xl": "font-size: 8rem; line-height: 1;",
+
+      // Line height
+      "leading-none": "line-height: 1;",
+      "leading-tight": "line-height: 1.25;",
+      "leading-snug": "line-height: 1.375;",
+      "leading-normal": "line-height: 1.5;",
+      "leading-relaxed": "line-height: 1.625;",
+      "leading-loose": "line-height: 2;",
+
+      // Letter spacing
+      "tracking-tighter": "letter-spacing: -0.05em;",
+      "tracking-tight": "letter-spacing: -0.025em;",
+      "tracking-normal": "letter-spacing: 0em;",
+      "tracking-wide": "letter-spacing: 0.025em;",
+      "tracking-wider": "letter-spacing: 0.05em;",
+      "tracking-widest": "letter-spacing: 0.1em;",
+
+      // Whitespace & word break
+      "whitespace-normal": "white-space: normal;",
+      "whitespace-nowrap": "white-space: nowrap;",
+      "whitespace-pre": "white-space: pre;",
+      "whitespace-pre-line": "white-space: pre-line;",
+      "whitespace-pre-wrap": "white-space: pre-wrap;",
+      "break-normal": "overflow-wrap: normal; word-break: normal;",
+      "break-words": "overflow-wrap: break-word;",
+      "break-all": "word-break: break-all;",
+      "truncate": "overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+
+      // Border style
+      "border-solid": "border-style: solid;",
+      "border-dashed": "border-style: dashed;",
+      "border-dotted": "border-style: dotted;",
+      "border-double": "border-style: double;",
+      "border-none": "border-style: none;",
+
+      // Border radius
+      "rounded-none": "border-radius: 0px;",
+      "rounded-sm": "border-radius: 0.125rem;",
+      "rounded": "border-radius: 0.25rem;",
+      "rounded-md": "border-radius: 0.375rem;",
+      "rounded-lg": "border-radius: 0.5rem;",
+      "rounded-xl": "border-radius: 0.75rem;",
+      "rounded-2xl": "border-radius: 1rem;",
+      "rounded-3xl": "border-radius: 1.5rem;",
+      "rounded-full": "border-radius: 9999px;",
+
+      // Width & Height
+      "w-full": "width: 100%;",
+      "w-screen": "width: 100vw;",
+      "w-auto": "width: auto;",
+      "w-min": "width: min-content;",
+      "w-max": "width: max-content;",
+      "w-fit": "width: fit-content;",
+      "h-full": "height: 100%;",
+      "h-screen": "height: 100vh;",
+      "h-auto": "height: auto;",
+      "h-min": "height: min-content;",
+      "h-max": "height: max-content;",
+      "h-fit": "height: fit-content;",
+      "min-w-0": "min-width: 0px;",
+      "min-w-full": "min-width: 100%;",
+      "min-h-0": "min-height: 0px;",
+      "min-h-full": "min-height: 100%;",
+      "min-h-screen": "min-height: 100vh;",
+      "max-w-none": "max-width: none;",
+      "max-w-xs": "max-width: 20rem;",
+      "max-w-sm": "max-width: 24rem;",
+      "max-w-md": "max-width: 28rem;",
+      "max-w-lg": "max-width: 32rem;",
+      "max-w-xl": "max-width: 36rem;",
+      "max-w-2xl": "max-width: 42rem;",
+      "max-w-3xl": "max-width: 48rem;",
+      "max-w-4xl": "max-width: 56rem;",
+      "max-w-5xl": "max-width: 64rem;",
+      "max-w-6xl": "max-width: 72rem;",
+      "max-w-7xl": "max-width: 80rem;",
+      "max-w-full": "max-width: 100%;",
+      "max-w-screen-sm": "max-width: 640px;",
+      "max-w-screen-md": "max-width: 768px;",
+      "max-w-screen-lg": "max-width: 1024px;",
+      "max-w-screen-xl": "max-width: 1280px;",
+      "max-w-screen-2xl": "max-width: 1536px;",
+
+      // Cursor
+      "cursor-auto": "cursor: auto;",
+      "cursor-default": "cursor: default;",
+      "cursor-pointer": "cursor: pointer;",
+      "cursor-wait": "cursor: wait;",
+      "cursor-text": "cursor: text;",
+      "cursor-move": "cursor: move;",
+      "cursor-not-allowed": "cursor: not-allowed;",
+      "cursor-grab": "cursor: grab;",
+      "cursor-grabbing": "cursor: grabbing;",
+
+      // Pointer events
+      "pointer-events-none": "pointer-events: none;",
+      "pointer-events-auto": "pointer-events: auto;",
+
+      // Visibility
+      "visible": "visibility: visible;",
+      "invisible": "visibility: hidden;",
+      "collapse": "visibility: collapse;",
+
+      // Object fit
+      "object-contain": "object-fit: contain;",
+      "object-cover": "object-fit: cover;",
+      "object-fill": "object-fit: fill;",
+      "object-none": "object-fit: none;",
+      "object-scale-down": "object-fit: scale-down;",
+
+      // Shadow
+      "shadow-sm": "box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);",
+      "shadow": "box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);",
+      "shadow-md": "box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);",
+      "shadow-lg": "box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);",
+      "shadow-xl": "box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);",
+      "shadow-2xl": "box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);",
+      "shadow-inner": "box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);",
+      "shadow-none": "box-shadow: 0 0 #0000;",
+
+      // Opacity
+      "opacity-0": "opacity: 0;",
+      "opacity-5": "opacity: 0.05;",
+      "opacity-10": "opacity: 0.1;",
+      "opacity-20": "opacity: 0.2;",
+      "opacity-25": "opacity: 0.25;",
+      "opacity-30": "opacity: 0.3;",
+      "opacity-40": "opacity: 0.4;",
+      "opacity-50": "opacity: 0.5;",
+      "opacity-60": "opacity: 0.6;",
+      "opacity-70": "opacity: 0.7;",
+      "opacity-75": "opacity: 0.75;",
+      "opacity-80": "opacity: 0.8;",
+      "opacity-90": "opacity: 0.9;",
+      "opacity-95": "opacity: 0.95;",
+      "opacity-100": "opacity: 1;",
+
+      // Transition
+      "transition-none": "transition-property: none;",
+      "transition-all": "transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+      "transition": "transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+      "transition-colors": "transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+      "transition-opacity": "transition-property: opacity; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+      "transition-shadow": "transition-property: box-shadow; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+      "transition-transform": "transition-property: transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms;",
+
+      // Duration
+      "duration-75": "transition-duration: 75ms;",
+      "duration-100": "transition-duration: 100ms;",
+      "duration-150": "transition-duration: 150ms;",
+      "duration-200": "transition-duration: 200ms;",
+      "duration-300": "transition-duration: 300ms;",
+      "duration-500": "transition-duration: 500ms;",
+      "duration-700": "transition-duration: 700ms;",
+      "duration-1000": "transition-duration: 1000ms;",
+
+      // Transform
+      "transform-none": "transform: none;",
+
+      // Grid
+      "grid-cols-1": "grid-template-columns: repeat(1, minmax(0, 1fr));",
+      "grid-cols-2": "grid-template-columns: repeat(2, minmax(0, 1fr));",
+      "grid-cols-3": "grid-template-columns: repeat(3, minmax(0, 1fr));",
+      "grid-cols-4": "grid-template-columns: repeat(4, minmax(0, 1fr));",
+      "grid-cols-5": "grid-template-columns: repeat(5, minmax(0, 1fr));",
+      "grid-cols-6": "grid-template-columns: repeat(6, minmax(0, 1fr));",
+      "grid-cols-12": "grid-template-columns: repeat(12, minmax(0, 1fr));",
+      "grid-cols-none": "grid-template-columns: none;",
+      "grid-rows-1": "grid-template-rows: repeat(1, minmax(0, 1fr));",
+      "grid-rows-2": "grid-template-rows: repeat(2, minmax(0, 1fr));",
+      "grid-rows-3": "grid-template-rows: repeat(3, minmax(0, 1fr));",
+      "grid-rows-none": "grid-template-rows: none;",
+      "col-span-1": "grid-column: span 1 / span 1;",
+      "col-span-2": "grid-column: span 2 / span 2;",
+      "col-span-3": "grid-column: span 3 / span 3;",
+      "col-span-4": "grid-column: span 4 / span 4;",
+      "col-span-full": "grid-column: 1 / -1;",
+      "row-span-1": "grid-row: span 1 / span 1;",
+      "row-span-2": "grid-row: span 2 / span 2;",
+      "row-span-3": "grid-row: span 3 / span 3;",
+      "row-span-full": "grid-row: 1 / -1;",
+
+      // Inset
+      "inset-0": "inset: 0px;",
+      "inset-auto": "inset: auto;",
+      "top-0": "top: 0px;",
+      "right-0": "right: 0px;",
+      "bottom-0": "bottom: 0px;",
+      "left-0": "left: 0px;",
+      "top-auto": "top: auto;",
+      "right-auto": "right: auto;",
+      "bottom-auto": "bottom: auto;",
+      "left-auto": "left: auto;",
+      "inset-x-0": "left: 0px; right: 0px;",
+      "inset-y-0": "top: 0px; bottom: 0px;",
+
+      // Z-index
+      "z-0": "z-index: 0;",
+      "z-10": "z-index: 10;",
+      "z-20": "z-index: 20;",
+      "z-30": "z-index: 30;",
+      "z-40": "z-index: 40;",
+      "z-50": "z-index: 50;",
+      "z-auto": "z-index: auto;",
+
+      // List style
+      "list-none": "list-style-type: none;",
+      "list-disc": "list-style-type: disc;",
+      "list-decimal": "list-style-type: decimal;",
+      "list-inside": "list-style-position: inside;",
+      "list-outside": "list-style-position: outside;",
+
+      // Resize
+      "resize-none": "resize: none;",
+      "resize": "resize: both;",
+      "resize-x": "resize: horizontal;",
+      "resize-y": "resize: vertical;",
+
+      // Select
+      "select-none": "user-select: none;",
+      "select-text": "user-select: text;",
+      "select-all": "user-select: all;",
+      "select-auto": "user-select: auto;",
+
+      // Outline
+      "outline-none": "outline: 2px solid transparent; outline-offset: 2px;",
+      "outline": "outline-style: solid;",
+
+      // Appearance
+      "appearance-none": "appearance: none;",
+
+      // Aspect ratio
+      "aspect-auto": "aspect-ratio: auto;",
+      "aspect-square": "aspect-ratio: 1 / 1;",
+      "aspect-video": "aspect-ratio: 16 / 9;",
+    };
+
+    // Spacing utility generator
+    const spacingScale: Record<string, string> = {
+      "0": "0px", "px": "1px", "0.5": "0.125rem", "1": "0.25rem", "1.5": "0.375rem",
+      "2": "0.5rem", "2.5": "0.625rem", "3": "0.75rem", "3.5": "0.875rem",
+      "4": "1rem", "5": "1.25rem", "6": "1.5rem", "7": "1.75rem",
+      "8": "2rem", "9": "2.25rem", "10": "2.5rem", "11": "2.75rem",
+      "12": "3rem", "14": "3.5rem", "16": "4rem", "20": "5rem",
+      "24": "6rem", "28": "7rem", "32": "8rem", "36": "9rem",
+      "40": "10rem", "44": "11rem", "48": "12rem", "52": "13rem",
+      "56": "14rem", "60": "15rem", "64": "16rem", "72": "18rem",
+      "80": "20rem", "96": "24rem",
+    };
+
+    // Colors
+    const colorMap: Record<string, string> = {
+      "transparent": "transparent", "current": "currentColor",
+      "black": "#000000", "white": "#ffffff",
+      "slate-50": "#f8fafc", "slate-100": "#f1f5f9", "slate-200": "#e2e8f0", "slate-300": "#cbd5e1", "slate-400": "#94a3b8", "slate-500": "#64748b", "slate-600": "#475569", "slate-700": "#334155", "slate-800": "#1e293b", "slate-900": "#0f172a", "slate-950": "#020617",
+      "gray-50": "#f9fafb", "gray-100": "#f3f4f6", "gray-200": "#e5e7eb", "gray-300": "#d1d5db", "gray-400": "#9ca3af", "gray-500": "#6b7280", "gray-600": "#4b5563", "gray-700": "#374151", "gray-800": "#1f2937", "gray-900": "#111827", "gray-950": "#030712",
+      "red-50": "#fef2f2", "red-100": "#fee2e2", "red-200": "#fecaca", "red-300": "#fca5a5", "red-400": "#f87171", "red-500": "#ef4444", "red-600": "#dc2626", "red-700": "#b91c1c", "red-800": "#991b1b", "red-900": "#7f1d1d", "red-950": "#450a0a",
+      "orange-50": "#fff7ed", "orange-100": "#ffedd5", "orange-200": "#fed7aa", "orange-300": "#fdba74", "orange-400": "#fb923c", "orange-500": "#f97316", "orange-600": "#ea580c", "orange-700": "#c2410c", "orange-800": "#9a3412", "orange-900": "#7c2d12",
+      "yellow-50": "#fefce8", "yellow-100": "#fef9c3", "yellow-200": "#fef08a", "yellow-300": "#fde047", "yellow-400": "#facc15", "yellow-500": "#eab308", "yellow-600": "#ca8a04", "yellow-700": "#a16207", "yellow-800": "#854d0e", "yellow-900": "#713f12",
+      "green-50": "#f0fdf4", "green-100": "#dcfce7", "green-200": "#bbf7d0", "green-300": "#86efac", "green-400": "#4ade80", "green-500": "#22c55e", "green-600": "#16a34a", "green-700": "#15803d", "green-800": "#166534", "green-900": "#14532d", "green-950": "#052e16",
+      "teal-50": "#f0fdfa", "teal-100": "#ccfbf1", "teal-200": "#99f6e4", "teal-300": "#5eead4", "teal-400": "#2dd4bf", "teal-500": "#14b8a6", "teal-600": "#0d9488", "teal-700": "#0f766e", "teal-800": "#115e59", "teal-900": "#134e4a",
+      "blue-50": "#eff6ff", "blue-100": "#dbeafe", "blue-200": "#bfdbfe", "blue-300": "#93c5fd", "blue-400": "#60a5fa", "blue-500": "#3b82f6", "blue-600": "#2563eb", "blue-700": "#1d4ed8", "blue-800": "#1e40af", "blue-900": "#1e3a8a", "blue-950": "#172554",
+      "indigo-50": "#eef2ff", "indigo-100": "#e0e7ff", "indigo-200": "#c7d2fe", "indigo-300": "#a5b4fc", "indigo-400": "#818cf8", "indigo-500": "#6366f1", "indigo-600": "#4f46e5", "indigo-700": "#4338ca", "indigo-800": "#3730a3", "indigo-900": "#312e81",
+      "violet-50": "#f5f3ff", "violet-100": "#ede9fe", "violet-200": "#ddd6fe", "violet-300": "#c4b5fd", "violet-400": "#a78bfa", "violet-500": "#8b5cf6", "violet-600": "#7c3aed", "violet-700": "#6d28d9", "violet-800": "#5b21b6", "violet-900": "#4c1d95",
+      "purple-50": "#faf5ff", "purple-100": "#f3e8ff", "purple-200": "#e9d5ff", "purple-300": "#d8b4fe", "purple-400": "#c084fc", "purple-500": "#a855f7", "purple-600": "#9333ea", "purple-700": "#7e22ce", "purple-800": "#6b21a8", "purple-900": "#581c87",
+      "pink-50": "#fdf2f8", "pink-100": "#fce7f3", "pink-200": "#fbcfe8", "pink-300": "#f9a8d4", "pink-400": "#f472b6", "pink-500": "#ec4899", "pink-600": "#db2777", "pink-700": "#be185d", "pink-800": "#9d174d", "pink-900": "#831843",
+      "rose-50": "#fff1f2", "rose-100": "#ffe4e6", "rose-200": "#fecdd3", "rose-300": "#fda4af", "rose-400": "#fb7185", "rose-500": "#f43f5e", "rose-600": "#e11d48", "rose-700": "#be123c", "rose-800": "#9f1239", "rose-900": "#881337",
+      "cyan-50": "#ecfeff", "cyan-100": "#cffafe", "cyan-200": "#a5f3fc", "cyan-300": "#67e8f9", "cyan-400": "#22d3ee", "cyan-500": "#06b6d4", "cyan-600": "#0891b2", "cyan-700": "#0e7490", "cyan-800": "#155e75", "cyan-900": "#164e63",
+      "emerald-50": "#ecfdf5", "emerald-100": "#d1fae5", "emerald-200": "#a7f3d0", "emerald-300": "#6ee7b7", "emerald-400": "#34d399", "emerald-500": "#10b981", "emerald-600": "#059669", "emerald-700": "#047857", "emerald-800": "#065f46", "emerald-900": "#064e3b",
+      "amber-50": "#fffbeb", "amber-100": "#fef3c7", "amber-200": "#fde68a", "amber-300": "#fcd34d", "amber-400": "#fbbf24", "amber-500": "#f59e0b", "amber-600": "#d97706", "amber-700": "#b45309", "amber-800": "#92400e", "amber-900": "#78350f",
+      "lime-50": "#f7fee7", "lime-100": "#ecfccb", "lime-200": "#d9f99d", "lime-300": "#bef264", "lime-400": "#a3e635", "lime-500": "#84cc16", "lime-600": "#65a30d", "lime-700": "#4d7c0f", "lime-800": "#3f6212", "lime-900": "#365314",
+      "sky-50": "#f0f9ff", "sky-100": "#e0f2fe", "sky-200": "#bae6fd", "sky-300": "#7dd3fc", "sky-400": "#38bdf8", "sky-500": "#0ea5e9", "sky-600": "#0284c7", "sky-700": "#0369a1", "sky-800": "#075985", "sky-900": "#0c4a6e",
+      "fuchsia-50": "#fdf4ff", "fuchsia-100": "#fae8ff", "fuchsia-200": "#f5d0fe", "fuchsia-300": "#f0abfc", "fuchsia-400": "#e879f9", "fuchsia-500": "#d946ef", "fuchsia-600": "#c026d3", "fuchsia-700": "#a21caf", "fuchsia-800": "#86198f", "fuchsia-900": "#701a75",
+      "stone-50": "#fafaf9", "stone-100": "#f5f5f4", "stone-200": "#e7e5e4", "stone-300": "#d6d3d1", "stone-400": "#a8a29e", "stone-500": "#78716c", "stone-600": "#57534e", "stone-700": "#44403c", "stone-800": "#292524", "stone-900": "#1c1917",
+      "zinc-50": "#fafafa", "zinc-100": "#f4f4f5", "zinc-200": "#e4e4e7", "zinc-300": "#d4d4d8", "zinc-400": "#a1a1aa", "zinc-500": "#71717a", "zinc-600": "#52525b", "zinc-700": "#3f3f46", "zinc-800": "#27272a", "zinc-900": "#18181b",
+      "neutral-50": "#fafafa", "neutral-100": "#f5f5f5", "neutral-200": "#e5e5e5", "neutral-300": "#d4d4d4", "neutral-400": "#a3a3a3", "neutral-500": "#737373", "neutral-600": "#525252", "neutral-700": "#404040", "neutral-800": "#262626", "neutral-900": "#171717",
+    };
+
+    function parseTailwindClass(cls: string): string | null {
+      // Direct lookup
+      if (twToCSS[cls]) return twToCSS[cls];
+
+      // Handle hover:, focus:, etc. — strip modifier prefix
+      const modMatch = cls.match(/^(hover|focus|active|disabled|visited|first|last|odd|even|group-hover|focus-within|focus-visible|dark|sm|md|lg|xl|2xl):/);
+      if (modMatch) {
+        const inner = cls.slice(modMatch[0].length);
+        const innerCSS = parseTailwindClass(inner);
+        if (innerCSS) return `/* ${modMatch[1]}: */ ${innerCSS}`;
+        return null;
+      }
+
+      // Spacing: p, px, py, pt, pr, pb, pl, m, mx, my, mt, mr, mb, ml, gap
+      const spacingProps: Record<string, string[]> = {
+        "p": ["padding"], "px": ["padding-left", "padding-right"], "py": ["padding-top", "padding-bottom"],
+        "pt": ["padding-top"], "pr": ["padding-right"], "pb": ["padding-bottom"], "pl": ["padding-left"],
+        "m": ["margin"], "mx": ["margin-left", "margin-right"], "my": ["margin-top", "margin-bottom"],
+        "mt": ["margin-top"], "mr": ["margin-right"], "mb": ["margin-bottom"], "ml": ["margin-left"],
+        "gap": ["gap"], "gap-x": ["column-gap"], "gap-y": ["row-gap"],
+        "space-x": ["column-gap"], "space-y": ["row-gap"],
+      };
+
+      for (const [prefix, props] of Object.entries(spacingProps)) {
+        const re = new RegExp(`^-?${prefix.replace("-", "\\-")}-(\\S+)$`);
+        const m = cls.match(re);
+        if (m) {
+          const neg = cls.startsWith("-");
+          const sizeKey = m[1];
+          const val = spacingScale[sizeKey];
+          if (val) {
+            const v = neg ? `-${val}` : val;
+            return props.map(p => `${p}: ${v};`).join(" ");
+          }
+        }
+      }
+
+      // Width/Height: w-N, h-N
+      const whMatch = cls.match(/^(w|h)-([\d.]+)$/);
+      if (whMatch) {
+        const prop = whMatch[1] === "w" ? "width" : "height";
+        const val = spacingScale[whMatch[2]];
+        if (val) return `${prop}: ${val};`;
+      }
+
+      // Min/Max width/height with scale
+      const minMaxMatch = cls.match(/^(min|max)-(w|h)-([\d.]+)$/);
+      if (minMaxMatch) {
+        const mm = minMaxMatch[1];
+        const wh = minMaxMatch[2] === "w" ? "width" : "height";
+        const val = spacingScale[minMaxMatch[3]];
+        if (val) return `${mm}-${wh}: ${val};`;
+      }
+
+      // Top/right/bottom/left with spacing
+      const posMatch = cls.match(/^-?(top|right|bottom|left)-([\d.]+|px)$/);
+      if (posMatch) {
+        const neg = cls.startsWith("-");
+        const val = spacingScale[posMatch[2]];
+        if (val) return `${posMatch[1]}: ${neg ? '-' : ''}${val};`;
+      }
+
+      // Text color
+      const textColorMatch = cls.match(/^text-(.+)$/);
+      if (textColorMatch && colorMap[textColorMatch[1]]) {
+        return `color: ${colorMap[textColorMatch[1]]};`;
+      }
+
+      // Background color
+      const bgColorMatch = cls.match(/^bg-(.+)$/);
+      if (bgColorMatch && colorMap[bgColorMatch[1]]) {
+        return `background-color: ${colorMap[bgColorMatch[1]]};`;
+      }
+
+      // Border color
+      const borderColorMatch = cls.match(/^border-(.+)$/);
+      if (borderColorMatch && colorMap[borderColorMatch[1]]) {
+        return `border-color: ${colorMap[borderColorMatch[1]]};`;
+      }
+
+      // Border width
+      const borderMatch = cls.match(/^border(?:-(t|r|b|l|x|y))?(?:-(\d+))?$/);
+      if (borderMatch) {
+        const side = borderMatch[1];
+        const width = borderMatch[2] ? `${borderMatch[2]}px` : "1px";
+        if (!side) return `border-width: ${width};`;
+        const sideMap: Record<string, string[]> = {
+          t: ["border-top-width"], r: ["border-right-width"], b: ["border-bottom-width"], l: ["border-left-width"],
+          x: ["border-left-width", "border-right-width"], y: ["border-top-width", "border-bottom-width"],
+        };
+        return (sideMap[side] || []).map(p => `${p}: ${width};`).join(" ");
+      }
+
+      // Rotate
+      const rotateMatch = cls.match(/^-?rotate-(\d+)$/);
+      if (rotateMatch) {
+        const neg = cls.startsWith("-");
+        return `transform: rotate(${neg ? '-' : ''}${rotateMatch[1]}deg);`;
+      }
+
+      // Scale
+      const scaleMatch = cls.match(/^scale-(\d+)$/);
+      if (scaleMatch) {
+        return `transform: scale(${parseInt(scaleMatch[1]) / 100});`;
+      }
+
+      // Translate
+      const translateMatch = cls.match(/^-?translate-(x|y)-([\d.]+|px|full|1\/2)$/);
+      if (translateMatch) {
+        const neg = cls.startsWith("-");
+        const axis = translateMatch[1];
+        const rawVal = translateMatch[2];
+        let val: string;
+        if (rawVal === "full") val = "100%";
+        else if (rawVal === "1/2") val = "50%";
+        else val = spacingScale[rawVal] || rawVal;
+        const fn = axis === "x" ? "translateX" : "translateY";
+        return `transform: ${fn}(${neg ? '-' : ''}${val});`;
+      }
+
+      // Ring
+      const ringMatch = cls.match(/^ring(?:-(\d+))?$/);
+      if (ringMatch) {
+        const w = ringMatch[1] || "3";
+        return `box-shadow: 0 0 0 ${w}px rgba(59, 130, 246, 0.5);`;
+      }
+
+      // Rounded with sides
+      const roundedSideMatch = cls.match(/^rounded-(t|r|b|l|tl|tr|bl|br)(?:-(none|sm|md|lg|xl|2xl|3xl|full))?$/);
+      if (roundedSideMatch) {
+        const sideKey = roundedSideMatch[1];
+        const sizeKey = roundedSideMatch[2] || "";
+        const radiusMap: Record<string, string> = {
+          "none": "0px", "sm": "0.125rem", "": "0.25rem", "md": "0.375rem",
+          "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px"
+        };
+        const radius = radiusMap[sizeKey] || "0.25rem";
+        const corners: Record<string, string[]> = {
+          "t": ["border-top-left-radius", "border-top-right-radius"],
+          "r": ["border-top-right-radius", "border-bottom-right-radius"],
+          "b": ["border-bottom-left-radius", "border-bottom-right-radius"],
+          "l": ["border-top-left-radius", "border-bottom-left-radius"],
+          "tl": ["border-top-left-radius"], "tr": ["border-top-right-radius"],
+          "bl": ["border-bottom-left-radius"], "br": ["border-bottom-right-radius"],
+        };
+        return (corners[sideKey] || []).map(p => `${p}: ${radius};`).join(" ");
+      }
+
+      return null;
+    }
+
+    // Reverse mapping: CSS to Tailwind
+    const cssToTwMap: Record<string, string> = {};
+    for (const [tw, css] of Object.entries(twToCSS)) {
+      const normalized = css.replace(/\s+/g, " ").trim().toLowerCase();
+      cssToTwMap[normalized] = tw;
+    }
+    // Add spacing and color reverse lookups
+    for (const [key, val] of Object.entries(spacingScale)) {
+      cssToTwMap[`padding: ${val};`] = `p-${key}`;
+      cssToTwMap[`margin: ${val};`] = `m-${key}`;
+      cssToTwMap[`gap: ${val};`] = `gap-${key}`;
+      cssToTwMap[`padding-top: ${val};`] = `pt-${key}`;
+      cssToTwMap[`padding-bottom: ${val};`] = `pb-${key}`;
+      cssToTwMap[`padding-left: ${val};`] = `pl-${key}`;
+      cssToTwMap[`padding-right: ${val};`] = `pr-${key}`;
+      cssToTwMap[`margin-top: ${val};`] = `mt-${key}`;
+      cssToTwMap[`margin-bottom: ${val};`] = `mb-${key}`;
+      cssToTwMap[`margin-left: ${val};`] = `ml-${key}`;
+      cssToTwMap[`margin-right: ${val};`] = `mr-${key}`;
+      cssToTwMap[`width: ${val};`] = `w-${key}`;
+      cssToTwMap[`height: ${val};`] = `h-${key}`;
+    }
+    for (const [name, hex] of Object.entries(colorMap)) {
+      cssToTwMap[`color: ${hex};`] = `text-${name}`;
+      cssToTwMap[`background-color: ${hex};`] = `bg-${name}`;
+      cssToTwMap[`border-color: ${hex};`] = `border-${name}`;
+    }
+
+    function cssPropertyToTailwind(prop: string, val: string): string | null {
+      const normalized = `${prop.trim()}: ${val.trim().replace(/;$/, "")};`.toLowerCase();
+      if (cssToTwMap[normalized]) return cssToTwMap[normalized];
+
+      // Try color name matching
+      if (prop === "color" || prop === "background-color" || prop === "border-color") {
+        const prefix = prop === "color" ? "text" : prop === "background-color" ? "bg" : "border";
+        for (const [name, hex] of Object.entries(colorMap)) {
+          if (val.trim().replace(";", "").toLowerCase() === hex.toLowerCase()) {
+            return `${prefix}-${name}`;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    // DOM elements
+    const twInput = document.getElementById("twInput") as HTMLTextAreaElement;
+    const cssOutput = document.getElementById("cssOutput")!;
+    const cssInput = document.getElementById("cssInput") as HTMLTextAreaElement;
+    const twOutput = document.getElementById("twOutput")!;
+    const copyNotif = document.getElementById("copyNotif")!;
+    const modeT2C = document.getElementById("modeT2C")!;
+    const modeC2T = document.getElementById("modeC2T")!;
+    const t2cSection = document.getElementById("t2cSection")!;
+    const c2tSection = document.getElementById("c2tSection")!;
+
+    function convertTailwindToCSS(): void {
+      const input = twInput.value.trim();
+      if (!input) { cssOutput.textContent = "/* Enter Tailwind classes above */"; return; }
+
+      const classes = input.split(/\s+/).filter(Boolean);
+      const results: string[] = [];
+      const unknowns: string[] = [];
+
+      for (const cls of classes) {
+        const css = parseTailwindClass(cls);
+        if (css) {
+          results.push(`  ${css}`);
+        } else {
+          unknowns.push(cls);
+        }
+      }
+
+      let output = ".element {\n" + results.join("\n") + "\n}";
+      if (unknowns.length > 0) {
+        output += "\n\n/* Unknown classes (may need custom config):\n   " + unknowns.join(", ") + " */";
+      }
+
+      cssOutput.textContent = output;
+    }
+
+    function convertCSSToTailwind(): void {
+      const input = cssInput.value.trim();
+      if (!input) { twOutput.textContent = "/* Enter CSS above */"; return; }
+
+      const lines = input.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("{") && !l.startsWith("}") && !l.startsWith("/*") && !l.startsWith(".") && !l.startsWith("//"));
+      const twClasses: string[] = [];
+      const unknowns: string[] = [];
+
+      for (const line of lines) {
+        const match = line.match(/^([a-z-]+)\s*:\s*(.+?)$/);
+        if (match) {
+          const prop = match[1].trim();
+          const val = match[2].trim().replace(/;$/, "");
+          const tw = cssPropertyToTailwind(prop, val);
+          if (tw) {
+            twClasses.push(tw);
+          } else {
+            unknowns.push(`${prop}: ${val}`);
+          }
+        }
+      }
+
+      let output = twClasses.join(" ");
+      if (unknowns.length > 0) {
+        output += "\n\n/* No direct Tailwind equivalent found:\n   " + unknowns.join("\n   ") + " */";
+      }
+      if (!output.trim()) {
+        output = "/* No matching Tailwind classes found */";
+      }
+
+      twOutput.textContent = output;
+    }
+
+    // Mode toggle
+    modeT2C.addEventListener("click", () => {
+      t2cSection.classList.remove("hidden");
+      c2tSection.classList.add("hidden");
+      modeT2C.classList.add("bg-white", "shadow", "text-blue-600");
+      modeT2C.classList.remove("text-gray-600");
+      modeC2T.classList.remove("bg-white", "shadow", "text-blue-600");
+      modeC2T.classList.add("text-gray-600");
+    });
+
+    modeC2T.addEventListener("click", () => {
+      c2tSection.classList.remove("hidden");
+      t2cSection.classList.add("hidden");
+      modeC2T.classList.add("bg-white", "shadow", "text-blue-600");
+      modeC2T.classList.remove("text-gray-600");
+      modeT2C.classList.remove("bg-white", "shadow", "text-blue-600");
+      modeT2C.classList.add("text-gray-600");
+    });
+
+    // Real-time conversion
+    twInput.addEventListener("input", convertTailwindToCSS);
+    cssInput.addEventListener("input", convertCSSToTailwind);
+
+    // Examples
+    document.querySelectorAll(".example-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tw = (btn as HTMLElement).dataset.tw || "";
+        twInput.value = tw;
+        // Switch to T2C mode
+        modeT2C.click();
+        convertTailwindToCSS();
+      });
+    });
+
+    // Copy buttons
+    function showCopyNotif(): void {
+      copyNotif.style.opacity = "1";
+      setTimeout(() => { copyNotif.style.opacity = "0"; }, 1500);
+    }
+
+    document.getElementById("copyCSS")!.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(cssOutput.textContent || "");
+      showCopyNotif();
+    });
+
+    document.getElementById("copyTW")!.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(twOutput.textContent || "");
+      showCopyNotif();
+    });
+
+    convertTailwindToCSS();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Tailwind CSS to CSS Converter</h2>
+    <p>Convert Tailwind CSS utility classes to standard CSS properties and vice versa. Supports spacing, colors, typography, layout, flexbox, grid, borders, shadows, transitions and more. Real-time conversion with extensive class mappings for all major Tailwind utilities.</p>
+  </Fragment>
+</ToolLayout>

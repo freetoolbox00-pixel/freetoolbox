@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Icon Export</title></head>
+<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f0f0f0;">
+<h2>FreeToolBox Icon</h2>
+<canvas id="c" width="512" height="512" style="border:1px solid #ccc;border-radius:16px;margin:16px;"></canvas>
+<div style="display:flex;gap:8px;">
+  <button onclick="dl(512)" style="padding:12px 24px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">Download 512x512</button>
+  <button onclick="dl(256)" style="padding:12px 24px;background:#4f46e5;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">Download 256x256</button>
+  <button onclick="dl(180)" style="padding:12px 24px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">Download 180x180 (Apple)</button>
+  <button onclick="dl(64)" style="padding:12px 24px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">Download 64x64</button>
+</div>
+<p style="color:#666;margin-top:16px;">Click a button to download the icon as PNG</p>
+<script>
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect x="96" y="220" width="320" height="200" rx="24" fill="white" opacity="0.95"/>
+  <rect x="176" y="160" width="160" height="80" rx="16" fill="none" stroke="white" stroke-width="24" opacity="0.95"/>
+  <rect x="232" y="220" width="48" height="32" rx="8" fill="#2563eb"/>
+  <g transform="translate(256,330)" opacity="0.85">
+    <circle cx="-40" cy="-20" r="22" fill="none" stroke="#2563eb" stroke-width="10"/>
+    <line x1="-24" y1="-4" x2="40" y2="60" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="40" cy="60" r="12" fill="#2563eb"/>
+  </g>
+</svg>`;
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const img = new Image();
+const blob = new Blob([svg], {type:'image/svg+xml'});
+img.onload = () => { ctx.drawImage(img, 0, 0, 512, 512); };
+img.src = URL.createObjectURL(blob);
+
+function dl(size) {
+  const c2 = document.createElement('canvas');
+  c2.width = size; c2.height = size;
+  c2.getContext('2d').drawImage(img, 0, 0, size, size);
+  const a = document.createElement('a');
+  a.href = c2.toDataURL('image/png');
+  a.download = 'freetoolbox-icon-' + size + 'x' + size + '.png';
+  a.click();
+}
+</script>
+</body>
+</html>

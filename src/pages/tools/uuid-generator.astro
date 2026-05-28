@@ -1,0 +1,113 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="UUID Generator"
+  description="Generate random UUID v4 identifiers online. Bulk generate, copy and validate UUIDs. Free UUID/GUID generator tool."
+  category="developer"
+  icon="ID"
+>
+  <div>
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+        <input type="number" id="uuidCount" min="1" max="100" value="1" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+        <select id="uuidFormat" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="lowercase" selected>lowercase</option>
+          <option value="uppercase">UPPERCASE</option>
+          <option value="braces">&#123;braces&#125;</option>
+          <option value="no-hyphens">No hyphens</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-2 mb-6">
+      <button id="generateUuid" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+        Generate
+      </button>
+      <button id="copyUuids" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">
+        Copy All
+      </button>
+    </div>
+
+    <!-- Output -->
+    <div id="uuidOutput" class="p-4 bg-gray-50 border border-gray-200 rounded-lg min-h-[60px] font-mono text-sm leading-relaxed select-all whitespace-pre-wrap break-all"></div>
+
+    <!-- Validator -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">UUID Validator</h3>
+      <div class="flex gap-2">
+        <input type="text" id="validateInput" placeholder="Paste UUID to validate..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="validateBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+          Validate
+        </button>
+      </div>
+      <div id="validateResult" class="mt-2 text-sm hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    function uuidv4(): string {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = crypto.getRandomValues(new Uint8Array(1))[0] & (c === 'x' ? 0xf : 0x3) | (c === 'y' ? 0x8 : 0);
+        return r.toString(16);
+      });
+    }
+
+    function formatUuid(uuid: string, format: string): string {
+      switch (format) {
+        case 'uppercase': return uuid.toUpperCase();
+        case 'braces': return `{${uuid}}`;
+        case 'no-hyphens': return uuid.replace(/-/g, '');
+        default: return uuid;
+      }
+    }
+
+    function generate(): void {
+      const count = Math.min(100, Math.max(1, parseInt((document.getElementById('uuidCount') as HTMLInputElement).value) || 1));
+      const format = (document.getElementById('uuidFormat') as HTMLSelectElement).value;
+      const uuids = Array.from({ length: count }, () => formatUuid(uuidv4(), format));
+      document.getElementById('uuidOutput')!.textContent = uuids.join('\n');
+    }
+
+    document.getElementById('generateUuid')!.addEventListener('click', generate);
+
+    document.getElementById('copyUuids')!.addEventListener('click', async () => {
+      const text = document.getElementById('uuidOutput')!.textContent || '';
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copyUuids')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy All', 1500);
+    });
+
+    document.getElementById('validateBtn')!.addEventListener('click', () => {
+      const input = (document.getElementById('validateInput') as HTMLInputElement).value.trim();
+      const result = document.getElementById('validateResult')!;
+      result.classList.remove('hidden');
+      const uuidRegex = /^\{?[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}\}?$/i;
+      if (uuidRegex.test(input)) {
+        const version = input.replace(/[{}-]/g, '')[12];
+        result.innerHTML = `<span class="text-green-600 font-medium">✓ Valid UUID (version ${version})</span>`;
+      } else {
+        result.innerHTML = `<span class="text-red-600 font-medium">✗ Invalid UUID format</span>`;
+      }
+    });
+
+    generate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free UUID Generator Online</h2>
+    <p>Generate universally unique identifiers (UUID v4) instantly. Bulk generate up to 100 UUIDs at once with various formatting options.</p>
+    <h3>What is a UUID?</h3>
+    <p>A UUID (Universally Unique Identifier) is a 128-bit identifier that is unique across space and time. Version 4 UUIDs are randomly generated and have a virtually zero chance of collision.</p>
+    <h3>UUID Format</h3>
+    <p>Standard format: 8-4-4-4-12 hexadecimal characters (e.g., 550e8400-e29b-41d4-a716-446655440000). The 13th character is always the version number (4 for v4).</p>
+  </Fragment>
+</ToolLayout>

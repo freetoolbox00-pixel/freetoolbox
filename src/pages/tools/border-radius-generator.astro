@@ -1,0 +1,128 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Border Radius Generator"
+  description="Create CSS border-radius shapes visually. Control each corner independently. Generate circles, pills, blobs and custom shapes. Free border radius tool."
+  category="developer"
+  icon="◐"
+>
+  <div>
+    <!-- Preview -->
+    <div class="flex justify-center mb-6">
+      <div class="p-8 bg-gray-100 rounded-xl">
+        <div id="brPreview" class="w-48 h-48 bg-blue-500" style="border-radius:16px"></div>
+      </div>
+    </div>
+
+    <!-- All corners -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">All Corners: <span id="allVal">16</span>px</label>
+      <input type="range" id="brAll" min="0" max="100" value="16" class="w-full accent-blue-600" />
+    </div>
+
+    <!-- Individual corners -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Top Left: <span id="tlVal">16</span>px</label>
+        <input type="range" id="brTL" min="0" max="100" value="16" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Top Right: <span id="trVal">16</span>px</label>
+        <input type="range" id="brTR" min="0" max="100" value="16" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Bottom Left: <span id="blVal">16</span>px</label>
+        <input type="range" id="brBL" min="0" max="100" value="16" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Bottom Right: <span id="brv">16</span>px</label>
+        <input type="range" id="brBR" min="0" max="100" value="16" class="w-full accent-blue-600" />
+      </div>
+    </div>
+
+    <!-- Unit -->
+    <div class="flex gap-4 mb-4">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="brUnit" value="px" checked class="accent-blue-600" /> px
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="brUnit" value="%" class="accent-blue-600" /> %
+      </label>
+    </div>
+
+    <!-- Presets -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="0" data-tr="0" data-bl="0" data-br="0">Square</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="8" data-tr="8" data-bl="8" data-br="8">Rounded</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="50" data-tr="50" data-bl="50" data-br="50">Circle</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="100" data-tr="100" data-bl="100" data-br="100">Pill</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="50" data-tr="0" data-bl="0" data-br="50">Leaf</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="50" data-tr="50" data-bl="0" data-br="0">Tab</button>
+      <button class="br-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-tl="0" data-tr="50" data-bl="50" data-br="0">Diagonal</button>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="copyBr" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="brCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm"></pre>
+    </div>
+  </div>
+
+  <script>
+    const sliders = ['brTL', 'brTR', 'brBL', 'brBR'];
+    const labels = ['tlVal', 'trVal', 'blVal', 'brv'];
+
+    function getUnit(): string {
+      return (document.querySelector('input[name="brUnit"]:checked') as HTMLInputElement).value;
+    }
+
+    function update(): void {
+      const unit = getUnit();
+      const values = sliders.map(id => parseInt((document.getElementById(id) as HTMLInputElement).value));
+      labels.forEach((id, i) => document.getElementById(id)!.textContent = values[i].toString());
+
+      const br = values.map(v => `${v}${unit}`).join(' ');
+      document.getElementById('brPreview')!.style.borderRadius = br;
+
+      const allSame = values.every(v => v === values[0]);
+      const css = allSame ? `border-radius: ${values[0]}${unit};` : `border-radius: ${br};`;
+      document.getElementById('brCode')!.textContent = css;
+    }
+
+    sliders.forEach(id => document.getElementById(id)!.addEventListener('input', update));
+
+    document.getElementById('brAll')!.addEventListener('input', () => {
+      const val = (document.getElementById('brAll') as HTMLInputElement).value;
+      document.getElementById('allVal')!.textContent = val;
+      sliders.forEach(id => (document.getElementById(id) as HTMLInputElement).value = val);
+      update();
+    });
+
+    document.querySelectorAll('input[name="brUnit"]').forEach(r => r.addEventListener('change', update));
+
+    document.querySelectorAll('.br-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const el = btn as HTMLElement;
+        const vals = [el.dataset.tl!, el.dataset.tr!, el.dataset.bl!, el.dataset.br!];
+        sliders.forEach((id, i) => (document.getElementById(id) as HTMLInputElement).value = vals[i]);
+        update();
+      });
+    });
+
+    document.getElementById('copyBr')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('brCode')!.textContent || '');
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Border Radius Generator</h2>
+    <p>Create CSS border-radius values visually. Control each corner independently or set all at once. Includes presets for circles, pills, tabs and more.</p>
+  </Fragment>
+</ToolLayout>

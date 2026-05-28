@@ -1,0 +1,323 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Redirect Rule Generator"
+  description="Generate redirect rules for Apache .htaccess, Nginx, Cloudflare _redirects, Next.js, and Vercel. Bulk CSV import. Free redirect config generator."
+  category="seo"
+  icon="↪"
+>
+  <div>
+    <!-- Mode -->
+    <div class="flex gap-2 mb-4">
+      <button id="modeSingle" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">Single Redirect</button>
+      <button id="modeBulk" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Bulk (CSV)</button>
+    </div>
+
+    <!-- Single Mode -->
+    <div id="singleMode" class="space-y-4">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Old URL / Path</label>
+          <input type="text" id="oldUrl" placeholder="/old-page" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">New URL / Path</label>
+          <input type="text" id="newUrl" placeholder="/new-page" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Redirect Type</label>
+          <select id="redirectType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="301">301 - Permanent</option>
+            <option value="302">302 - Temporary</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button id="addRedirect" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Add to List</button>
+        </div>
+      </div>
+
+      <!-- Redirect List -->
+      <div id="redirectList" class="space-y-2"></div>
+    </div>
+
+    <!-- Bulk Mode -->
+    <div id="bulkMode" class="hidden">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Paste CSV (old_url,new_url per line)</label>
+        <textarea id="csvInput" rows="8" placeholder="/old-page-1,/new-page-1&#10;/old-page-2,/new-page-2&#10;/blog/old-post,/blog/new-post" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button id="parseCSV" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Parse CSV</button>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Type</label>
+          <select id="bulkType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="301">301</option>
+            <option value="302">302</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Format -->
+    <div class="mt-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Output Format</label>
+      <div class="flex flex-wrap gap-2">
+        <button class="format-btn px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg transition-colors" data-format="apache">Apache (.htaccess)</button>
+        <button class="format-btn px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors" data-format="nginx">Nginx</button>
+        <button class="format-btn px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors" data-format="cloudflare">Cloudflare (_redirects)</button>
+        <button class="format-btn px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors" data-format="nextjs">Next.js</button>
+        <button class="format-btn px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors" data-format="vercel">Vercel (vercel.json)</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="mt-4">
+      <div class="flex items-center justify-between mb-1">
+        <label id="outputLabel" class="text-sm font-medium text-gray-700">Apache .htaccess</label>
+        <div class="flex gap-2">
+          <button id="copyOutput" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+          <button id="downloadOutput" class="text-xs text-blue-600 hover:text-blue-800">Download</button>
+        </div>
+      </div>
+      <pre id="configOutput" class="w-full p-4 font-mono text-xs bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[200px] whitespace-pre-wrap"></pre>
+    </div>
+
+    <!-- Redirect count -->
+    <div id="redirectCount" class="mt-2 text-xs text-gray-400"></div>
+  </div>
+
+  <script>
+    interface RedirectRule {
+      from: string;
+      to: string;
+      type: string;
+    }
+
+    let redirects: RedirectRule[] = [];
+    let currentFormat = 'apache';
+    let isBulkMode = false;
+
+    function setMode(bulk: boolean): void {
+      isBulkMode = bulk;
+      document.getElementById('modeSingle')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${!bulk ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('modeBulk')!.className = `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${bulk ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      document.getElementById('singleMode')!.classList.toggle('hidden', bulk);
+      document.getElementById('bulkMode')!.classList.toggle('hidden', !bulk);
+    }
+
+    function setFormat(fmt: string): void {
+      currentFormat = fmt;
+      document.querySelectorAll('.format-btn').forEach(btn => {
+        const isActive = (btn as HTMLElement).dataset.format === fmt;
+        btn.className = `format-btn px-3 py-1.5 text-sm rounded-lg transition-colors ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      });
+      const labels: Record<string, string> = {
+        apache: 'Apache .htaccess',
+        nginx: 'Nginx Configuration',
+        cloudflare: 'Cloudflare _redirects',
+        nextjs: 'Next.js (next.config.js)',
+        vercel: 'Vercel (vercel.json)',
+      };
+      document.getElementById('outputLabel')!.textContent = labels[fmt] || fmt;
+      generateOutput();
+    }
+
+    function renderList(): void {
+      const container = document.getElementById('redirectList')!;
+      if (redirects.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-400 italic">No redirects added yet</p>';
+        return;
+      }
+      let html = '';
+      redirects.forEach((r, i) => {
+        html += `<div class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+          <span class="px-2 py-0.5 ${r.type === '301' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} text-xs rounded font-mono">${r.type}</span>
+          <span class="font-mono text-gray-600 truncate flex-1">${r.from}</span>
+          <span class="text-gray-400">→</span>
+          <span class="font-mono text-gray-600 truncate flex-1">${r.to}</span>
+          <button class="remove-redirect text-red-400 hover:text-red-600 text-xs" data-idx="${i}">✕</button>
+        </div>`;
+      });
+      container.innerHTML = html;
+      container.querySelectorAll('.remove-redirect').forEach(btn =>
+        btn.addEventListener('click', (e) => {
+          redirects.splice(+(e.target as HTMLElement).dataset.idx!, 1);
+          renderList();
+          generateOutput();
+        })
+      );
+    }
+
+    function generateOutput(): void {
+      const output = document.getElementById('configOutput')!;
+      const countEl = document.getElementById('redirectCount')!;
+
+      if (redirects.length === 0) {
+        output.textContent = '# Add redirects to generate configuration';
+        countEl.textContent = '';
+        return;
+      }
+
+      countEl.textContent = `${redirects.length} redirect rule(s)`;
+      let config = '';
+
+      switch (currentFormat) {
+        case 'apache':
+          config = `# Redirect Rules - Apache .htaccess\nRewriteEngine On\n\n`;
+          for (const r of redirects) {
+            const flag = r.type === '301' ? 'R=301,L' : 'R=302,L';
+            config += `RewriteRule ^${r.from.replace(/^\//, '')}$ ${r.to} [${flag}]\n`;
+          }
+          config += `\n# Alternative simple syntax:\n`;
+          for (const r of redirects) {
+            config += `Redirect ${r.type} ${r.from} ${r.to}\n`;
+          }
+          break;
+
+        case 'nginx':
+          config = `# Redirect Rules - Nginx\n# Add inside server { } block\n\n`;
+          for (const r of redirects) {
+            const perm = r.type === '301' ? 'permanent' : 'redirect';
+            config += `rewrite ^${r.from}$ ${r.to} ${perm};\n`;
+          }
+          config += `\n# Alternative using location blocks:\n`;
+          for (const r of redirects) {
+            config += `location = ${r.from} {\n    return ${r.type} ${r.to};\n}\n\n`;
+          }
+          break;
+
+        case 'cloudflare':
+          config = `# Redirect Rules - Cloudflare Pages (_redirects)\n# Place this file in the root of your build output\n\n`;
+          for (const r of redirects) {
+            config += `${r.from}  ${r.to}  ${r.type}\n`;
+          }
+          break;
+
+        case 'nextjs':
+          config = `// next.config.js - Add to your existing config\n`;
+          config += `/** @type {import('next').NextConfig} */\n`;
+          config += `const nextConfig = {\n  async redirects() {\n    return [\n`;
+          for (let i = 0; i < redirects.length; i++) {
+            const r = redirects[i];
+            config += `      {\n        source: '${r.from}',\n        destination: '${r.to}',\n        permanent: ${r.type === '301'},\n      }${i < redirects.length - 1 ? ',' : ''}\n`;
+          }
+          config += `    ];\n  },\n};\n\nmodule.exports = nextConfig;\n`;
+          break;
+
+        case 'vercel':
+          const rules = redirects.map(r => ({
+            source: r.from,
+            destination: r.to,
+            statusCode: parseInt(r.type),
+          }));
+          config = JSON.stringify({ redirects: rules }, null, 2);
+          break;
+      }
+
+      output.textContent = config;
+    }
+
+    function getFilename(): string {
+      const names: Record<string, string> = {
+        apache: '.htaccess',
+        nginx: 'nginx-redirects.conf',
+        cloudflare: '_redirects',
+        nextjs: 'next.config.js',
+        vercel: 'vercel.json',
+      };
+      return names[currentFormat] || 'redirects.txt';
+    }
+
+    // Mode switches
+    document.getElementById('modeSingle')!.addEventListener('click', () => setMode(false));
+    document.getElementById('modeBulk')!.addEventListener('click', () => setMode(true));
+
+    // Add redirect
+    document.getElementById('addRedirect')!.addEventListener('click', () => {
+      const from = (document.getElementById('oldUrl') as HTMLInputElement).value.trim();
+      const to = (document.getElementById('newUrl') as HTMLInputElement).value.trim();
+      const type = (document.getElementById('redirectType') as HTMLSelectElement).value;
+      if (!from || !to) return;
+      redirects.push({ from, to, type });
+      (document.getElementById('oldUrl') as HTMLInputElement).value = '';
+      (document.getElementById('newUrl') as HTMLInputElement).value = '';
+      renderList();
+      generateOutput();
+    });
+
+    // Parse CSV
+    document.getElementById('parseCSV')!.addEventListener('click', () => {
+      const csv = (document.getElementById('csvInput') as HTMLTextAreaElement).value.trim();
+      const type = (document.getElementById('bulkType') as HTMLSelectElement).value;
+      if (!csv) return;
+      const lines = csv.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
+        if (parts.length >= 2 && parts[0] && parts[1]) {
+          redirects.push({ from: parts[0], to: parts[1], type: parts[2] || type });
+        }
+      }
+      renderList();
+      generateOutput();
+      setMode(false); // Switch to single mode to see the list
+    });
+
+    // Format buttons
+    document.querySelectorAll('.format-btn').forEach(btn => {
+      btn.addEventListener('click', () => setFormat((btn as HTMLElement).dataset.format!));
+    });
+
+    // Copy
+    document.getElementById('copyOutput')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('configOutput')!.textContent || '');
+      const btn = document.getElementById('copyOutput')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    // Download
+    document.getElementById('downloadOutput')!.addEventListener('click', () => {
+      const content = document.getElementById('configOutput')!.textContent || '';
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.download = getFilename();
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    // Enter key to add
+    document.getElementById('newUrl')!.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('addRedirect')!.click();
+    });
+
+    // Init
+    renderList();
+    generateOutput();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Redirect Rule Generator</h2>
+    <p>Generate redirect configuration files for popular web servers and platforms. Create 301 (permanent) and 302 (temporary) redirect rules for Apache .htaccess, Nginx, Cloudflare Pages, Next.js, and Vercel. Supports bulk import via CSV.</p>
+    <h3>Supported Platforms</h3>
+    <ul>
+      <li><strong>Apache .htaccess</strong> - RewriteRule and Redirect directives</li>
+      <li><strong>Nginx</strong> - rewrite and location block syntax</li>
+      <li><strong>Cloudflare Pages</strong> - _redirects file format</li>
+      <li><strong>Next.js</strong> - next.config.js redirects array</li>
+      <li><strong>Vercel</strong> - vercel.json redirect configuration</li>
+    </ul>
+    <h3>When to Use Redirects</h3>
+    <ul>
+      <li>Moving content to a new URL structure</li>
+      <li>Migrating to a new domain</li>
+      <li>Fixing broken links and preserving SEO value</li>
+      <li>Consolidating duplicate content</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

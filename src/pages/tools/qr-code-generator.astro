@@ -1,0 +1,222 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="QR Code Generator"
+  description="Create scannable QR codes for URLs, text, WiFi networks, email and more. Download as PNG. Free online QR code generator."
+  category="utility"
+  icon="QR"
+>
+  <div>
+    <!-- Type Selector -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button class="qr-type px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg" data-type="text">URL / Text</button>
+      <button class="qr-type px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="wifi">WiFi</button>
+      <button class="qr-type px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="email">Email</button>
+      <button class="qr-type px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="phone">Phone</button>
+      <button class="qr-type px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="sms">SMS</button>
+    </div>
+
+    <!-- Text Input -->
+    <div id="inputText" class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Enter URL or text</label>
+      <input type="text" id="qrInput" placeholder="https://example.com" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" />
+    </div>
+
+    <!-- WiFi Input -->
+    <div id="inputWifi" class="mb-6 hidden">
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Network Name (SSID)</label>
+          <input type="text" id="wifiSsid" placeholder="MyWiFi" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input type="text" id="wifiPass" placeholder="password123" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Encryption</label>
+          <select id="wifiEnc" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="WPA">WPA/WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">None</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Input -->
+    <div id="inputEmail" class="mb-6 hidden">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <input type="email" id="emailAddr" placeholder="hello@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+          <input type="text" id="emailSubj" placeholder="Hello!" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone Input -->
+    <div id="inputPhone" class="mb-6 hidden">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+      <input type="tel" id="phoneNum" placeholder="+1234567890" class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+    </div>
+
+    <!-- SMS Input -->
+    <div id="inputSms" class="mb-6 hidden">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+          <input type="tel" id="smsNum" placeholder="+1234567890" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+          <input type="text" id="smsMsg" placeholder="Hello!" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+        <select id="qrSize" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="200">200x200</option>
+          <option value="300" selected>300x300</option>
+          <option value="400">400x400</option>
+          <option value="500">500x500</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+        <input type="color" id="qrColor" value="#000000" class="w-12 h-10 rounded border border-gray-300 cursor-pointer" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Background</label>
+        <input type="color" id="qrBg" value="#ffffff" class="w-12 h-10 rounded border border-gray-300 cursor-pointer" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Error Correction</label>
+        <select id="qrEcc" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="L">Low (7%)</option>
+          <option value="M" selected>Medium (15%)</option>
+          <option value="Q">Quartile (25%)</option>
+          <option value="H">High (30%)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Generate button -->
+    <button id="qrGenerate" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors mb-6">
+      Generate QR Code
+    </button>
+
+    <!-- QR Output -->
+    <div class="flex flex-col items-center gap-4">
+      <canvas id="qrCanvas" class="border border-gray-200 rounded-lg hidden"></canvas>
+      <a id="qrDownload" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors hidden">
+        Download PNG
+      </a>
+    </div>
+  </div>
+
+  <script>
+    import QRCode from 'qrcode';
+
+    let currentType = 'text';
+
+    // Type switching
+    document.querySelectorAll('.qr-type').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.qr-type').forEach(b => b.className = 'qr-type px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg');
+        (btn as HTMLElement).className = 'qr-type px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+        currentType = (btn as HTMLElement).dataset.type!;
+        ['inputText', 'inputWifi', 'inputEmail', 'inputPhone', 'inputSms'].forEach(id => {
+          document.getElementById(id)!.classList.add('hidden');
+        });
+        const map: Record<string, string> = { text: 'inputText', wifi: 'inputWifi', email: 'inputEmail', phone: 'inputPhone', sms: 'inputSms' };
+        document.getElementById(map[currentType])!.classList.remove('hidden');
+      });
+    });
+
+    function getData(): string {
+      switch (currentType) {
+        case 'wifi': {
+          const ssid = (document.getElementById('wifiSsid') as HTMLInputElement).value;
+          const pass = (document.getElementById('wifiPass') as HTMLInputElement).value;
+          const enc = (document.getElementById('wifiEnc') as HTMLSelectElement).value;
+          return `WIFI:T:${enc};S:${ssid};P:${pass};;`;
+        }
+        case 'email': {
+          const addr = (document.getElementById('emailAddr') as HTMLInputElement).value;
+          const subj = (document.getElementById('emailSubj') as HTMLInputElement).value;
+          return `mailto:${addr}?subject=${encodeURIComponent(subj)}`;
+        }
+        case 'phone':
+          return `tel:${(document.getElementById('phoneNum') as HTMLInputElement).value}`;
+        case 'sms': {
+          const num = (document.getElementById('smsNum') as HTMLInputElement).value;
+          const msg = (document.getElementById('smsMsg') as HTMLInputElement).value;
+          return `sms:${num}${msg ? `?body=${encodeURIComponent(msg)}` : ''}`;
+        }
+        default:
+          return (document.getElementById('qrInput') as HTMLInputElement).value;
+      }
+    }
+
+    async function renderQR(): Promise<void> {
+      const text = getData();
+      if (!text) return;
+
+      const size = parseInt((document.getElementById('qrSize') as HTMLSelectElement).value);
+      const color = (document.getElementById('qrColor') as HTMLInputElement).value;
+      const bg = (document.getElementById('qrBg') as HTMLInputElement).value;
+      const ecc = (document.getElementById('qrEcc') as HTMLSelectElement).value as 'L' | 'M' | 'Q' | 'H';
+      const canvas = document.getElementById('qrCanvas') as HTMLCanvasElement;
+
+      try {
+        await QRCode.toCanvas(canvas, text, {
+          width: size,
+          margin: 2,
+          color: { dark: color, light: bg },
+          errorCorrectionLevel: ecc,
+        });
+
+        canvas.classList.remove('hidden');
+        const downloadLink = document.getElementById('qrDownload') as HTMLAnchorElement;
+        downloadLink.href = canvas.toDataURL('image/png');
+        downloadLink.download = 'qrcode.png';
+        downloadLink.classList.remove('hidden');
+      } catch (err) {
+        console.error('QR generation failed:', err);
+      }
+    }
+
+    document.getElementById('qrGenerate')!.addEventListener('click', renderQR);
+    document.getElementById('qrInput')!.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') renderQR();
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free QR Code Generator</h2>
+    <p>Create scannable QR codes for any URL, text, WiFi network, email or phone number. Customize colors and error correction level, then download as a high-quality PNG image.</p>
+    <h3>What Can You Encode?</h3>
+    <ul>
+      <li><strong>URLs</strong> - Link to any website</li>
+      <li><strong>Text</strong> - Any plain text message</li>
+      <li><strong>WiFi</strong> - Share WiFi credentials (SSID, password, encryption)</li>
+      <li><strong>Email</strong> - Pre-filled mailto links with subject</li>
+      <li><strong>Phone</strong> - Click-to-call phone numbers</li>
+      <li><strong>SMS</strong> - Pre-filled text messages</li>
+    </ul>
+    <h3>Error Correction Levels</h3>
+    <p>Higher error correction allows the QR code to remain scannable even if partially damaged. Low (7%) produces smaller codes, High (30%) is most resilient but larger.</p>
+    <h3>Tips</h3>
+    <p>For best scanning results, use high contrast colors (dark foreground on light background) and choose a size of at least 300x300 pixels.</p>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,94 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Color Blindness Simulator" description="See how colors look to people with color blindness. Simulate Protanopia, Deuteranopia, Tritanopia and more." category="utility" icon="👁️">
+  <div>
+    <div id="cbDrop" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-6">
+      <div class="text-4xl mb-2">🖼️</div>
+      <div class="text-sm text-gray-600 font-medium">Drop an image here or click to upload</div>
+      <input type="file" id="cbFile" accept="image/*" class="hidden" />
+    </div>
+    <div id="cbPanel" class="hidden">
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="cb-type px-3 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium" data-type="normal">Normal</button>
+        <button class="cb-type px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-type="protanopia">Protanopia (Red)</button>
+        <button class="cb-type px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-type="deuteranopia">Deuteranopia (Green)</button>
+        <button class="cb-type px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-type="tritanopia">Tritanopia (Blue)</button>
+        <button class="cb-type px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400" data-type="achromatopsia">Achromatopsia (Total)</button>
+      </div>
+      <div class="flex justify-center mb-4">
+        <canvas id="cbCanvas" class="max-w-full border border-gray-200 rounded-lg"></canvas>
+      </div>
+      <div class="flex gap-3">
+        <button id="cbDl" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Download</button>
+        <button id="cbReset" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const drop = document.getElementById('cbDrop')!;
+  const fileIn = document.getElementById('cbFile') as HTMLInputElement;
+  const panel = document.getElementById('cbPanel')!;
+  const canvas = document.getElementById('cbCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  let img: HTMLImageElement | null = null;
+  let currentType = 'normal';
+
+  function loadImage(file: File) {
+    const i = new Image();
+    i.onload = () => { img = i; applyFilter('normal'); panel.classList.remove('hidden'); drop.classList.add('hidden'); };
+    i.src = URL.createObjectURL(file);
+  }
+
+  function applyFilter(type: string) {
+    if (!img) return;
+    currentType = type;
+    const maxW = Math.min(700, window.innerWidth - 80);
+    const scale = Math.min(1, maxW / img.naturalWidth);
+    canvas.width = img.naturalWidth * scale;
+    canvas.height = img.naturalHeight * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    if (type === 'normal') return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imageData.data;
+
+    const matrices: Record<string, number[][]> = {
+      protanopia: [[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
+      deuteranopia: [[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
+      tritanopia: [[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]],
+      achromatopsia: [[0.299,0.587,0.114],[0.299,0.587,0.114],[0.299,0.587,0.114]],
+    };
+
+    const m = matrices[type];
+    if (!m) return;
+
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      d[i]   = Math.min(255, m[0][0]*r + m[0][1]*g + m[0][2]*b);
+      d[i+1] = Math.min(255, m[1][0]*r + m[1][1]*g + m[1][2]*b);
+      d[i+2] = Math.min(255, m[2][0]*r + m[2][1]*g + m[2][2]*b);
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  document.querySelectorAll('.cb-type').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.cb-type').forEach(b => { b.className = 'cb-type px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400'; });
+    (btn as HTMLElement).className = 'cb-type px-3 py-1.5 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium';
+    applyFilter((btn as HTMLElement).dataset.type!);
+  }));
+
+  document.getElementById('cbDl')!.addEventListener('click', () => {
+    const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = `${currentType}.png`; a.click();
+  });
+
+  document.getElementById('cbReset')!.addEventListener('click', () => { img = null; panel.classList.add('hidden'); drop.classList.remove('hidden'); fileIn.value = ''; });
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('border-blue-400', 'bg-blue-50'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('border-blue-400', 'bg-blue-50'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('border-blue-400', 'bg-blue-50'); const f = e.dataTransfer?.files[0]; if (f?.type.startsWith('image/')) loadImage(f); });
+  fileIn.addEventListener('change', () => { if (fileIn.files?.[0]) loadImage(fileIn.files[0]); });
+</script>

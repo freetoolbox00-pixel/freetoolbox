@@ -1,0 +1,215 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Invoice Generator"
+  description="Create professional invoices online for free. Add line items, tax, discounts and download as printable HTML. Free invoice maker for freelancers."
+  category="business"
+  icon="$"
+>
+  <div>
+    <!-- Header Info -->
+    <div class="grid gap-4 lg:grid-cols-2 mb-6">
+      <div class="p-4 bg-gray-50 rounded-lg">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">From (Your Details)</h3>
+        <input type="text" id="fromName" placeholder="Your Name / Company" class="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm" />
+        <textarea id="fromAddress" rows="2" placeholder="Address, City, Country" class="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm resize-none"></textarea>
+        <input type="text" id="fromEmail" placeholder="Email" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+      <div class="p-4 bg-gray-50 rounded-lg">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">Bill To (Client)</h3>
+        <input type="text" id="toName" placeholder="Client Name / Company" class="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm" />
+        <textarea id="toAddress" rows="2" placeholder="Address, City, Country" class="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm resize-none"></textarea>
+        <input type="text" id="toEmail" placeholder="Email" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+    </div>
+
+    <!-- Invoice Details -->
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Invoice Number</label>
+        <input type="text" id="invNumber" value="INV-001" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Date</label>
+        <input type="date" id="invDate" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Due Date</label>
+        <input type="date" id="invDue" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+    </div>
+
+    <!-- Currency -->
+    <div class="mb-4">
+      <label class="block text-xs text-gray-500 mb-1">Currency</label>
+      <select id="invCurrency" class="px-3 py-2 border border-gray-300 rounded text-sm">
+        <option value="$">USD ($)</option>
+        <option value="€">EUR (€)</option>
+        <option value="£">GBP (£)</option>
+        <option value="¥">JPY (¥)</option>
+        <option value="₹">INR (₹)</option>
+        <option value="R$">BRL (R$)</option>
+      </select>
+    </div>
+
+    <!-- Line Items -->
+    <div class="mb-4">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Line Items</h3>
+      <div id="lineItems" class="space-y-2">
+        <div class="line-item grid grid-cols-12 gap-2 items-center">
+          <input type="text" placeholder="Description" class="col-span-5 px-2 py-2 border border-gray-300 rounded text-sm item-desc" />
+          <input type="number" placeholder="Qty" value="1" min="1" class="col-span-2 px-2 py-2 border border-gray-300 rounded text-sm text-center item-qty" />
+          <input type="number" placeholder="Price" value="0" min="0" step="0.01" class="col-span-3 px-2 py-2 border border-gray-300 rounded text-sm text-right item-price" />
+          <div class="col-span-1 text-right font-mono text-sm item-total">0</div>
+          <button class="col-span-1 text-red-400 hover:text-red-600 remove-item text-lg">×</button>
+        </div>
+      </div>
+      <button id="addItem" class="mt-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded">+ Add Item</button>
+    </div>
+
+    <!-- Tax & Discount -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Tax (%)</label>
+        <input type="number" id="invTax" value="0" min="0" max="100" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Discount (%)</label>
+        <input type="number" id="invDiscount" value="0" min="0" max="100" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="mb-6">
+      <label class="block text-xs text-gray-500 mb-1">Notes</label>
+      <textarea id="invNotes" rows="2" placeholder="Payment terms, bank details, etc." class="w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none"></textarea>
+    </div>
+
+    <!-- Totals -->
+    <div class="p-4 bg-gray-50 rounded-lg mb-6">
+      <div class="flex justify-between text-sm mb-1"><span>Subtotal:</span><span id="subtotal" class="font-mono">$0.00</span></div>
+      <div class="flex justify-between text-sm mb-1"><span>Discount:</span><span id="discountAmt" class="font-mono text-green-600">-$0.00</span></div>
+      <div class="flex justify-between text-sm mb-1"><span>Tax:</span><span id="taxAmt" class="font-mono">$0.00</span></div>
+      <div class="flex justify-between text-lg font-bold mt-2 pt-2 border-t"><span>Total:</span><span id="totalAmt" class="font-mono text-blue-600">$0.00</span></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-2">
+      <button id="printInv" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Print / Save PDF</button>
+    </div>
+  </div>
+
+  <script>
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    (document.getElementById('invDate') as HTMLInputElement).value = today;
+    const due = new Date();
+    due.setDate(due.getDate() + 30);
+    (document.getElementById('invDue') as HTMLInputElement).value = due.toISOString().split('T')[0];
+
+    function getCurrency(): string {
+      return (document.getElementById('invCurrency') as HTMLSelectElement).value;
+    }
+
+    function formatMoney(n: number): string {
+      return getCurrency() + n.toFixed(2);
+    }
+
+    function recalculate(): void {
+      let subtotal = 0;
+      document.querySelectorAll('.line-item').forEach(row => {
+        const qty = parseFloat((row.querySelector('.item-qty') as HTMLInputElement).value) || 0;
+        const price = parseFloat((row.querySelector('.item-price') as HTMLInputElement).value) || 0;
+        const total = qty * price;
+        (row.querySelector('.item-total') as HTMLElement).textContent = formatMoney(total);
+        subtotal += total;
+      });
+
+      const taxPct = parseFloat((document.getElementById('invTax') as HTMLInputElement).value) || 0;
+      const discPct = parseFloat((document.getElementById('invDiscount') as HTMLInputElement).value) || 0;
+      const discount = subtotal * (discPct / 100);
+      const taxable = subtotal - discount;
+      const tax = taxable * (taxPct / 100);
+      const total = taxable + tax;
+
+      document.getElementById('subtotal')!.textContent = formatMoney(subtotal);
+      document.getElementById('discountAmt')!.textContent = '-' + formatMoney(discount);
+      document.getElementById('taxAmt')!.textContent = formatMoney(tax);
+      document.getElementById('totalAmt')!.textContent = formatMoney(total);
+    }
+
+    function addItemRow(): HTMLElement {
+      const div = document.createElement('div');
+      div.className = 'line-item grid grid-cols-12 gap-2 items-center';
+      div.innerHTML = `
+        <input type="text" placeholder="Description" class="col-span-5 px-2 py-2 border border-gray-300 rounded text-sm item-desc" />
+        <input type="number" placeholder="Qty" value="1" min="1" class="col-span-2 px-2 py-2 border border-gray-300 rounded text-sm text-center item-qty" />
+        <input type="number" placeholder="Price" value="0" min="0" step="0.01" class="col-span-3 px-2 py-2 border border-gray-300 rounded text-sm text-right item-price" />
+        <div class="col-span-1 text-right font-mono text-sm item-total">${getCurrency()}0.00</div>
+        <button class="col-span-1 text-red-400 hover:text-red-600 remove-item text-lg">×</button>
+      `;
+      document.getElementById('lineItems')!.appendChild(div);
+      bindRow(div);
+      return div;
+    }
+
+    function bindRow(row: Element): void {
+      row.querySelector('.item-qty')?.addEventListener('input', recalculate);
+      row.querySelector('.item-price')?.addEventListener('input', recalculate);
+      row.querySelector('.remove-item')?.addEventListener('click', () => {
+        if (document.querySelectorAll('.line-item').length > 1) {
+          row.remove();
+          recalculate();
+        }
+      });
+    }
+
+    document.querySelectorAll('.line-item').forEach(bindRow);
+    document.getElementById('addItem')!.addEventListener('click', addItemRow);
+    document.getElementById('invTax')!.addEventListener('input', recalculate);
+    document.getElementById('invDiscount')!.addEventListener('input', recalculate);
+    document.getElementById('invCurrency')!.addEventListener('change', recalculate);
+
+    document.getElementById('printInv')!.addEventListener('click', () => {
+      const from = `<strong>${(document.getElementById('fromName') as HTMLInputElement).value}</strong><br>${(document.getElementById('fromAddress') as HTMLTextAreaElement).value.replace(/\n/g,'<br>')}<br>${(document.getElementById('fromEmail') as HTMLInputElement).value}`;
+      const to = `<strong>${(document.getElementById('toName') as HTMLInputElement).value}</strong><br>${(document.getElementById('toAddress') as HTMLTextAreaElement).value.replace(/\n/g,'<br>')}<br>${(document.getElementById('toEmail') as HTMLInputElement).value}`;
+      let rows = '';
+      document.querySelectorAll('.line-item').forEach(row => {
+        const desc = (row.querySelector('.item-desc') as HTMLInputElement).value;
+        const qty = (row.querySelector('.item-qty') as HTMLInputElement).value;
+        const price = (row.querySelector('.item-price') as HTMLInputElement).value;
+        const total = (row.querySelector('.item-total') as HTMLElement).textContent;
+        rows += `<tr><td style="padding:8px;border-bottom:1px solid #eee">${desc}</td><td style="padding:8px;text-align:center;border-bottom:1px solid #eee">${qty}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee">${getCurrency()}${parseFloat(price).toFixed(2)}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee">${total}</td></tr>`;
+      });
+
+      const html = `<!DOCTYPE html><html><head><title>Invoice ${(document.getElementById('invNumber') as HTMLInputElement).value}</title><style>body{font-family:system-ui;max-width:800px;margin:0 auto;padding:40px;color:#333}table{width:100%;border-collapse:collapse}th{text-align:left;padding:8px;background:#f3f4f6;font-size:14px}</style></head><body>
+        <div style="display:flex;justify-content:space-between;margin-bottom:40px"><div>${from}</div><div style="text-align:right"><h1 style="margin:0;color:#2563eb">INVOICE</h1><p>${(document.getElementById('invNumber') as HTMLInputElement).value}<br>Date: ${(document.getElementById('invDate') as HTMLInputElement).value}<br>Due: ${(document.getElementById('invDue') as HTMLInputElement).value}</p></div></div>
+        <div style="margin-bottom:30px"><strong>Bill To:</strong><br>${to}</div>
+        <table><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
+        <div style="text-align:right;margin-top:20px;font-size:14px"><p>Subtotal: ${document.getElementById('subtotal')!.textContent}</p><p>Discount: ${document.getElementById('discountAmt')!.textContent}</p><p>Tax: ${document.getElementById('taxAmt')!.textContent}</p><p style="font-size:20px;font-weight:bold;color:#2563eb">Total: ${document.getElementById('totalAmt')!.textContent}</p></div>
+        ${(document.getElementById('invNotes') as HTMLTextAreaElement).value ? `<div style="margin-top:30px;padding-top:20px;border-top:1px solid #eee"><strong>Notes:</strong><br>${(document.getElementById('invNotes') as HTMLTextAreaElement).value}</div>` : ''}
+        <script>window.print();<\/script></body></html>`;
+
+      const w = window.open('', '_blank');
+      w?.document.write(html);
+      w?.document.close();
+    });
+
+    recalculate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Invoice Generator</h2>
+    <p>Create professional invoices online in seconds. Add your details, line items, tax and discounts, then print or save as PDF. Perfect for freelancers and small businesses.</p>
+    <h3>Features</h3>
+    <ul>
+      <li>Multiple line items with auto-calculation</li>
+      <li>Tax and discount support</li>
+      <li>Multiple currencies (USD, EUR, GBP, JPY, INR, BRL)</li>
+      <li>Print or save as PDF</li>
+      <li>Professional layout</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

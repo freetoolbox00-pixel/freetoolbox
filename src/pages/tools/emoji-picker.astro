@@ -1,0 +1,147 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Emoji Picker & Search"
+  description="Search and copy emojis by name or category. Browse all Unicode emojis with one-click copy. Free emoji finder and picker tool."
+  category="text"
+  icon="😀"
+>
+  <div>
+    <!-- Search -->
+    <div class="mb-4">
+      <input type="text" id="emojiSearch" placeholder="Search emojis... (e.g. heart, fire, face)" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" />
+    </div>
+
+    <!-- Category tabs -->
+    <div class="flex flex-wrap gap-1 mb-4">
+      <button class="emoji-cat px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium" data-cat="all">All</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="smileys">😀 Smileys</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="people">👋 People</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="animals">🐶 Animals</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="food">🍕 Food</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="travel">✈️ Travel</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="objects">💡 Objects</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="symbols">❤️ Symbols</button>
+      <button class="emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm" data-cat="flags">🏁 Flags</button>
+    </div>
+
+    <!-- Copied notification -->
+    <div id="emojiNotify" class="mb-4 hidden">
+      <div class="p-2 bg-green-50 text-green-700 text-sm rounded-lg text-center font-medium"></div>
+    </div>
+
+    <!-- Emoji Grid -->
+    <div id="emojiGrid" class="grid grid-cols-8 sm:grid-cols-12 lg:grid-cols-16 gap-1 max-h-[400px] overflow-y-auto p-2"></div>
+
+    <!-- Recently Copied -->
+    <div class="mt-6 pt-4 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Recently Copied</h3>
+      <div id="recentEmojis" class="flex flex-wrap gap-2 text-2xl min-h-[40px]"></div>
+    </div>
+  </div>
+
+  <script>
+    const EMOJIS: Record<string, [string, string][]> = {
+      smileys: [
+        ['😀','grinning'],['😃','smiley'],['😄','smile'],['😁','grin'],['😆','laughing'],['😅','sweat smile'],['🤣','rolling laughing'],['😂','joy tears'],['🙂','slightly smiling'],['🙃','upside down'],['😉','wink'],['😊','blush'],['😇','innocent halo'],['🥰','love face'],['😍','heart eyes'],['🤩','star struck'],['😘','kiss'],['😗','kissing'],['😚','kissing closed'],['😙','kissing smiling'],['🥲','smiling tear'],['😋','yummy'],['😛','tongue'],['😜','wink tongue'],['🤪','zany'],['😝','squinting tongue'],['🤑','money face'],['🤗','hugging'],['🤭','shushing'],['🤫','secret'],['🤔','thinking'],['🫡','salute'],['🤐','zipper mouth'],['🤨','raised eyebrow'],['😐','neutral'],['😑','expressionless'],['😶','no mouth'],['😏','smirk'],['😒','unamused'],['🙄','eye roll'],['😬','grimacing'],['😮‍💨','exhaling'],['🤥','lying'],['😌','relieved'],['😔','pensive'],['😪','sleepy'],['🤤','drooling'],['😴','sleeping'],['😷','mask'],['🤒','thermometer'],['🤕','head bandage'],['🤢','nauseated'],['🤮','vomiting'],['🥵','hot'],['🥶','cold'],['🥴','woozy'],['😵','dizzy'],['🤯','exploding head'],['🥳','party'],['🥸','disguise'],['😎','cool sunglasses'],['🤓','nerd'],['🧐','monocle'],['😕','confused'],['😟','worried'],['🙁','frown'],['😮','open mouth'],['😯','hushed'],['😲','astonished'],['😳','flushed'],['🥺','pleading'],['😦','frowning'],['😧','anguished'],['😨','fearful'],['😰','anxious sweat'],['😥','sad relieved'],['😢','crying'],['😭','sobbing'],['😱','screaming'],['😖','confounded'],['😣','persevering'],['😞','disappointed'],['😓','downcast sweat'],['😩','weary'],['😫','tired'],['🥱','yawning'],['😤','triumph'],['😡','angry'],['😠','mad'],['🤬','cursing'],['😈','devil smile'],['👿','devil angry'],['💀','skull'],['☠️','skull crossbones'],['💩','poop'],['🤡','clown'],['👹','ogre'],['👺','goblin'],['👻','ghost'],['👽','alien'],['👾','space invader'],['🤖','robot'],['🎃','jack o lantern'],
+      ],
+      people: [
+        ['👋','wave'],['🤚','raised back hand'],['🖐️','hand fingers'],['✋','raised hand'],['🖖','vulcan'],['👌','ok hand'],['🤌','pinched fingers'],['🤏','pinching hand'],['✌️','victory'],['🤞','crossed fingers'],['🫰','hand heart'],['🤟','love you'],['🤘','rock on'],['🤙','call me'],['👈','point left'],['👉','point right'],['👆','point up'],['👇','point down'],['☝️','index up'],['👍','thumbs up'],['👎','thumbs down'],['✊','fist'],['👊','punch'],['🤛','left fist'],['🤜','right fist'],['👏','clap'],['🙌','raised hands'],['👐','open hands'],['🤲','palms up'],['🤝','handshake'],['🙏','pray please'],['✍️','writing'],['💪','muscle strong'],['🦾','mechanical arm'],['🧠','brain'],['👀','eyes looking'],['👁️','eye'],['👅','tongue'],['👄','lips mouth'],
+      ],
+      animals: [
+        ['🐶','dog'],['🐱','cat'],['🐭','mouse'],['🐹','hamster'],['🐰','rabbit'],['🦊','fox'],['🐻','bear'],['🐼','panda'],['🐨','koala'],['🐯','tiger'],['🦁','lion'],['🐮','cow'],['🐷','pig'],['🐸','frog'],['🐵','monkey'],['🐔','chicken'],['🐧','penguin'],['🐦','bird'],['🦅','eagle'],['🦆','duck'],['🦉','owl'],['🐺','wolf'],['🐗','boar'],['🐴','horse'],['🦄','unicorn'],['🐝','bee'],['🪱','worm'],['🐛','bug'],['🦋','butterfly'],['🐌','snail'],['🐞','ladybug'],['🐢','turtle'],['🐍','snake'],['🦎','lizard'],['🦂','scorpion'],['🕷️','spider'],['🐙','octopus'],['🦑','squid'],['🐠','fish'],['🐬','dolphin'],['🐳','whale'],['🦈','shark'],['🐊','crocodile'],['🦓','zebra'],['🦒','giraffe'],['🦬','bison'],['🐘','elephant'],
+      ],
+      food: [
+        ['🍎','apple'],['🍐','pear'],['🍊','orange'],['🍋','lemon'],['🍌','banana'],['🍉','watermelon'],['🍇','grapes'],['🍓','strawberry'],['🫐','blueberries'],['🍑','peach'],['🥭','mango'],['🍍','pineapple'],['🥥','coconut'],['🥝','kiwi'],['🍅','tomato'],['🥑','avocado'],['🍆','eggplant'],['🥦','broccoli'],['🥬','leafy green'],['🌽','corn'],['🌶️','hot pepper'],['🫑','bell pepper'],['🥒','cucumber'],['🥕','carrot'],['🧄','garlic'],['🧅','onion'],['🥔','potato'],['🍞','bread'],['🥐','croissant'],['🍕','pizza'],['🌭','hot dog'],['🍔','hamburger'],['🍟','fries'],['🌮','taco'],['🌯','burrito'],['🥗','salad'],['🍣','sushi'],['🍜','ramen noodle'],['🍝','spaghetti'],['🍦','ice cream'],['🍩','donut'],['🍪','cookie'],['🎂','birthday cake'],['🍫','chocolate'],['☕','coffee'],['🍵','tea'],['🧃','juice box'],['🍺','beer'],['🍷','wine'],
+      ],
+      travel: [
+        ['🚗','car'],['🚕','taxi'],['🚌','bus'],['🚎','trolley'],['🏎️','racing car'],['🚓','police car'],['🚑','ambulance'],['🚒','fire engine'],['✈️','airplane'],['🚀','rocket'],['🛸','ufo'],['🚁','helicopter'],['🛶','canoe'],['⛵','sailboat'],['🚢','ship'],['🏠','house'],['🏢','office'],['🏥','hospital'],['🏫','school'],['🏰','castle'],['🗼','tower'],['🗽','statue liberty'],['⛲','fountain'],['🌋','volcano'],['🏔️','mountain snow'],['🏖️','beach'],['🏝️','island'],['🌍','globe europe'],['🌎','globe americas'],['🌏','globe asia'],['🗺️','world map'],
+      ],
+      objects: [
+        ['💡','light bulb idea'],['🔦','flashlight'],['🕯️','candle'],['💻','laptop computer'],['🖥️','desktop computer'],['⌨️','keyboard'],['🖱️','mouse'],['📱','phone mobile'],['📞','telephone'],['📷','camera'],['📹','video camera'],['🎥','movie camera'],['📺','television tv'],['📻','radio'],['🎧','headphones'],['🎤','microphone'],['🎵','music note'],['🎶','music notes'],['🎸','guitar'],['🎹','piano keyboard'],['🥁','drum'],['📚','books'],['📖','book open'],['📝','memo writing'],['✏️','pencil'],['🖊️','pen'],['📌','pin'],['📎','paperclip'],['🔑','key'],['🔒','lock locked'],['🔓','lock unlocked'],['🛠️','tools hammer wrench'],['⚙️','gear settings'],['🧲','magnet'],['💎','gem diamond'],['💰','money bag'],['💳','credit card'],['📊','chart bar'],['📈','chart up trending'],['📉','chart down'],
+      ],
+      symbols: [
+        ['❤️','red heart love'],['🧡','orange heart'],['💛','yellow heart'],['💚','green heart'],['💙','blue heart'],['💜','purple heart'],['🖤','black heart'],['🤍','white heart'],['💔','broken heart'],['❣️','heart exclamation'],['💕','two hearts'],['💞','revolving hearts'],['💓','beating heart'],['💗','growing heart'],['💖','sparkling heart'],['💘','heart arrow cupid'],['💝','heart ribbon'],['✅','check mark green'],['❌','cross mark red'],['❓','question mark'],['❗','exclamation mark'],['⭐','star yellow'],['🌟','glowing star'],['💫','dizzy star'],['✨','sparkles'],['🔥','fire hot'],['💯','hundred perfect'],['🎯','target dart'],['🏆','trophy winner'],['🥇','gold medal first'],['🥈','silver medal second'],['🥉','bronze medal third'],['⚡','lightning bolt zap'],['💣','bomb'],['🕊️','dove peace'],['☮️','peace symbol'],['♻️','recycling'],['⚠️','warning'],['🚫','prohibited no'],['🔴','red circle'],['🟢','green circle'],['🔵','blue circle'],
+      ],
+      flags: [
+        ['🏁','checkered flag'],['🚩','triangular flag'],['🎌','crossed flags'],['🏴','black flag'],['🏳️','white flag'],['🇺🇸','us usa america'],['🇬🇧','uk britain england'],['🇫🇷','france french'],['🇩🇪','germany german'],['🇮🇹','italy italian'],['🇪🇸','spain spanish'],['🇯🇵','japan japanese'],['🇨🇳','china chinese'],['🇰🇷','korea south korean'],['🇧🇷','brazil brazilian'],['🇮🇳','india indian'],['🇷🇺','russia russian'],['🇨🇦','canada canadian'],['🇦🇺','australia australian'],['🇲🇽','mexico mexican'],
+      ],
+    };
+
+    const grid = document.getElementById('emojiGrid')!;
+    const notify = document.getElementById('emojiNotify')!;
+    const recent = document.getElementById('recentEmojis')!;
+    let currentCat = 'all';
+    const recentList: string[] = [];
+
+    function getAllEmojis(): [string, string][] {
+      return Object.values(EMOJIS).flat();
+    }
+
+    function render(filter = ''): void {
+      const emojis = currentCat === 'all' ? getAllEmojis() : (EMOJIS[currentCat] || []);
+      const filtered = filter ? emojis.filter(([, name]) => name.toLowerCase().includes(filter.toLowerCase())) : emojis;
+
+      grid.innerHTML = filtered.map(([emoji, name]) =>
+        `<button class="emoji-btn w-10 h-10 flex items-center justify-center text-2xl rounded hover:bg-gray-100 cursor-pointer" data-emoji="${emoji}" title="${name}">${emoji}</button>`
+      ).join('');
+
+      grid.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const emoji = (btn as HTMLElement).dataset.emoji!;
+          await navigator.clipboard.writeText(emoji);
+          notify.classList.remove('hidden');
+          notify.querySelector('div')!.textContent = `${emoji} copied to clipboard!`;
+          setTimeout(() => notify.classList.add('hidden'), 1500);
+          if (!recentList.includes(emoji)) {
+            recentList.unshift(emoji);
+            if (recentList.length > 20) recentList.pop();
+            renderRecent();
+          }
+        });
+      });
+    }
+
+    function renderRecent(): void {
+      recent.innerHTML = recentList.map(e => `<span class="cursor-pointer hover:scale-125 transition-transform" title="Click to copy">${e}</span>`).join('');
+      recent.querySelectorAll('span').forEach(s => {
+        s.addEventListener('click', async () => {
+          await navigator.clipboard.writeText(s.textContent || '');
+          notify.classList.remove('hidden');
+          notify.querySelector('div')!.textContent = `${s.textContent} copied!`;
+          setTimeout(() => notify.classList.add('hidden'), 1500);
+        });
+      });
+    }
+
+    document.getElementById('emojiSearch')!.addEventListener('input', (e) => {
+      render((e.target as HTMLInputElement).value);
+    });
+
+    document.querySelectorAll('.emoji-cat').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.emoji-cat').forEach(b => b.className = 'emoji-cat px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm');
+        (btn as HTMLElement).className = 'emoji-cat px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium';
+        currentCat = (btn as HTMLElement).dataset.cat!;
+        render((document.getElementById('emojiSearch') as HTMLInputElement).value);
+      });
+    });
+
+    render();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Emoji Picker and Search</h2>
+    <p>Find and copy emojis by name, keyword or category. Browse hundreds of Unicode emojis organized by type. One-click copy to clipboard.</p>
+    <h3>Categories</h3>
+    <ul>
+      <li><strong>Smileys & Emotion</strong> - Faces, expressions, reactions</li>
+      <li><strong>People & Body</strong> - Hands, gestures, body parts</li>
+      <li><strong>Animals & Nature</strong> - Animals, plants, weather</li>
+      <li><strong>Food & Drink</strong> - Fruits, dishes, beverages</li>
+      <li><strong>Symbols</strong> - Hearts, arrows, signs</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

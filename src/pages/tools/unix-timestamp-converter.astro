@@ -1,0 +1,130 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Unix Timestamp Converter"
+  description="Convert Unix timestamps to human-readable dates and vice versa. Current epoch time, UTC and local time. Free timestamp converter."
+  category="developer"
+  icon="⏱"
+>
+  <div>
+    <!-- Current Time -->
+    <div class="mb-6 p-4 bg-blue-50 rounded-lg text-center">
+      <div class="text-sm text-gray-600 mb-1">Current Unix Timestamp</div>
+      <div id="currentTs" class="text-3xl font-bold font-mono text-blue-600 cursor-pointer" title="Click to copy"></div>
+      <div id="currentDate" class="text-sm text-gray-500 mt-1"></div>
+    </div>
+
+    <!-- Timestamp → Date -->
+    <div class="mb-8 p-4 bg-white border border-gray-200 rounded-lg">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Timestamp → Date</h3>
+      <div class="flex gap-2 mb-3">
+        <input type="text" id="tsInput" placeholder="e.g. 1700000000" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <select id="tsUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="s" selected>Seconds</option>
+          <option value="ms">Milliseconds</option>
+        </select>
+        <button id="tsToDate" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Convert</button>
+      </div>
+      <div id="tsResult" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm hidden">
+        <div class="p-2 bg-gray-50 rounded"><strong>UTC:</strong> <span id="tsUtc"></span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>Local:</strong> <span id="tsLocal"></span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>ISO 8601:</strong> <span id="tsIso" class="font-mono"></span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>Relative:</strong> <span id="tsRelative"></span></div>
+      </div>
+    </div>
+
+    <!-- Date → Timestamp -->
+    <div class="p-4 bg-white border border-gray-200 rounded-lg">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Date → Timestamp</h3>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <input type="datetime-local" id="dateInput" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="dateToTs" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Convert</button>
+        <button id="nowBtn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Now</button>
+      </div>
+      <div id="dateResult" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm hidden">
+        <div class="p-2 bg-gray-50 rounded"><strong>Seconds:</strong> <span id="dateSec" class="font-mono"></span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>Milliseconds:</strong> <span id="dateMs" class="font-mono"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currentTsEl = document.getElementById('currentTs')!;
+    const currentDateEl = document.getElementById('currentDate')!;
+
+    function updateCurrent(): void {
+      const now = Math.floor(Date.now() / 1000);
+      currentTsEl.textContent = now.toString();
+      currentDateEl.textContent = new Date().toISOString();
+    }
+    updateCurrent();
+    setInterval(updateCurrent, 1000);
+
+    currentTsEl.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(currentTsEl.textContent || '');
+      currentDateEl.textContent = 'Copied!';
+      setTimeout(updateCurrent, 1000);
+    });
+
+    function relativeTime(date: Date): string {
+      const now = Date.now();
+      const diff = now - date.getTime();
+      const abs = Math.abs(diff);
+      const future = diff < 0;
+      const units: [number, string][] = [
+        [31536000000, 'year'], [2592000000, 'month'], [86400000, 'day'],
+        [3600000, 'hour'], [60000, 'minute'], [1000, 'second']
+      ];
+      for (const [ms, unit] of units) {
+        const val = Math.floor(abs / ms);
+        if (val >= 1) return `${val} ${unit}${val > 1 ? 's' : ''} ${future ? 'from now' : 'ago'}`;
+      }
+      return 'just now';
+    }
+
+    document.getElementById('tsToDate')!.addEventListener('click', () => {
+      const raw = (document.getElementById('tsInput') as HTMLInputElement).value.trim();
+      const unit = (document.getElementById('tsUnit') as HTMLSelectElement).value;
+      let ms = parseInt(raw);
+      if (isNaN(ms)) return;
+      if (unit === 's') ms *= 1000;
+      const d = new Date(ms);
+      document.getElementById('tsUtc')!.textContent = d.toUTCString();
+      document.getElementById('tsLocal')!.textContent = d.toLocaleString();
+      document.getElementById('tsIso')!.textContent = d.toISOString();
+      document.getElementById('tsRelative')!.textContent = relativeTime(d);
+      document.getElementById('tsResult')!.classList.remove('hidden');
+    });
+
+    document.getElementById('nowBtn')!.addEventListener('click', () => {
+      const now = new Date();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      (document.getElementById('dateInput') as HTMLInputElement).value = local;
+    });
+
+    document.getElementById('dateToTs')!.addEventListener('click', () => {
+      const val = (document.getElementById('dateInput') as HTMLInputElement).value;
+      if (!val) return;
+      const d = new Date(val);
+      const sec = Math.floor(d.getTime() / 1000);
+      document.getElementById('dateSec')!.textContent = sec.toString();
+      document.getElementById('dateMs')!.textContent = d.getTime().toString();
+      document.getElementById('dateResult')!.classList.remove('hidden');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Unix Timestamp Converter</h2>
+    <p>Convert between Unix timestamps (epoch time) and human-readable dates. Shows current Unix time in real-time with UTC, local time and ISO 8601 formats.</p>
+    <h3>What is a Unix Timestamp?</h3>
+    <p>A Unix timestamp is the number of seconds elapsed since January 1, 1970 (UTC), also known as the Unix epoch. It's widely used in programming, databases and APIs to represent dates and times as a single integer.</p>
+    <h3>Common Timestamps</h3>
+    <ul>
+      <li><strong>0</strong> - January 1, 1970 (Unix epoch)</li>
+      <li><strong>1000000000</strong> - September 9, 2001</li>
+      <li><strong>2000000000</strong> - May 18, 2033 (the next "round" timestamp)</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

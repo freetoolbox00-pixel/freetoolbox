@@ -1,0 +1,194 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JSON Schema Generator"
+  description="Generate JSON Schema from JSON data automatically. Supports draft-07. Validate JSON against a schema. Free JSON Schema tool."
+  category="developer"
+  icon="📋"
+>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button id="jsGenMode" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Generate Schema</button>
+      <button id="jsValMode" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg">Validate JSON</button>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label id="jsLabel" class="block text-sm font-medium text-gray-700 mb-1">JSON Input</label>
+        <textarea id="jsInput" rows="16" placeholder='{"name": "John", "age": 30, "email": "john@example.com", "active": true, "tags": ["developer", "admin"]}' class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label id="jsOutLabel" class="text-sm font-medium text-gray-700">Generated Schema</label>
+          <button id="jsCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+        </div>
+        <pre id="jsOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[400px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+
+    <!-- Schema input for validation mode -->
+    <div id="jsSchemaBox" class="hidden mt-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">JSON Schema (for validation)</label>
+      <textarea id="jsSchemaInput" rows="8" placeholder="Paste JSON Schema here..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg resize-y"></textarea>
+    </div>
+
+    <div id="jsStatus" class="mt-4 hidden">
+      <div id="jsStatusMsg" class="p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'generate';
+
+    function inferType(value: any): any {
+      if (value === null) return { type: 'null' };
+      if (Array.isArray(value)) {
+        if (value.length === 0) return { type: 'array', items: {} };
+        const itemSchemas = value.map(v => inferType(v));
+        // If all same type, use single schema
+        const types = new Set(itemSchemas.map(s => JSON.stringify(s)));
+        if (types.size === 1) return { type: 'array', items: itemSchemas[0] };
+        return { type: 'array', items: { oneOf: itemSchemas.filter((s, i) => itemSchemas.findIndex(x => JSON.stringify(x) === JSON.stringify(s)) === i) } };
+      }
+      if (typeof value === 'object') {
+        const schema: any = {
+          type: 'object',
+          properties: {} as Record<string, any>,
+          required: Object.keys(value)
+        };
+        for (const [k, v] of Object.entries(value)) {
+          schema.properties[k] = inferType(v);
+          // Add format hints
+          if (typeof v === 'string') {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) schema.properties[k].format = 'date';
+            else if (/^\d{4}-\d{2}-\d{2}T/.test(v)) schema.properties[k].format = 'date-time';
+            else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) schema.properties[k].format = 'email';
+            else if (/^https?:\/\//.test(v)) schema.properties[k].format = 'uri';
+            else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) schema.properties[k].format = 'uuid';
+          }
+        }
+        return schema;
+      }
+      if (typeof value === 'string') return { type: 'string' };
+      if (typeof value === 'number') return Number.isInteger(value) ? { type: 'integer' } : { type: 'number' };
+      if (typeof value === 'boolean') return { type: 'boolean' };
+      return {};
+    }
+
+    function generateSchema(json: any): any {
+      const schema: any = {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        ...inferType(json)
+      };
+      return schema;
+    }
+
+    function simpleValidate(data: any, schema: any, path: string = ''): string[] {
+      const errors: string[] = [];
+      if (!schema || typeof schema !== 'object') return errors;
+
+      if (schema.type) {
+        const actualType = data === null ? 'null' : Array.isArray(data) ? 'array' : typeof data;
+        const expected = schema.type === 'integer' ? 'number' : schema.type;
+        if (actualType !== expected) {
+          errors.push(`${path || '/'}: expected ${schema.type}, got ${actualType}`);
+          return errors;
+        }
+        if (schema.type === 'integer' && !Number.isInteger(data)) {
+          errors.push(`${path || '/'}: expected integer, got float`);
+        }
+      }
+
+      if (schema.type === 'object' && typeof data === 'object' && data !== null) {
+        if (schema.required) {
+          for (const key of schema.required) {
+            if (!(key in data)) errors.push(`${path}/${key}: required property missing`);
+          }
+        }
+        if (schema.properties) {
+          for (const [key, propSchema] of Object.entries(schema.properties)) {
+            if (key in data) errors.push(...simpleValidate(data[key], propSchema as any, `${path}/${key}`));
+          }
+        }
+      }
+
+      if (schema.type === 'array' && Array.isArray(data) && schema.items) {
+        data.forEach((item, i) => errors.push(...simpleValidate(item, schema.items, `${path}[${i}]`)));
+      }
+
+      if (schema.minimum !== undefined && typeof data === 'number' && data < schema.minimum) errors.push(`${path}: value ${data} < minimum ${schema.minimum}`);
+      if (schema.maximum !== undefined && typeof data === 'number' && data > schema.maximum) errors.push(`${path}: value ${data} > maximum ${schema.maximum}`);
+      if (schema.minLength !== undefined && typeof data === 'string' && data.length < schema.minLength) errors.push(`${path}: string length ${data.length} < minLength ${schema.minLength}`);
+      if (schema.maxLength !== undefined && typeof data === 'string' && data.length > schema.maxLength) errors.push(`${path}: string length ${data.length} > maxLength ${schema.maxLength}`);
+      if (schema.enum && !schema.enum.includes(data)) errors.push(`${path}: value not in enum [${schema.enum.join(', ')}]`);
+
+      return errors;
+    }
+
+    function process(): void {
+      const input = (document.getElementById('jsInput') as HTMLTextAreaElement).value.trim();
+      if (!input) return;
+
+      try {
+        const json = JSON.parse(input);
+        if (mode === 'generate') {
+          const schema = generateSchema(json);
+          document.getElementById('jsOutput')!.textContent = JSON.stringify(schema, null, 2);
+          showStatus(`Schema generated (${Object.keys(schema.properties || {}).length} properties)`, 'success');
+        } else {
+          const schemaText = (document.getElementById('jsSchemaInput') as HTMLTextAreaElement).value.trim();
+          if (!schemaText) { showStatus('Enter a JSON Schema to validate against', 'error'); return; }
+          const schema = JSON.parse(schemaText);
+          const errors = simpleValidate(json, schema);
+          if (errors.length === 0) {
+            document.getElementById('jsOutput')!.textContent = '✓ Valid! JSON matches the schema.';
+            showStatus('Validation passed', 'success');
+          } else {
+            document.getElementById('jsOutput')!.textContent = `✗ ${errors.length} error(s):\n\n${errors.join('\n')}`;
+            showStatus(`${errors.length} validation error(s)`, 'error');
+          }
+        }
+      } catch (e: any) {
+        showStatus('Invalid JSON: ' + e.message, 'error');
+      }
+    }
+
+    function showStatus(msg: string, type: 'success' | 'error'): void {
+      document.getElementById('jsStatus')!.classList.remove('hidden');
+      const el = document.getElementById('jsStatusMsg')!;
+      el.textContent = msg;
+      el.className = `p-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`;
+    }
+
+    document.getElementById('jsGenMode')!.addEventListener('click', () => {
+      mode = 'generate';
+      document.getElementById('jsGenMode')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('jsValMode')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('jsLabel')!.textContent = 'JSON Input';
+      document.getElementById('jsOutLabel')!.textContent = 'Generated Schema';
+      document.getElementById('jsSchemaBox')!.classList.add('hidden');
+    });
+
+    document.getElementById('jsValMode')!.addEventListener('click', () => {
+      mode = 'validate';
+      document.getElementById('jsValMode')!.className = 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+      document.getElementById('jsGenMode')!.className = 'px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg';
+      document.getElementById('jsLabel')!.textContent = 'JSON to Validate';
+      document.getElementById('jsOutLabel')!.textContent = 'Validation Result';
+      document.getElementById('jsSchemaBox')!.classList.remove('hidden');
+    });
+
+    (document.getElementById('jsInput') as HTMLTextAreaElement).addEventListener('input', process);
+    (document.getElementById('jsSchemaInput') as HTMLTextAreaElement).addEventListener('input', process);
+    document.getElementById('jsCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('jsOutput')!.textContent || '');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JSON Schema Generator</h2>
+    <p>Automatically generate JSON Schema (draft-07) from any JSON data. Infers types, required fields, formats (email, date, URI, UUID). Also validate JSON data against a schema.</p>
+  </Fragment>
+</ToolLayout>

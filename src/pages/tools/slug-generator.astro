@@ -1,0 +1,144 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="URL Slug Generator"
+  description="Convert titles and text into clean URL slugs. SEO-friendly slugs for blog posts, articles and pages. Free slug generator."
+  category="seo"
+  icon="/s"
+>
+  <div>
+    <!-- Input -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Enter Title or Text</label>
+      <input type="text" id="slugInput" placeholder="My Blog Post Title: A Great Example!" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" />
+    </div>
+
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Separator</label>
+        <select id="slugSep" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="-" selected>Hyphen (-)</option>
+          <option value="_">Underscore (_)</option>
+          <option value=".">Dot (.)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Max Length</label>
+        <input type="number" id="slugMax" min="10" max="200" value="80" class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div class="flex items-end pb-1">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="slugLower" checked class="accent-blue-600" />
+          Lowercase
+        </label>
+      </div>
+      <div class="flex items-end pb-1">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="slugStopwords" class="accent-blue-600" />
+          Remove stop words
+        </label>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <label class="block text-sm font-medium text-gray-700">Generated Slug</label>
+        <button id="slugCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm flex items-center gap-2">
+        <span class="text-gray-400">example.com/</span><span id="slugOutput" class="text-blue-600 font-medium break-all"></span>
+      </div>
+      <div class="mt-1 text-xs text-gray-500"><span id="slugLength">0</span> characters</div>
+    </div>
+
+    <!-- Bulk Mode -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Bulk Slug Generator</h3>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Titles (one per line)</label>
+          <textarea id="bulkInput" rows="6" placeholder="First Blog Post Title&#10;Second Amazing Article&#10;How to Do Something Great" class="w-full p-3 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-gray-700">Generated Slugs</label>
+            <button id="bulkCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy All</button>
+          </div>
+          <pre id="bulkOutput" class="w-full p-3 font-mono text-sm bg-gray-50 border border-gray-200 rounded-lg overflow-auto min-h-[150px] whitespace-pre-wrap text-blue-600"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STOP_WORDS = new Set(['a','an','the','and','or','but','in','on','at','to','for','of','with','by','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','can','shall','not','no','nor','so','if','then','than','that','this','these','those','it','its','from','as','into','about','up','out','over','after','before','between','under','above','below']);
+
+    function slugify(text: string): string {
+      const sep = (document.getElementById('slugSep') as HTMLSelectElement).value;
+      const maxLen = parseInt((document.getElementById('slugMax') as HTMLInputElement).value) || 80;
+      const lower = (document.getElementById('slugLower') as HTMLInputElement).checked;
+      const removeStops = (document.getElementById('slugStopwords') as HTMLInputElement).checked;
+
+      // Transliterate common accented chars
+      let s = text.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (lower) s = s.toLowerCase();
+      s = s.replace(/[^a-zA-Z0-9\s-]/g, '');
+
+      let words = s.trim().split(/\s+/);
+      if (removeStops) words = words.filter(w => !STOP_WORDS.has(w.toLowerCase()));
+
+      s = words.join(sep);
+      if (s.length > maxLen) s = s.slice(0, maxLen).replace(new RegExp(`${sep === '.' ? '\\.' : sep}[^${sep === '.' ? '\\.' : sep}]*$`), '');
+      return s;
+    }
+
+    function update(): void {
+      const text = (document.getElementById('slugInput') as HTMLInputElement).value;
+      const slug = slugify(text);
+      document.getElementById('slugOutput')!.textContent = slug;
+      document.getElementById('slugLength')!.textContent = slug.length.toString();
+    }
+
+    function updateBulk(): void {
+      const lines = (document.getElementById('bulkInput') as HTMLTextAreaElement).value.split('\n').filter(l => l.trim());
+      document.getElementById('bulkOutput')!.textContent = lines.map(l => slugify(l)).join('\n');
+    }
+
+    document.getElementById('slugInput')!.addEventListener('input', update);
+    document.getElementById('slugSep')!.addEventListener('change', () => { update(); updateBulk(); });
+    document.getElementById('slugMax')!.addEventListener('input', () => { update(); updateBulk(); });
+    document.getElementById('slugLower')!.addEventListener('change', () => { update(); updateBulk(); });
+    document.getElementById('slugStopwords')!.addEventListener('change', () => { update(); updateBulk(); });
+    document.getElementById('bulkInput')!.addEventListener('input', updateBulk);
+
+    document.getElementById('slugCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('slugOutput')!.textContent || '');
+      const btn = document.getElementById('slugCopy')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    document.getElementById('bulkCopy')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('bulkOutput')!.textContent || '');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free URL Slug Generator</h2>
+    <p>Convert titles, headings and text into clean, SEO-friendly URL slugs. Supports bulk generation, custom separators, stop word removal and character limits.</p>
+    <h3>What is a URL Slug?</h3>
+    <p>A URL slug is the part of a web address that identifies a page in human-readable form. Good slugs are short, descriptive and use hyphens to separate words (e.g., /my-blog-post instead of /p?id=123).</p>
+    <h3>SEO Best Practices</h3>
+    <ul>
+      <li>Keep slugs short (3-5 words)</li>
+      <li>Use hyphens, not underscores</li>
+      <li>Remove stop words (a, the, and, etc.)</li>
+      <li>Include your target keyword</li>
+      <li>Use lowercase letters only</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

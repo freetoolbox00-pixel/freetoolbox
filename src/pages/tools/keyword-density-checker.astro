@@ -1,0 +1,141 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Keyword Density Checker"
+  description="Analyze keyword density and frequency in your text. Check SEO keyword distribution with 1-word, 2-word and 3-word phrase analysis. Free keyword density tool."
+  category="seo"
+  icon="KW"
+>
+  <div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Enter Text to Analyze</label>
+      <textarea id="kwInput" rows="8" placeholder="Paste your article or blog post text here..." class="w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <button id="analyzeKw" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Analyze</button>
+      <div>
+        <label class="text-xs text-gray-500">Exclude common words</label>
+        <input type="checkbox" id="excludeStopWords" checked class="accent-blue-600 ml-1" />
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="kwStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 hidden">
+      <div class="p-3 bg-blue-50 rounded-lg text-center">
+        <div id="totalWords" class="text-xl font-bold text-blue-600">0</div>
+        <div class="text-xs text-gray-500">Total Words</div>
+      </div>
+      <div class="p-3 bg-green-50 rounded-lg text-center">
+        <div id="uniqueWords" class="text-xl font-bold text-green-600">0</div>
+        <div class="text-xs text-gray-500">Unique Words</div>
+      </div>
+      <div class="p-3 bg-purple-50 rounded-lg text-center">
+        <div id="avgWordLen" class="text-xl font-bold text-purple-600">0</div>
+        <div class="text-xs text-gray-500">Avg Word Length</div>
+      </div>
+      <div class="p-3 bg-orange-50 rounded-lg text-center">
+        <div id="topKeyword" class="text-xl font-bold text-orange-600 truncate">—</div>
+        <div class="text-xs text-gray-500">Top Keyword</div>
+      </div>
+    </div>
+
+    <!-- N-gram tabs -->
+    <div class="flex gap-1 mb-4">
+      <button class="ngram-tab px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg" data-n="1">1-word</button>
+      <button class="ngram-tab px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg" data-n="2">2-word</button>
+      <button class="ngram-tab px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg" data-n="3">3-word</button>
+    </div>
+
+    <!-- Results Table -->
+    <div id="kwResults" class="border border-gray-200 rounded-lg overflow-hidden">
+      <div class="p-4 text-sm text-gray-400 text-center">Click "Analyze" to see keyword density</div>
+    </div>
+  </div>
+
+  <script>
+    const STOP_WORDS = new Set(['a','an','the','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','can','may','might','shall','not','no','nor','so','if','that','this','it','its','they','them','their','we','us','our','you','your','he','she','him','her','his','i','me','my','as','than','then','also','just','very','too','much','more','most','some','any','each','every','all','both','few','many','such','only','own','same','other','another','new','old','about','up','out','over','after','before','between','under','through','into']);
+
+    let currentData: Map<string, number>[] = [new Map(), new Map(), new Map()];
+    let totalWordCount = 0;
+
+    function analyze(): void {
+      const text = (document.getElementById('kwInput') as HTMLTextAreaElement).value;
+      const exclude = (document.getElementById('excludeStopWords') as HTMLInputElement).checked;
+
+      const words = text.toLowerCase().replace(/[^a-zA-ZÀ-ÿ\s]/g, '').split(/\s+/).filter(w => w.length > 0);
+      totalWordCount = words.length;
+
+      if (totalWordCount === 0) return;
+
+      const filteredWords = exclude ? words.filter(w => !STOP_WORDS.has(w)) : words;
+
+      // N-grams
+      for (let n = 1; n <= 3; n++) {
+        const map = new Map<string, number>();
+        const source = n === 1 ? filteredWords : words;
+        for (let i = 0; i <= source.length - n; i++) {
+          const gram = source.slice(i, i + n).join(' ');
+          if (n > 1 && exclude && gram.split(' ').some(w => STOP_WORDS.has(w))) continue;
+          map.set(gram, (map.get(gram) || 0) + 1);
+        }
+        currentData[n - 1] = map;
+      }
+
+      // Stats
+      document.getElementById('kwStats')!.classList.remove('hidden');
+      document.getElementById('totalWords')!.textContent = totalWordCount.toString();
+      document.getElementById('uniqueWords')!.textContent = new Set(words).size.toString();
+      document.getElementById('avgWordLen')!.textContent = (words.reduce((s, w) => s + w.length, 0) / words.length).toFixed(1);
+
+      const top = [...currentData[0].entries()].sort((a, b) => b[1] - a[1])[0];
+      document.getElementById('topKeyword')!.textContent = top ? top[0] : '—';
+
+      showNgram(1);
+    }
+
+    function showNgram(n: number): void {
+      document.querySelectorAll('.ngram-tab').forEach(btn => {
+        const isActive = parseInt((btn as HTMLElement).dataset.n!) === n;
+        btn.className = `ngram-tab px-4 py-2 text-sm font-medium rounded-lg ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+      });
+
+      const data = [...currentData[n - 1].entries()].sort((a, b) => b[1] - a[1]).slice(0, 50);
+      if (data.length === 0) {
+        document.getElementById('kwResults')!.innerHTML = '<div class="p-4 text-gray-400 text-center text-sm">No data</div>';
+        return;
+      }
+
+      const maxCount = data[0][1];
+      let html = '<table class="w-full text-sm"><thead><tr><th class="px-3 py-2 bg-gray-50 text-left">#</th><th class="px-3 py-2 bg-gray-50 text-left">Keyword</th><th class="px-3 py-2 bg-gray-50 text-right">Count</th><th class="px-3 py-2 bg-gray-50 text-right">Density</th><th class="px-3 py-2 bg-gray-50 w-1/3">Bar</th></tr></thead><tbody>';
+      data.forEach(([word, count], i) => {
+        const density = ((count / totalWordCount) * 100).toFixed(2);
+        const bar = (count / maxCount) * 100;
+        html += `<tr class="border-t border-gray-100"><td class="px-3 py-2 text-gray-400">${i + 1}</td><td class="px-3 py-2 font-medium">${word}</td><td class="px-3 py-2 text-right">${count}</td><td class="px-3 py-2 text-right">${density}%</td><td class="px-3 py-2"><div class="bg-blue-100 rounded-full h-2"><div class="bg-blue-500 rounded-full h-2" style="width:${bar}%"></div></div></td></tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('kwResults')!.innerHTML = html;
+    }
+
+    document.getElementById('analyzeKw')!.addEventListener('click', analyze);
+    document.querySelectorAll('.ngram-tab').forEach(btn => {
+      btn.addEventListener('click', () => showNgram(parseInt((btn as HTMLElement).dataset.n!)));
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Keyword Density Checker</h2>
+    <p>Analyze the keyword density of your content with 1-word, 2-word and 3-word phrase analysis. Optimize your SEO by ensuring the right keyword distribution.</p>
+    <h3>What is Keyword Density?</h3>
+    <p>Keyword density is the percentage of times a keyword appears in your text compared to the total word count. Ideal density for SEO is typically 1-3% for primary keywords.</p>
+    <h3>SEO Tips</h3>
+    <ul>
+      <li>Primary keyword: 1-3% density</li>
+      <li>Use natural language, avoid keyword stuffing</li>
+      <li>Include related 2-3 word phrases (LSI keywords)</li>
+      <li>Focus on user intent, not just keyword count</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

@@ -1,0 +1,187 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Markdown Preview"
+  description="Write Markdown and see the HTML preview in real-time. Supports headings, lists, code blocks, tables, links and images. Free Markdown editor."
+  category="developer"
+  icon="MD"
+>
+  <div>
+    <!-- Toolbar -->
+    <div class="flex flex-wrap gap-1 mb-2">
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="**" data-wrap="true" title="Bold">B</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono italic" data-insert="*" data-wrap="true" title="Italic">I</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="# " title="Heading">H1</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="## " title="Heading 2">H2</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="- " title="List">• List</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="1. " title="Numbered List">1.</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="`" data-wrap="true" title="Code">Code</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="[text](url)" title="Link">Link</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="> " title="Quote">Quote</button>
+      <button class="md-insert px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded font-mono" data-insert="---&#10;" title="Horizontal Rule">HR</button>
+    </div>
+
+    <!-- Editor + Preview -->
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Markdown</label>
+        <textarea id="mdInput" rows="20" placeholder="# Hello World&#10;&#10;Write **markdown** here..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-sm font-medium text-gray-700">Preview</label>
+          <button id="copyHtml" class="text-xs text-blue-600 hover:text-blue-800">Copy HTML</button>
+        </div>
+        <div id="mdPreview" class="p-4 bg-white border border-gray-300 rounded-lg min-h-[480px] overflow-auto prose prose-sm max-w-none"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const mdInput = document.getElementById('mdInput') as HTMLTextAreaElement;
+    const preview = document.getElementById('mdPreview')!;
+
+    function escapeHtml(s: string): string {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function parseMarkdown(md: string): string {
+      let html = md;
+
+      // Code blocks (``` ... ```)
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+        `<pre class="bg-gray-900 text-green-400 p-3 rounded-lg overflow-x-auto text-xs"><code>${escapeHtml(code.trim())}</code></pre>`);
+
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-red-600">$1</code>');
+
+      // Headers
+      html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+      // Bold & Italic
+      html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      // Strikethrough
+      html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+      // Horizontal rule
+      html = html.replace(/^---+$/gm, '<hr class="my-4">');
+
+      // Blockquote
+      html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600">$1</blockquote>');
+
+      // Images
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded">');
+
+      // Links
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 underline" target="_blank" rel="noopener">$1</a>');
+
+      // Unordered lists
+      html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc pl-5 space-y-1">$&</ul>');
+
+      // Ordered lists
+      html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+      // Tables
+      html = html.replace(/^\|(.+)\|$/gm, (match) => {
+        const cells = match.split('|').filter(c => c.trim()).map(c => c.trim());
+        if (cells.every(c => /^[-:]+$/.test(c))) return '';
+        const tag = 'td';
+        return '<tr>' + cells.map(c => `<${tag} class="border border-gray-300 px-3 py-1">${c}</${tag}>`).join('') + '</tr>';
+      });
+      html = html.replace(/(<tr>.*<\/tr>\n?)+/g, '<table class="border-collapse w-full text-sm">$&</table>');
+
+      // Checkboxes
+      html = html.replace(/\[ \]/g, '<input type="checkbox" disabled class="mr-1">');
+      html = html.replace(/\[x\]/gi, '<input type="checkbox" checked disabled class="mr-1">');
+
+      // Paragraphs
+      html = html.replace(/\n\n/g, '</p><p>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p>\s*(<h[1-6]|<pre|<ul|<ol|<table|<blockquote|<hr)/g, '$1');
+      html = html.replace(/(<\/h[1-6]>|<\/pre>|<\/ul>|<\/ol>|<\/table>|<\/blockquote>|<hr[^>]*>)\s*<\/p>/g, '$1');
+
+      // Line breaks
+      html = html.replace(/\n/g, '<br>');
+
+      return html;
+    }
+
+    function render(): void {
+      preview.innerHTML = parseMarkdown(mdInput.value);
+    }
+
+    mdInput.addEventListener('input', render);
+
+    // Toolbar insert
+    document.querySelectorAll('.md-insert').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const insert = (btn as HTMLElement).dataset.insert || '';
+        const wrap = (btn as HTMLElement).dataset.wrap === 'true';
+        const start = mdInput.selectionStart;
+        const end = mdInput.selectionEnd;
+        const selected = mdInput.value.substring(start, end);
+
+        if (wrap && selected) {
+          mdInput.value = mdInput.value.substring(0, start) + insert + selected + insert + mdInput.value.substring(end);
+        } else {
+          mdInput.value = mdInput.value.substring(0, start) + insert + mdInput.value.substring(end);
+        }
+        mdInput.focus();
+        render();
+      });
+    });
+
+    document.getElementById('copyHtml')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(preview.innerHTML);
+      const btn = document.getElementById('copyHtml')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy HTML', 1500);
+    });
+
+    // Default content
+    mdInput.value = `# Welcome to Markdown Preview
+
+This is a **live preview** editor. Type on the left, see the result on the right.
+
+## Features
+- **Bold** and *italic* text
+- [Links](https://example.com)
+- \`inline code\`
+- Lists and more
+
+\`\`\`javascript
+const hello = "world";
+console.log(hello);
+\`\`\`
+
+> This is a blockquote
+
+---
+
+Enjoy writing!`;
+    render();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Markdown Preview Editor</h2>
+    <p>Write Markdown with a real-time HTML preview. Supports all common Markdown syntax including headings, bold, italic, links, images, code blocks, tables and more.</p>
+    <h3>Supported Syntax</h3>
+    <ul>
+      <li><strong>Headings</strong> - # through #### for different levels</li>
+      <li><strong>Formatting</strong> - Bold, italic, strikethrough</li>
+      <li><strong>Code</strong> - Inline code and fenced code blocks with syntax highlighting</li>
+      <li><strong>Lists</strong> - Ordered and unordered lists with checkboxes</li>
+      <li><strong>Tables</strong> - Pipe-separated table syntax</li>
+      <li><strong>Blockquotes</strong> - Nested quote blocks</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

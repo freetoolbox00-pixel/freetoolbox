@@ -1,0 +1,128 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Box Shadow Generator"
+  description="Create CSS box shadows visually with live preview. Adjust offset, blur, spread, color and opacity. Multiple shadows support. Free box shadow maker."
+  category="developer"
+  icon="▦"
+>
+  <div>
+    <!-- Preview -->
+    <div class="flex justify-center items-center mb-6 p-12 bg-gray-100 rounded-xl" id="shadowBg">
+      <div id="shadowBox" class="w-48 h-48 bg-white rounded-xl flex items-center justify-center text-gray-400 text-sm" style="box-shadow: 10px 10px 30px 0px rgba(0,0,0,0.2)">
+        Preview
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Horizontal Offset: <span id="hVal">10</span>px</label>
+        <input type="range" id="shadowH" min="-100" max="100" value="10" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Vertical Offset: <span id="vVal">10</span>px</label>
+        <input type="range" id="shadowV" min="-100" max="100" value="10" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Blur Radius: <span id="bVal">30</span>px</label>
+        <input type="range" id="shadowB" min="0" max="200" value="30" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Spread Radius: <span id="sVal">0</span>px</label>
+        <input type="range" id="shadowS" min="-50" max="100" value="0" class="w-full accent-blue-600" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Opacity: <span id="oVal">0.2</span></label>
+        <input type="range" id="shadowO" min="0" max="100" value="20" class="w-full accent-blue-600" />
+      </div>
+      <div class="flex gap-2 items-end">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Color</label>
+          <input type="color" id="shadowColor" value="#000000" class="w-12 h-10 rounded border cursor-pointer" />
+        </div>
+        <label class="flex items-center gap-2 text-sm pb-2">
+          <input type="checkbox" id="shadowInset" class="accent-blue-600" /> Inset
+        </label>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Presets</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)">Material 1</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)">Material 3</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)">Tailwind XL</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="0 25px 50px -12px rgba(0,0,0,0.25)">Tailwind 2XL</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="rgba(0, 0, 0, 0.56) 0px 22px 70px 4px">Dramatic</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px">Subtle</button>
+        <button class="shadow-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-xs" data-shadow="inset 0 2px 4px 0 rgba(0,0,0,0.06)">Inset</button>
+      </div>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="copyShadow" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="shadowCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    const box = document.getElementById('shadowBox')!;
+    const sliders = ['shadowH', 'shadowV', 'shadowB', 'shadowS', 'shadowO'];
+
+    function hexToRgb(hex: string): [number, number, number] {
+      hex = hex.replace('#', '');
+      return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+    }
+
+    function update(): void {
+      const h = parseInt((document.getElementById('shadowH') as HTMLInputElement).value);
+      const v = parseInt((document.getElementById('shadowV') as HTMLInputElement).value);
+      const b = parseInt((document.getElementById('shadowB') as HTMLInputElement).value);
+      const s = parseInt((document.getElementById('shadowS') as HTMLInputElement).value);
+      const o = parseInt((document.getElementById('shadowO') as HTMLInputElement).value) / 100;
+      const [r, g, bl] = hexToRgb((document.getElementById('shadowColor') as HTMLInputElement).value);
+      const inset = (document.getElementById('shadowInset') as HTMLInputElement).checked;
+
+      document.getElementById('hVal')!.textContent = h.toString();
+      document.getElementById('vVal')!.textContent = v.toString();
+      document.getElementById('bVal')!.textContent = b.toString();
+      document.getElementById('sVal')!.textContent = s.toString();
+      document.getElementById('oVal')!.textContent = o.toFixed(2);
+
+      const shadow = `${inset ? 'inset ' : ''}${h}px ${v}px ${b}px ${s}px rgba(${r}, ${g}, ${bl}, ${o})`;
+      box.style.boxShadow = shadow;
+      document.getElementById('shadowCode')!.textContent = `box-shadow: ${shadow};`;
+    }
+
+    sliders.forEach(id => document.getElementById(id)!.addEventListener('input', update));
+    document.getElementById('shadowColor')!.addEventListener('input', update);
+    document.getElementById('shadowInset')!.addEventListener('change', update);
+
+    document.querySelectorAll('.shadow-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const shadow = (btn as HTMLElement).dataset.shadow!;
+        box.style.boxShadow = shadow;
+        document.getElementById('shadowCode')!.textContent = `box-shadow: ${shadow};`;
+      });
+    });
+
+    document.getElementById('copyShadow')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('shadowCode')!.textContent || '');
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Box Shadow Generator</h2>
+    <p>Create CSS box shadows visually with real-time preview. Control offset, blur, spread, color and opacity. Includes popular shadow presets from Material Design and Tailwind CSS.</p>
+  </Fragment>
+</ToolLayout>

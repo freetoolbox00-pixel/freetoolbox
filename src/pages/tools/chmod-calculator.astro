@@ -1,0 +1,188 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Chmod Calculator"
+  description="Calculate Unix file permissions. Convert between symbolic (rwxr-xr-x) and numeric (755) chmod notation. Free chmod permission calculator."
+  category="developer"
+  icon="rwx"
+>
+  <div>
+    <!-- Permission Grid -->
+    <div class="mb-6">
+      <div class="grid grid-cols-4 gap-2 text-center text-sm font-medium mb-2">
+        <div></div>
+        <div class="text-blue-600">Owner</div>
+        <div class="text-green-600">Group</div>
+        <div class="text-orange-600">Others</div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2 text-center">
+        <div class="text-sm font-medium text-gray-700 py-2">Read (4)</div>
+        <div><input type="checkbox" class="perm-cb accent-blue-600 w-5 h-5" data-who="u" data-perm="r" checked /></div>
+        <div><input type="checkbox" class="perm-cb accent-green-600 w-5 h-5" data-who="g" data-perm="r" checked /></div>
+        <div><input type="checkbox" class="perm-cb accent-orange-600 w-5 h-5" data-who="o" data-perm="r" checked /></div>
+
+        <div class="text-sm font-medium text-gray-700 py-2">Write (2)</div>
+        <div><input type="checkbox" class="perm-cb accent-blue-600 w-5 h-5" data-who="u" data-perm="w" checked /></div>
+        <div><input type="checkbox" class="perm-cb accent-green-600 w-5 h-5" data-who="g" data-perm="w" /></div>
+        <div><input type="checkbox" class="perm-cb accent-orange-600 w-5 h-5" data-who="o" data-perm="w" /></div>
+
+        <div class="text-sm font-medium text-gray-700 py-2">Execute (1)</div>
+        <div><input type="checkbox" class="perm-cb accent-blue-600 w-5 h-5" data-who="u" data-perm="x" checked /></div>
+        <div><input type="checkbox" class="perm-cb accent-green-600 w-5 h-5" data-who="g" data-perm="x" checked /></div>
+        <div><input type="checkbox" class="perm-cb accent-orange-600 w-5 h-5" data-who="o" data-perm="x" checked /></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div class="p-4 bg-blue-50 rounded-lg text-center">
+        <div class="text-sm text-gray-600 mb-1">Numeric</div>
+        <div id="chmodNum" class="text-4xl font-bold font-mono text-blue-600">755</div>
+      </div>
+      <div class="p-4 bg-green-50 rounded-lg text-center">
+        <div class="text-sm text-gray-600 mb-1">Symbolic</div>
+        <div id="chmodSym" class="text-3xl font-bold font-mono text-green-600">rwxr-xr-x</div>
+      </div>
+    </div>
+
+    <!-- Commands -->
+    <div class="space-y-2 mb-6">
+      <div class="flex items-center gap-2">
+        <code id="chmodCmd" class="flex-1 p-2 bg-gray-900 text-green-400 rounded font-mono text-sm">chmod 755 filename</code>
+        <button id="copyCmd" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded">Copy</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <code id="chmodCmdSym" class="flex-1 p-2 bg-gray-900 text-green-400 rounded font-mono text-sm">chmod u=rwx,g=rx,o=rx filename</code>
+        <button id="copyCmdSym" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded">Copy</button>
+      </div>
+    </div>
+
+    <!-- From Numeric -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Enter Numeric Value</h3>
+      <div class="flex gap-2">
+        <input type="text" id="numInput" placeholder="755" maxlength="4" class="w-24 px-3 py-2 border border-gray-300 rounded-lg font-mono text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="fromNum" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Apply</button>
+      </div>
+    </div>
+
+    <!-- Common Permissions -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Common Permissions</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="755"><code>755</code> - Standard directory</button>
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="644"><code>644</code> - Standard file</button>
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="777"><code>777</code> - Full access (danger)</button>
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="600"><code>600</code> - Owner only (private key)</button>
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="400"><code>400</code> - Read-only owner</button>
+        <button class="preset-perm px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm text-left" data-val="700"><code>700</code> - Owner full access</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const perms = { u: { r: false, w: false, x: false }, g: { r: false, w: false, x: false }, o: { r: false, w: false, x: false } };
+    const weights: Record<string, number> = { r: 4, w: 2, x: 1 };
+
+    function readCheckboxes(): void {
+      document.querySelectorAll('.perm-cb').forEach(cb => {
+        const el = cb as HTMLInputElement;
+        const who = el.dataset.who as 'u' | 'g' | 'o';
+        const perm = el.dataset.perm as 'r' | 'w' | 'x';
+        perms[who][perm] = el.checked;
+      });
+    }
+
+    function setCheckboxes(): void {
+      document.querySelectorAll('.perm-cb').forEach(cb => {
+        const el = cb as HTMLInputElement;
+        const who = el.dataset.who as 'u' | 'g' | 'o';
+        const perm = el.dataset.perm as 'r' | 'w' | 'x';
+        el.checked = perms[who][perm];
+      });
+    }
+
+    function getNumeric(): string {
+      return ['u', 'g', 'o'].map(who => {
+        const p = perms[who as 'u' | 'g' | 'o'];
+        return (p.r ? 4 : 0) + (p.w ? 2 : 0) + (p.x ? 1 : 0);
+      }).join('');
+    }
+
+    function getSymbolic(): string {
+      return ['u', 'g', 'o'].map(who => {
+        const p = perms[who as 'u' | 'g' | 'o'];
+        return (p.r ? 'r' : '-') + (p.w ? 'w' : '-') + (p.x ? 'x' : '-');
+      }).join('');
+    }
+
+    function getSymbolicCmd(): string {
+      return ['u', 'g', 'o'].map(who => {
+        const p = perms[who as 'u' | 'g' | 'o'];
+        const bits = (p.r ? 'r' : '') + (p.w ? 'w' : '') + (p.x ? 'x' : '');
+        return bits ? `${who}=${bits}` : '';
+      }).filter(Boolean).join(',');
+    }
+
+    function update(): void {
+      document.getElementById('chmodNum')!.textContent = getNumeric();
+      document.getElementById('chmodSym')!.textContent = getSymbolic();
+      document.getElementById('chmodCmd')!.textContent = `chmod ${getNumeric()} filename`;
+      document.getElementById('chmodCmdSym')!.textContent = `chmod ${getSymbolicCmd()} filename`;
+    }
+
+    function fromNumeric(val: string): void {
+      const digits = val.replace(/[^0-7]/g, '').split('').map(Number);
+      if (digits.length < 3) return;
+      const d = digits.length === 4 ? digits.slice(1) : digits;
+      ['u', 'g', 'o'].forEach((who, i) => {
+        perms[who as 'u' | 'g' | 'o'].r = (d[i] & 4) !== 0;
+        perms[who as 'u' | 'g' | 'o'].w = (d[i] & 2) !== 0;
+        perms[who as 'u' | 'g' | 'o'].x = (d[i] & 1) !== 0;
+      });
+      setCheckboxes();
+      update();
+    }
+
+    document.querySelectorAll('.perm-cb').forEach(cb => {
+      cb.addEventListener('change', () => { readCheckboxes(); update(); });
+    });
+
+    document.getElementById('fromNum')!.addEventListener('click', () => {
+      fromNumeric((document.getElementById('numInput') as HTMLInputElement).value);
+    });
+
+    document.querySelectorAll('.preset-perm').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fromNumeric((btn as HTMLElement).dataset.val!);
+        (document.getElementById('numInput') as HTMLInputElement).value = (btn as HTMLElement).dataset.val!;
+      });
+    });
+
+    document.getElementById('copyCmd')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('chmodCmd')!.textContent || '');
+    });
+    document.getElementById('copyCmdSym')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('chmodCmdSym')!.textContent || '');
+    });
+
+    readCheckboxes();
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Chmod Calculator Online</h2>
+    <p>Calculate Unix file permissions with an interactive checkbox grid. Convert between numeric (octal) and symbolic chmod notation. Generate ready-to-use chmod commands.</p>
+    <h3>Understanding Permissions</h3>
+    <ul>
+      <li><strong>Read (4)</strong> - View file contents or list directory</li>
+      <li><strong>Write (2)</strong> - Modify file or add/remove files in directory</li>
+      <li><strong>Execute (1)</strong> - Run file as program or enter directory</li>
+    </ul>
+    <h3>Permission Groups</h3>
+    <p>Owner (u) - the file creator. Group (g) - users in the file's group. Others (o) - everyone else.</p>
+  </Fragment>
+</ToolLayout>

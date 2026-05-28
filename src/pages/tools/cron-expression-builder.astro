@@ -1,0 +1,207 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Cron Expression Builder"
+  description="Build and understand cron expressions visually. See next run times and get human-readable descriptions. Free cron job scheduler tool."
+  category="developer"
+  icon="⏰"
+>
+  <div>
+    <!-- Visual Builder -->
+    <div class="grid gap-4 sm:grid-cols-5 mb-6">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Minute (0-59)</label>
+        <input type="text" id="cronMin" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Hour (0-23)</label>
+        <input type="text" id="cronHour" value="*" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Day of Month (1-31)</label>
+        <input type="text" id="cronDom" value="*" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Month (1-12)</label>
+        <input type="text" id="cronMonth" value="*" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Day of Week (0-6)</label>
+        <input type="text" id="cronDow" value="*" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+    </div>
+
+    <!-- Expression Display -->
+    <div class="p-4 bg-gray-900 rounded-lg mb-4 flex items-center justify-between">
+      <code id="cronExpr" class="text-2xl font-mono text-green-400">0 * * * *</code>
+      <button id="copyCron" class="px-3 py-1 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded">Copy</button>
+    </div>
+
+    <!-- Human Description -->
+    <div id="cronDesc" class="p-3 bg-blue-50 rounded-lg text-blue-800 text-sm font-medium mb-6"></div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Common Presets</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="* * * * *">Every minute</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="*/5 * * * *">Every 5 min</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="*/15 * * * *">Every 15 min</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 * * * *">Every hour</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 0 * * *">Daily midnight</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 9 * * *">Daily 9 AM</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 9 * * 1-5">Weekdays 9 AM</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 0 * * 0">Weekly Sunday</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 0 1 * *">Monthly 1st</button>
+        <button class="cron-preset px-3 py-1 bg-gray-100 hover:bg-blue-50 rounded text-xs" data-cron="0 0 1 1 *">Yearly Jan 1</button>
+      </div>
+    </div>
+
+    <!-- Next Runs -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Next 5 Run Times</h3>
+      <div id="nextRuns" class="space-y-1 text-sm font-mono text-gray-600"></div>
+    </div>
+
+    <!-- Parse existing -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">Parse Cron Expression</h3>
+      <div class="flex gap-2">
+        <input type="text" id="parseInput" placeholder="*/5 * * * *" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="parseBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Parse</button>
+      </div>
+    </div>
+
+    <!-- Syntax Reference -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Syntax Reference</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <div class="p-2 bg-gray-50 rounded"><code>*</code> — any value</div>
+        <div class="p-2 bg-gray-50 rounded"><code>,</code> — value list (1,3,5)</div>
+        <div class="p-2 bg-gray-50 rounded"><code>-</code> — range (1-5)</div>
+        <div class="p-2 bg-gray-50 rounded"><code>/</code> — step (*/5)</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fields = ['cronMin', 'cronHour', 'cronDom', 'cronMonth', 'cronDow'];
+    const DOW_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function describePart(val: string, type: string): string {
+      if (val === '*') return `every ${type}`;
+      if (val.includes('/')) { const [, step] = val.split('/'); return `every ${step} ${type}s`; }
+      if (val.includes(',')) return `${type}s ${val}`;
+      if (val.includes('-')) return `${type}s ${val}`;
+      if (type === 'day-of-week' && !isNaN(+val)) return DOW_NAMES[+val] || val;
+      if (type === 'month' && !isNaN(+val)) return MONTH_NAMES[+val] || val;
+      return `${type} ${val}`;
+    }
+
+    function describe(parts: string[]): string {
+      const [min, hour, dom, month, dow] = parts;
+      let desc = 'Runs ';
+
+      if (min === '*' && hour === '*') desc += 'every minute';
+      else if (min.includes('/')) desc += `every ${min.split('/')[1]} minutes`;
+      else if (hour === '*') desc += `at minute ${min} of every hour`;
+      else if (hour.includes('/')) desc += `every ${hour.split('/')[1]} hours at minute ${min}`;
+      else desc += `at ${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+
+      if (dom !== '*') desc += `, on day ${dom} of the month`;
+      if (month !== '*') desc += `, in ${describePart(month, 'month')}`;
+      if (dow !== '*') desc += `, on ${describePart(dow, 'day-of-week')}`;
+
+      return desc;
+    }
+
+    function matchesCronField(val: string, n: number): boolean {
+      if (val === '*') return true;
+      return val.split(',').some(part => {
+        if (part.includes('/')) {
+          const [base, step] = part.split('/');
+          const s = parseInt(step);
+          const b = base === '*' ? 0 : parseInt(base);
+          return (n - b) % s === 0 && n >= b;
+        }
+        if (part.includes('-')) {
+          const [a, b] = part.split('-').map(Number);
+          return n >= a && n <= b;
+        }
+        return parseInt(part) === n;
+      });
+    }
+
+    function getNextRuns(parts: string[], count: number): Date[] {
+      const dates: Date[] = [];
+      const now = new Date();
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes() + 1, 0, 0);
+
+      for (let i = 0; i < 525960 && dates.length < count; i++) {
+        const t = new Date(d.getTime() + i * 60000);
+        if (
+          matchesCronField(parts[0], t.getMinutes()) &&
+          matchesCronField(parts[1], t.getHours()) &&
+          matchesCronField(parts[2], t.getDate()) &&
+          matchesCronField(parts[3], t.getMonth() + 1) &&
+          matchesCronField(parts[4], t.getDay())
+        ) {
+          dates.push(t);
+        }
+      }
+      return dates;
+    }
+
+    function update(): void {
+      const parts = fields.map(id => (document.getElementById(id) as HTMLInputElement).value.trim() || '*');
+      const expr = parts.join(' ');
+      document.getElementById('cronExpr')!.textContent = expr;
+      document.getElementById('cronDesc')!.textContent = describe(parts);
+
+      const runs = getNextRuns(parts, 5);
+      document.getElementById('nextRuns')!.innerHTML = runs.length > 0
+        ? runs.map(d => `<div>${d.toLocaleString()}</div>`).join('')
+        : '<div class="text-gray-400">No upcoming runs found</div>';
+    }
+
+    fields.forEach(id => {
+      document.getElementById(id)!.addEventListener('input', update);
+    });
+
+    document.querySelectorAll('.cron-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parts = ((btn as HTMLElement).dataset.cron || '').split(' ');
+        fields.forEach((id, i) => {
+          (document.getElementById(id) as HTMLInputElement).value = parts[i] || '*';
+        });
+        update();
+      });
+    });
+
+    document.getElementById('parseBtn')!.addEventListener('click', () => {
+      const parts = (document.getElementById('parseInput') as HTMLInputElement).value.trim().split(/\s+/);
+      if (parts.length >= 5) {
+        fields.forEach((id, i) => {
+          (document.getElementById(id) as HTMLInputElement).value = parts[i] || '*';
+        });
+        update();
+      }
+    });
+
+    document.getElementById('copyCron')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('cronExpr')!.textContent || '');
+    });
+
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Cron Expression Builder</h2>
+    <p>Build cron expressions visually with an interactive editor. See human-readable descriptions, next run times and use common presets. Parse existing cron expressions to understand them.</p>
+    <h3>Cron Format</h3>
+    <p>A cron expression has 5 fields: minute, hour, day of month, month, day of week. Each field can use wildcards (*), ranges (1-5), lists (1,3,5) and steps (*/5).</p>
+  </Fragment>
+</ToolLayout>

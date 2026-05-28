@@ -1,0 +1,182 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Email Address Validator"
+  description="Validate email addresses for correct format. Check syntax, domain, common typos. Bulk email validation. Free email checker."
+  category="utility"
+  icon="✉"
+>
+  <div>
+    <!-- Single -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+      <div class="flex gap-2">
+        <input type="text" id="evInput" placeholder="user@example.com" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="evCheck" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg">Validate</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="evResult" class="hidden mb-6">
+      <div id="evResultBox" class="p-4 rounded-lg"></div>
+    </div>
+
+    <!-- Details -->
+    <div id="evDetails" class="hidden mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Details</h3>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-xs text-gray-400">Local Part</div>
+          <div id="evLocal" class="font-mono text-sm"></div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-xs text-gray-400">Domain</div>
+          <div id="evDomain" class="font-mono text-sm"></div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-xs text-gray-400">Provider</div>
+          <div id="evProvider" class="text-sm"></div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-xs text-gray-400">Suggestion</div>
+          <div id="evSuggest" class="text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk -->
+    <div class="pt-6 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Bulk Validate</h3>
+      <textarea id="evBulk" rows="6" placeholder="Enter one email per line..." class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg mb-2 resize-y"></textarea>
+      <button id="evBulkBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg mb-4">Validate All</button>
+      <div id="evBulkResult" class="hidden">
+        <div id="evBulkStats" class="flex gap-4 mb-2"></div>
+        <div id="evBulkList" class="max-h-64 overflow-y-auto space-y-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const providers: Record<string, string> = {
+      'gmail.com': 'Google Gmail', 'googlemail.com': 'Google Gmail',
+      'yahoo.com': 'Yahoo Mail', 'yahoo.it': 'Yahoo Mail',
+      'outlook.com': 'Microsoft Outlook', 'hotmail.com': 'Microsoft Hotmail',
+      'live.com': 'Microsoft Live', 'icloud.com': 'Apple iCloud',
+      'me.com': 'Apple', 'aol.com': 'AOL',
+      'protonmail.com': 'ProtonMail', 'proton.me': 'ProtonMail',
+      'zoho.com': 'Zoho Mail', 'mail.com': 'Mail.com',
+      'gmx.com': 'GMX', 'yandex.com': 'Yandex',
+      'libero.it': 'Libero', 'virgilio.it': 'Virgilio',
+      'tiscali.it': 'Tiscali', 'alice.it': 'Alice',
+      'fastwebnet.it': 'Fastweb', 'pec.it': 'PEC Italia'
+    };
+
+    const commonDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'live.com', 'aol.com', 'mail.com', 'gmx.com', 'libero.it', 'virgilio.it'];
+
+    function validateEmail(email: string): { valid: boolean; errors: string[]; local: string; domain: string; suggestion: string } {
+      const e = email.trim().toLowerCase();
+      const errors: string[] = [];
+      let local = '', domain = '', suggestion = '';
+
+      if (!e) { errors.push('Empty email'); return { valid: false, errors, local, domain, suggestion }; }
+      if (!e.includes('@')) { errors.push('Missing @ symbol'); return { valid: false, errors, local, domain, suggestion }; }
+
+      const parts = e.split('@');
+      if (parts.length > 2) { errors.push('Multiple @ symbols'); return { valid: false, errors, local, domain, suggestion }; }
+
+      local = parts[0];
+      domain = parts[1];
+
+      if (!local) errors.push('Empty local part');
+      if (local.length > 64) errors.push('Local part too long (max 64 chars)');
+      if (/^\.|\.$/.test(local)) errors.push('Local part cannot start or end with a dot');
+      if (/\.\./.test(local)) errors.push('Local part cannot have consecutive dots');
+      if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local) && local) errors.push('Invalid characters in local part');
+
+      if (!domain) errors.push('Empty domain');
+      if (domain && !domain.includes('.')) errors.push('Domain must have at least one dot');
+      if (domain && domain.length > 253) errors.push('Domain too long');
+      if (domain && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(domain)) errors.push('Invalid domain format');
+
+      // Typo detection
+      if (domain && errors.length === 0) {
+        const closest = commonDomains.find(d => {
+          if (d === domain) return false;
+          const dist = levenshtein(domain, d);
+          return dist <= 2 && dist > 0;
+        });
+        if (closest) suggestion = `Did you mean ${local}@${closest}?`;
+      }
+
+      return { valid: errors.length === 0, errors, local, domain, suggestion };
+    }
+
+    function levenshtein(a: string, b: string): number {
+      const m = a.length, n = b.length;
+      const dp: number[][] = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+      for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+          dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      return dp[m][n];
+    }
+
+    function showResult(email: string): void {
+      const r = validateEmail(email);
+      document.getElementById('evResult')!.classList.remove('hidden');
+      document.getElementById('evDetails')!.classList.remove('hidden');
+
+      const box = document.getElementById('evResultBox')!;
+      if (r.valid) {
+        box.className = 'p-4 rounded-lg bg-green-50 border border-green-200';
+        box.innerHTML = `<div class="text-green-700 font-medium">✓ Valid email address</div>`;
+      } else {
+        box.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
+        box.innerHTML = `<div class="text-red-700 font-medium">✗ Invalid email</div><ul class="mt-1 text-sm text-red-600">${r.errors.map(e => `<li>• ${e}</li>`).join('')}</ul>`;
+      }
+
+      document.getElementById('evLocal')!.textContent = r.local || '—';
+      document.getElementById('evDomain')!.textContent = r.domain || '—';
+      document.getElementById('evProvider')!.textContent = providers[r.domain] || 'Unknown / Custom';
+      document.getElementById('evSuggest')!.textContent = r.suggestion || 'No suggestions';
+    }
+
+    document.getElementById('evCheck')!.addEventListener('click', () => {
+      showResult((document.getElementById('evInput') as HTMLInputElement).value);
+    });
+    document.getElementById('evInput')!.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') showResult((document.getElementById('evInput') as HTMLInputElement).value);
+    });
+
+    document.getElementById('evBulkBtn')!.addEventListener('click', () => {
+      const emails = (document.getElementById('evBulk') as HTMLTextAreaElement).value.split('\n').map(e => e.trim()).filter(Boolean);
+      if (!emails.length) return;
+
+      let valid = 0, invalid = 0;
+      const list = document.getElementById('evBulkList')!;
+      list.innerHTML = '';
+
+      emails.forEach(email => {
+        const r = validateEmail(email);
+        if (r.valid) valid++; else invalid++;
+        const div = document.createElement('div');
+        div.className = `flex items-center gap-2 px-3 py-2 rounded text-sm ${r.valid ? 'bg-green-50' : 'bg-red-50'}`;
+        div.innerHTML = `<span class="${r.valid ? 'text-green-600' : 'text-red-600'}">${r.valid ? '✓' : '✗'}</span><span class="font-mono">${email}</span>${r.errors.length ? `<span class="text-xs text-red-400 ml-auto">${r.errors[0]}</span>` : ''}`;
+        list.appendChild(div);
+      });
+
+      document.getElementById('evBulkResult')!.classList.remove('hidden');
+      document.getElementById('evBulkStats')!.innerHTML = `
+        <div class="px-3 py-1 bg-gray-100 rounded text-sm">Total: ${emails.length}</div>
+        <div class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">Valid: ${valid}</div>
+        <div class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm">Invalid: ${invalid}</div>
+      `;
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Email Validator</h2>
+    <p>Validate email addresses for correct format and syntax. Detects common typos and suggests corrections. Identifies email providers. Supports bulk validation of multiple emails at once.</p>
+  </Fragment>
+</ToolLayout>

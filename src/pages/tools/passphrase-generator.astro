@@ -1,0 +1,162 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Passphrase Generator" description="Generate strong, memorable passphrases from random words. Secure and easy to remember. Customizable length and separator." category="security" icon="🔑">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Number of Words</label>
+        <select id="ppWords" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="3">3 words</option>
+          <option value="4" selected>4 words</option>
+          <option value="5">5 words</option>
+          <option value="6">6 words</option>
+          <option value="8">8 words</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Separator</label>
+        <select id="ppSep" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="-">Hyphen (-)</option>
+          <option value=" ">Space</option>
+          <option value=".">Dot (.)</option>
+          <option value="_">Underscore (_)</option>
+          <option value="">None</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Style</label>
+        <select id="ppStyle" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="lower">lowercase</option>
+          <option value="capital" selected>Capitalize Each</option>
+          <option value="upper">UPPERCASE</option>
+          <option value="random">rAnDoM</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-2">
+      <label class="flex items-center gap-1 text-sm">
+        <input type="checkbox" id="ppNum" checked class="rounded" /> Add number
+      </label>
+      <label class="flex items-center gap-1 text-sm">
+        <input type="checkbox" id="ppSym" class="rounded" /> Add symbol
+      </label>
+    </div>
+
+    <button id="ppGen" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4 text-lg">Generate Passphrase</button>
+
+    <div id="ppResult" class="p-6 bg-gray-50 border border-gray-200 rounded-xl mb-4">
+      <div class="font-mono text-xl sm:text-2xl text-center break-all select-all text-gray-800 mb-3" id="ppOutput">Click Generate</div>
+      <div class="flex justify-center gap-3">
+        <button id="ppCopy" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Copy</button>
+        <button id="ppRegen" class="px-4 py-1.5 bg-gray-200 rounded-lg text-sm hover:bg-gray-300">Regenerate</button>
+      </div>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-3 mb-4">
+      <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+        <div class="text-xs text-green-600">Entropy</div>
+        <div class="text-lg font-bold text-green-700" id="ppEntropy">0 bits</div>
+      </div>
+      <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-blue-600">Length</div>
+        <div class="text-lg font-bold text-blue-700" id="ppLen">0 chars</div>
+      </div>
+      <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg text-center">
+        <div class="text-xs text-purple-600">Strength</div>
+        <div class="text-lg font-bold text-purple-700" id="ppStr">—</div>
+      </div>
+    </div>
+
+    <div id="ppHistory" class="hidden">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Recent (not saved anywhere)</h3>
+      <div id="ppHist" class="space-y-1 text-xs font-mono text-gray-500 max-h-32 overflow-y-auto"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const WORDS = [
+    'apple','arrow','beach','blade','bloom','brave','breeze','brick','bridge','bright',
+    'brook','cabin','candy','cedar','chair','chalk','chase','chess','cliff','cloud',
+    'coast','coral','crane','crown','dance','delta','dream','drift','eagle','earth',
+    'ember','fairy','feast','flame','flash','float','frost','giant','globe','grain',
+    'grape','green','grove','guide','heart','honey','horse','ivory','jewel','judge',
+    'jumbo','karma','knife','lemon','light','lilac','magic','maple','marsh','media',
+    'metal','micro','might','minor','moose','motor','noble','north','ocean','olive',
+    'orbit','oxide','paint','panel','pearl','pilot','pixel','plaza','plumb','polar',
+    'power','prism','proud','pulse','queen','quest','radar','raven','rider','river',
+    'robin','royal','saint','scale','scout','shade','sharp','shell','shine','shore',
+    'sigma','silk','silver','solar','sonic','spark','spice','spine','spoke','spray',
+    'stamp','steam','steel','stone','storm','sugar','super','surge','swift','table',
+    'terra','thorn','tiger','titan','torch','tower','trail','trend','trick','trust',
+    'tulip','ultra','unity','urban','valor','vault','vigor','voice','water','wheel',
+    'width','world','yacht','zebra','blaze','camel','comet','daisy','diver','ember',
+    'fable','forge','glyph','haven','index','joker','lunar','mango','nexus','omega',
+    'panda','quartz','ridge','savor','tempo','unity','vivid','waltz','xenon','yield',
+    'amber','bliss','cider','depot','epoch','flora','gamma','helix','inlet','jolly',
+    'koala','lotus','metro','novel','oasis','plume','quota','relay','sigma','trout'
+  ];
+
+  const history: string[] = [];
+
+  function generate() {
+    const count = parseInt((document.getElementById('ppWords') as HTMLSelectElement).value);
+    const sep = (document.getElementById('ppSep') as HTMLSelectElement).value;
+    const style = (document.getElementById('ppStyle') as HTMLSelectElement).value;
+    const addNum = (document.getElementById('ppNum') as HTMLInputElement).checked;
+    const addSym = (document.getElementById('ppSym') as HTMLInputElement).checked;
+
+    const picked: string[] = [];
+    const used = new Set<number>();
+    while (picked.length < count) {
+      const idx = Math.floor(Math.random() * WORDS.length);
+      if (!used.has(idx)) { used.add(idx); picked.push(WORDS[idx]); }
+    }
+
+    const styled = picked.map(w => {
+      switch (style) {
+        case 'capital': return w.charAt(0).toUpperCase() + w.slice(1);
+        case 'upper': return w.toUpperCase();
+        case 'random': return w.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c).join('');
+        default: return w;
+      }
+    });
+
+    let result = styled.join(sep);
+    if (addNum) result += Math.floor(Math.random() * 100);
+    if (addSym) result += ['!', '@', '#', '$', '%', '&', '*'][Math.floor(Math.random() * 7)];
+
+    document.getElementById('ppOutput')!.textContent = result;
+    document.getElementById('ppLen')!.textContent = result.length + ' chars';
+
+    const entropy = Math.log2(Math.pow(WORDS.length, count)) + (addNum ? 7 : 0) + (addSym ? 3 : 0);
+    document.getElementById('ppEntropy')!.textContent = Math.round(entropy) + ' bits';
+
+    let str = 'Weak';
+    if (entropy >= 80) str = 'Very Strong';
+    else if (entropy >= 60) str = 'Strong';
+    else if (entropy >= 40) str = 'Moderate';
+    document.getElementById('ppStr')!.textContent = str;
+
+    history.unshift(result);
+    if (history.length > 5) history.pop();
+    const histEl = document.getElementById('ppHist')!;
+    histEl.innerHTML = history.map(h => `<div class="p-1 bg-white rounded truncate">${h}</div>`).join('');
+    document.getElementById('ppHistory')!.classList.remove('hidden');
+  }
+
+  document.getElementById('ppGen')!.addEventListener('click', generate);
+  document.getElementById('ppRegen')!.addEventListener('click', generate);
+  document.getElementById('ppCopy')!.addEventListener('click', () => {
+    const text = document.getElementById('ppOutput')!.textContent || '';
+    navigator.clipboard.writeText(text);
+    const btn = document.getElementById('ppCopy')!;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+
+  generate();
+</script>

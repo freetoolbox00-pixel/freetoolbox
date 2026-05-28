@@ -1,0 +1,143 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Fraction Calculator" description="Add, subtract, multiply and divide fractions. Simplify fractions, convert to decimals. Free online fraction math." category="utility" icon="🔢">
+  <div>
+    <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
+      <div class="text-center">
+        <input type="number" id="frN1" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg" value="1" />
+        <div class="border-t-2 border-gray-800 mx-2 my-1"></div>
+        <input type="number" id="frD1" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg" value="2" min="1" />
+      </div>
+      <div class="flex gap-1">
+        <button class="fr-op px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-lg" data-op="+">+</button>
+        <button class="fr-op px-3 py-2 bg-gray-100 rounded-lg font-bold text-lg hover:bg-gray-200" data-op="-">−</button>
+        <button class="fr-op px-3 py-2 bg-gray-100 rounded-lg font-bold text-lg hover:bg-gray-200" data-op="*">×</button>
+        <button class="fr-op px-3 py-2 bg-gray-100 rounded-lg font-bold text-lg hover:bg-gray-200" data-op="/">÷</button>
+      </div>
+      <div class="text-center">
+        <input type="number" id="frN2" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg" value="1" />
+        <div class="border-t-2 border-gray-800 mx-2 my-1"></div>
+        <input type="number" id="frD2" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg" value="3" min="1" />
+      </div>
+      <button id="frCalc" class="px-5 py-3 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700">=</button>
+    </div>
+
+    <div id="frResult" class="p-6 bg-blue-50 border border-blue-200 rounded-xl text-center mb-6">
+      <div class="text-sm text-blue-600 mb-1">Result</div>
+      <div class="text-4xl font-bold text-blue-800" id="frRes">5/6</div>
+      <div class="text-sm text-gray-500 mt-2" id="frDec">= 0.833333...</div>
+      <div class="text-xs text-gray-400 mt-1" id="frSteps"></div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="p-4 bg-gray-50 rounded-xl">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Simplify a Fraction</h3>
+        <div class="flex items-center gap-2">
+          <input type="number" id="frSN" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center" placeholder="Num" />
+          <span class="text-lg font-bold">/</span>
+          <input type="number" id="frSD" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-center" placeholder="Den" min="1" />
+          <button id="frSimp" class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">Simplify</button>
+        </div>
+        <div class="text-lg font-bold mt-2 text-green-700" id="frSimpRes"></div>
+      </div>
+      <div class="p-4 bg-gray-50 rounded-xl">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Decimal to Fraction</h3>
+        <div class="flex items-center gap-2">
+          <input type="number" id="frDecIn" class="w-32 px-2 py-2 border border-gray-300 rounded-lg text-center" placeholder="0.75" step="any" />
+          <button id="frD2F" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">Convert</button>
+        </div>
+        <div class="text-lg font-bold mt-2 text-purple-700" id="frD2FRes"></div>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  let op = '+';
+
+  function gcd(a: number, b: number): number { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a; }
+
+  function simplify(n: number, d: number): [number, number] {
+    if (d === 0) return [0, 1];
+    const g = gcd(n, d);
+    let sn = n / g, sd = d / g;
+    if (sd < 0) { sn = -sn; sd = -sd; }
+    return [sn, sd];
+  }
+
+  function formatFrac(n: number, d: number): string {
+    if (d === 1) return String(n);
+    return `${n}/${d}`;
+  }
+
+  function calculate() {
+    const n1 = parseInt((document.getElementById('frN1') as HTMLInputElement).value) || 0;
+    const d1 = parseInt((document.getElementById('frD1') as HTMLInputElement).value) || 1;
+    const n2 = parseInt((document.getElementById('frN2') as HTMLInputElement).value) || 0;
+    const d2 = parseInt((document.getElementById('frD2') as HTMLInputElement).value) || 1;
+
+    let rn: number, rd: number, steps = '';
+
+    switch (op) {
+      case '+':
+        rn = n1 * d2 + n2 * d1; rd = d1 * d2;
+        steps = `${n1}×${d2} + ${n2}×${d1} / ${d1}×${d2} = ${rn}/${rd}`;
+        break;
+      case '-':
+        rn = n1 * d2 - n2 * d1; rd = d1 * d2;
+        steps = `${n1}×${d2} - ${n2}×${d1} / ${d1}×${d2} = ${rn}/${rd}`;
+        break;
+      case '*':
+        rn = n1 * n2; rd = d1 * d2;
+        steps = `${n1}×${n2} / ${d1}×${d2} = ${rn}/${rd}`;
+        break;
+      case '/':
+        rn = n1 * d2; rd = d1 * n2;
+        steps = `${n1}×${d2} / ${d1}×${n2} = ${rn}/${rd}`;
+        break;
+      default:
+        rn = 0; rd = 1;
+    }
+
+    const [sn, sd] = simplify(rn, rd);
+    document.getElementById('frRes')!.textContent = formatFrac(sn, sd);
+    document.getElementById('frDec')!.textContent = `= ${(sn / sd).toFixed(6).replace(/0+$/, '').replace(/\.$/, '')}`;
+    document.getElementById('frSteps')!.textContent = rn !== sn || rd !== sd ? `${rn}/${rd} simplified → ${formatFrac(sn, sd)}` : steps;
+  }
+
+  document.querySelectorAll('.fr-op').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.fr-op').forEach(b => {
+      b.className = 'fr-op px-3 py-2 bg-gray-100 rounded-lg font-bold text-lg hover:bg-gray-200';
+    });
+    (btn as HTMLElement).className = 'fr-op px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-lg';
+    op = (btn as HTMLElement).dataset.op!;
+    calculate();
+  }));
+
+  document.getElementById('frCalc')!.addEventListener('click', calculate);
+  ['frN1', 'frD1', 'frN2', 'frD2'].forEach(id =>
+    document.getElementById(id)!.addEventListener('input', calculate)
+  );
+
+  document.getElementById('frSimp')!.addEventListener('click', () => {
+    const n = parseInt((document.getElementById('frSN') as HTMLInputElement).value) || 0;
+    const d = parseInt((document.getElementById('frSD') as HTMLInputElement).value) || 1;
+    const [sn, sd] = simplify(n, d);
+    document.getElementById('frSimpRes')!.textContent = `${formatFrac(sn, sd)} (GCD: ${gcd(Math.abs(n), Math.abs(d))})`;
+  });
+
+  document.getElementById('frD2F')!.addEventListener('click', () => {
+    const dec = parseFloat((document.getElementById('frDecIn') as HTMLInputElement).value);
+    if (isNaN(dec)) return;
+    const str = dec.toString();
+    const decimals = str.includes('.') ? str.split('.')[1].length : 0;
+    const d = Math.pow(10, decimals);
+    const n = Math.round(dec * d);
+    const [sn, sd] = simplify(n, d);
+    document.getElementById('frD2FRes')!.textContent = formatFrac(sn, sd);
+  });
+
+  calculate();
+</script>

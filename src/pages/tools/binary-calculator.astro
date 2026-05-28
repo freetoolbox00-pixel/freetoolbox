@@ -1,0 +1,95 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="Binary Calculator" description="Perform arithmetic on binary numbers: add, subtract, multiply, divide. Convert results between bases." category="developer" icon="💻">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-[1fr_80px_1fr] mb-6 items-end">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Number A (binary)</label>
+        <input type="text" id="bcA" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" placeholder="1010" value="1010" />
+      </div>
+      <div>
+        <select id="bcOp" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg text-center font-bold">
+          <option value="+">+</option>
+          <option value="-">-</option>
+          <option value="*">x</option>
+          <option value="/">/</option>
+          <option value="&">&</option>
+          <option value="|">|</option>
+          <option value="^">^</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Number B (binary)</label>
+        <input type="text" id="bcB" class="w-full px-3 py-3 border border-gray-300 rounded-lg text-lg font-mono" placeholder="0110" value="0110" />
+      </div>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="text-xs text-blue-600">Binary</div>
+        <div class="text-xl font-bold font-mono text-blue-800" id="bcBin">0</div>
+      </div>
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500">Decimal</div>
+        <div class="text-xl font-bold font-mono" id="bcDec">0</div>
+      </div>
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500">Hexadecimal</div>
+        <div class="text-xl font-bold font-mono" id="bcHex">0</div>
+      </div>
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="text-xs text-gray-500">Octal</div>
+        <div class="text-xl font-bold font-mono" id="bcOct">0</div>
+      </div>
+    </div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <div class="p-3 bg-gray-50 rounded-lg">
+        <div class="text-xs text-gray-500 mb-1">A in decimal</div>
+        <div class="font-mono text-sm" id="bcADec">10</div>
+      </div>
+      <div class="p-3 bg-gray-50 rounded-lg">
+        <div class="text-xs text-gray-500 mb-1">B in decimal</div>
+        <div class="font-mono text-sm" id="bcBDec">6</div>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const aIn = document.getElementById('bcA') as HTMLInputElement;
+  const bIn = document.getElementById('bcB') as HTMLInputElement;
+  const opSel = document.getElementById('bcOp') as HTMLSelectElement;
+
+  function calc() {
+    const aStr = aIn.value.replace(/[^01]/g, '');
+    const bStr = bIn.value.replace(/[^01]/g, '');
+    const a = parseInt(aStr || '0', 2);
+    const b = parseInt(bStr || '0', 2);
+
+    document.getElementById('bcADec')!.textContent = String(a);
+    document.getElementById('bcBDec')!.textContent = String(b);
+
+    let result: number;
+    const op = opSel.value;
+    switch (op) {
+      case '+': result = a + b; break;
+      case '-': result = a - b; break;
+      case '*': result = a * b; break;
+      case '/': result = b !== 0 ? Math.floor(a / b) : 0; break;
+      case '&': result = a & b; break;
+      case '|': result = a | b; break;
+      case '^': result = a ^ b; break;
+      default: result = 0;
+    }
+
+    document.getElementById('bcBin')!.textContent = (result >>> 0).toString(2);
+    document.getElementById('bcDec')!.textContent = String(result);
+    document.getElementById('bcHex')!.textContent = '0x' + (result >>> 0).toString(16).toUpperCase();
+    document.getElementById('bcOct')!.textContent = '0o' + (result >>> 0).toString(8);
+  }
+
+  [aIn, bIn].forEach(el => el.addEventListener('input', calc));
+  opSel.addEventListener('change', calc);
+  calc();
+</script>

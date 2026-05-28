@@ -1,0 +1,172 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Gradient Generator"
+  description="Create beautiful CSS gradients visually. Linear, radial and conic gradients with custom colors and angles. Free gradient maker tool."
+  category="developer"
+  icon="🌈"
+>
+  <div>
+    <!-- Preview -->
+    <div id="gradPreview" class="w-full h-48 rounded-xl mb-6 shadow-inner" style="background:linear-gradient(135deg, #667eea, #764ba2)"></div>
+
+    <!-- Type -->
+    <div class="flex gap-2 mb-4">
+      <button class="grad-type px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg" data-type="linear">Linear</button>
+      <button class="grad-type px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="radial">Radial</button>
+      <button class="grad-type px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg" data-type="conic">Conic</button>
+    </div>
+
+    <!-- Angle (linear) -->
+    <div id="angleWrap" class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Angle: <span id="angleVal">135</span>°</label>
+      <input type="range" id="gradAngle" min="0" max="360" value="135" class="w-full accent-blue-600" />
+    </div>
+
+    <!-- Colors -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Colors</label>
+      <div id="colorStops" class="space-y-2">
+        <div class="color-stop flex items-center gap-2">
+          <input type="color" value="#667eea" class="stop-color w-10 h-10 rounded border cursor-pointer" />
+          <input type="number" value="0" min="0" max="100" class="stop-pos w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center" />
+          <span class="text-xs text-gray-400">%</span>
+          <button class="remove-stop text-red-400 hover:text-red-600 text-lg ml-auto">×</button>
+        </div>
+        <div class="color-stop flex items-center gap-2">
+          <input type="color" value="#764ba2" class="stop-color w-10 h-10 rounded border cursor-pointer" />
+          <input type="number" value="100" min="0" max="100" class="stop-pos w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center" />
+          <span class="text-xs text-gray-400">%</span>
+          <button class="remove-stop text-red-400 hover:text-red-600 text-lg ml-auto">×</button>
+        </div>
+      </div>
+      <button id="addStop" class="mt-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded">+ Add Color</button>
+    </div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Presets</label>
+      <div class="flex flex-wrap gap-2">
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#667eea,#764ba2)" data-colors="#667eea,#764ba2"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#f093fb,#f5576c)" data-colors="#f093fb,#f5576c"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#4facfe,#00f2fe)" data-colors="#4facfe,#00f2fe"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#43e97b,#38f9d7)" data-colors="#43e97b,#38f9d7"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#fa709a,#fee140)" data-colors="#fa709a,#fee140"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)" data-colors="#a18cd1,#fbc2eb"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)" data-colors="#ffecd2,#fcb69f"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#0c3483,#a2b6df)" data-colors="#0c3483,#a2b6df"></button>
+        <button class="grad-preset w-12 h-8 rounded cursor-pointer border border-gray-200" style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460,#e94560)" data-colors="#1a1a2e,#16213e,#0f3460,#e94560"></button>
+      </div>
+    </div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="block text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="copyGrad" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="gradCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm overflow-auto whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    let gradType = 'linear';
+
+    function getStops(): { color: string; pos: number }[] {
+      return [...document.querySelectorAll('.color-stop')].map(row => ({
+        color: (row.querySelector('.stop-color') as HTMLInputElement).value,
+        pos: parseInt((row.querySelector('.stop-pos') as HTMLInputElement).value) || 0
+      }));
+    }
+
+    function generateCSS(): string {
+      const stops = getStops().map(s => `${s.color} ${s.pos}%`).join(', ');
+      const angle = (document.getElementById('gradAngle') as HTMLInputElement).value;
+      if (gradType === 'linear') return `linear-gradient(${angle}deg, ${stops})`;
+      if (gradType === 'radial') return `radial-gradient(circle, ${stops})`;
+      return `conic-gradient(from ${angle}deg, ${stops})`;
+    }
+
+    function update(): void {
+      const css = generateCSS();
+      document.getElementById('gradPreview')!.style.background = css;
+      document.getElementById('gradCode')!.textContent = `background: ${css};`;
+      document.getElementById('angleVal')!.textContent = (document.getElementById('gradAngle') as HTMLInputElement).value;
+      document.getElementById('angleWrap')!.classList.toggle('hidden', gradType === 'radial');
+    }
+
+    function bindStops(): void {
+      document.querySelectorAll('.stop-color, .stop-pos').forEach(el => {
+        el.addEventListener('input', update);
+      });
+      document.querySelectorAll('.remove-stop').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (document.querySelectorAll('.color-stop').length > 2) {
+            (btn as HTMLElement).closest('.color-stop')?.remove();
+            update();
+          }
+        });
+      });
+    }
+
+    document.getElementById('gradAngle')!.addEventListener('input', update);
+
+    document.querySelectorAll('.grad-type').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.grad-type').forEach(b => b.className = 'grad-type px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg');
+        (btn as HTMLElement).className = 'grad-type px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg';
+        gradType = (btn as HTMLElement).dataset.type!;
+        update();
+      });
+    });
+
+    document.getElementById('addStop')!.addEventListener('click', () => {
+      const div = document.createElement('div');
+      div.className = 'color-stop flex items-center gap-2';
+      div.innerHTML = `<input type="color" value="#ffffff" class="stop-color w-10 h-10 rounded border cursor-pointer" /><input type="number" value="50" min="0" max="100" class="stop-pos w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center" /><span class="text-xs text-gray-400">%</span><button class="remove-stop text-red-400 hover:text-red-600 text-lg ml-auto">×</button>`;
+      document.getElementById('colorStops')!.appendChild(div);
+      bindStops();
+      update();
+    });
+
+    document.querySelectorAll('.grad-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const colors = ((btn as HTMLElement).dataset.colors || '').split(',');
+        const container = document.getElementById('colorStops')!;
+        container.innerHTML = '';
+        colors.forEach((c, i) => {
+          const pos = Math.round((i / (colors.length - 1)) * 100);
+          const div = document.createElement('div');
+          div.className = 'color-stop flex items-center gap-2';
+          div.innerHTML = `<input type="color" value="${c}" class="stop-color w-10 h-10 rounded border cursor-pointer" /><input type="number" value="${pos}" min="0" max="100" class="stop-pos w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center" /><span class="text-xs text-gray-400">%</span><button class="remove-stop text-red-400 hover:text-red-600 text-lg ml-auto">×</button>`;
+          container.appendChild(div);
+        });
+        bindStops();
+        update();
+      });
+    });
+
+    document.getElementById('copyGrad')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('gradCode')!.textContent || '');
+      const btn = document.getElementById('copyGrad')!;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+
+    bindStops();
+    update();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Gradient Generator</h2>
+    <p>Create beautiful CSS gradients visually with a live preview. Supports linear, radial and conic gradients with multiple color stops and angle control.</p>
+    <h3>Gradient Types</h3>
+    <ul>
+      <li><strong>Linear</strong> - Colors transition along a straight line at any angle</li>
+      <li><strong>Radial</strong> - Colors radiate outward from a center point</li>
+      <li><strong>Conic</strong> - Colors transition around a center point (like a pie chart)</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

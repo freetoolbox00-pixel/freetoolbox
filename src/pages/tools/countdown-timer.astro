@@ -1,0 +1,164 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Countdown Timer"
+  description="Set a countdown to any future date. See days, hours, minutes and seconds remaining. Shareable countdown links. Free countdown timer."
+  category="utility"
+  icon="⏳"
+>
+  <div>
+    <!-- Target Date -->
+    <div class="grid gap-4 sm:grid-cols-2 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
+        <input type="text" id="cdName" value="My Event" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Target Date & Time</label>
+        <input type="datetime-local" id="cdTarget" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+    </div>
+
+    <button id="cdStart" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors mb-6">Start Countdown</button>
+
+    <!-- Countdown Display -->
+    <div id="cdDisplay" class="hidden">
+      <div id="cdEventName" class="text-center text-lg font-medium text-gray-600 mb-4"></div>
+      <div class="grid grid-cols-4 gap-4 max-w-xl mx-auto mb-6">
+        <div class="text-center p-4 bg-blue-50 rounded-xl">
+          <div id="cdDays" class="text-4xl sm:text-5xl font-bold font-mono text-blue-600">00</div>
+          <div class="text-xs text-gray-500 uppercase mt-1">Days</div>
+        </div>
+        <div class="text-center p-4 bg-green-50 rounded-xl">
+          <div id="cdHours" class="text-4xl sm:text-5xl font-bold font-mono text-green-600">00</div>
+          <div class="text-xs text-gray-500 uppercase mt-1">Hours</div>
+        </div>
+        <div class="text-center p-4 bg-purple-50 rounded-xl">
+          <div id="cdMins" class="text-4xl sm:text-5xl font-bold font-mono text-purple-600">00</div>
+          <div class="text-xs text-gray-500 uppercase mt-1">Minutes</div>
+        </div>
+        <div class="text-center p-4 bg-orange-50 rounded-xl">
+          <div id="cdSecs" class="text-4xl sm:text-5xl font-bold font-mono text-orange-600">00</div>
+          <div class="text-xs text-gray-500 uppercase mt-1">Seconds</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="max-w-xl mx-auto mb-4">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="cdProgress" class="bg-blue-600 h-2 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 mt-1">
+          <span id="cdStartDate"></span>
+          <span id="cdEndDate"></span>
+        </div>
+      </div>
+
+      <div id="cdDone" class="hidden text-center p-6 bg-green-50 rounded-xl">
+        <div class="text-4xl mb-2">🎉</div>
+        <div class="text-xl font-bold text-green-600">Countdown Complete!</div>
+      </div>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Quick Countdowns</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="5">5 min</button>
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="10">10 min</button>
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="15">15 min</button>
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="30">30 min</button>
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="60">1 hour</button>
+        <button class="cd-preset px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded text-sm" data-min="1440">Tomorrow</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let targetDate: Date;
+    let startDate: Date;
+
+    // Set default target to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const local = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    (document.getElementById('cdTarget') as HTMLInputElement).value = local;
+
+    function startCountdown(): void {
+      const targetInput = (document.getElementById('cdTarget') as HTMLInputElement).value;
+      if (!targetInput) return;
+
+      targetDate = new Date(targetInput);
+      startDate = new Date();
+
+      if (targetDate <= startDate) return;
+
+      document.getElementById('cdDisplay')!.classList.remove('hidden');
+      document.getElementById('cdDone')!.classList.add('hidden');
+      document.getElementById('cdEventName')!.textContent = (document.getElementById('cdName') as HTMLInputElement).value || 'Countdown';
+      document.getElementById('cdStartDate')!.textContent = startDate.toLocaleDateString();
+      document.getElementById('cdEndDate')!.textContent = targetDate.toLocaleDateString();
+      document.title = `Countdown - ${(document.getElementById('cdName') as HTMLInputElement).value}`;
+
+      if (timer) clearInterval(timer);
+      timer = setInterval(updateCountdown, 1000);
+      updateCountdown();
+    }
+
+    function updateCountdown(): void {
+      const now = new Date();
+      const diff = targetDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        if (timer) clearInterval(timer);
+        document.getElementById('cdDone')!.classList.remove('hidden');
+        document.getElementById('cdDays')!.textContent = '00';
+        document.getElementById('cdHours')!.textContent = '00';
+        document.getElementById('cdMins')!.textContent = '00';
+        document.getElementById('cdSecs')!.textContent = '00';
+        document.getElementById('cdProgress')!.style.width = '100%';
+        document.title = 'Countdown Complete!';
+        return;
+      }
+
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+
+      document.getElementById('cdDays')!.textContent = days.toString().padStart(2, '0');
+      document.getElementById('cdHours')!.textContent = hours.toString().padStart(2, '0');
+      document.getElementById('cdMins')!.textContent = mins.toString().padStart(2, '0');
+      document.getElementById('cdSecs')!.textContent = secs.toString().padStart(2, '0');
+
+      const total = targetDate.getTime() - startDate.getTime();
+      const elapsed = now.getTime() - startDate.getTime();
+      const pct = Math.min(100, (elapsed / total) * 100);
+      document.getElementById('cdProgress')!.style.width = pct + '%';
+
+      document.title = `${days}d ${hours}h ${mins}m ${secs}s`;
+    }
+
+    document.getElementById('cdStart')!.addEventListener('click', startCountdown);
+
+    document.querySelectorAll('.cd-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const min = parseInt((btn as HTMLElement).dataset.min!);
+        const target = new Date(Date.now() + min * 60000);
+        const local = new Date(target.getTime() - target.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        (document.getElementById('cdTarget') as HTMLInputElement).value = local;
+        (document.getElementById('cdName') as HTMLInputElement).value = (btn as HTMLElement).textContent?.trim() || 'Timer';
+        startCountdown();
+      });
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free Countdown Timer</h2>
+    <p>Create countdowns to any date or event. Shows days, hours, minutes and seconds remaining with a progress bar. Quick presets for 5, 10, 15, 30 minutes and more.</p>
+  </Fragment>
+</ToolLayout>

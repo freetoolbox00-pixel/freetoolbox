@@ -1,0 +1,156 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JavaScript Minifier / Beautifier"
+  description="Minify JavaScript to reduce file size or beautify compressed JS for readability. Remove comments and whitespace. Free JS minifier."
+  category="developer"
+  icon="JS"
+>
+  <div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button id="minifyJS" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg transition-colors">Minify</button>
+      <button id="beautifyJS" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">Beautify</button>
+      <button id="copyJS" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy Output</button>
+      <button id="clearJS" class="px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear</button>
+    </div>
+
+    <div id="jsStats" class="mb-4 hidden">
+      <div class="flex gap-4 text-sm">
+        <span>Original: <strong id="jsOrigSize">0</strong> chars</span>
+        <span>Result: <strong id="jsNewSize">0</strong> chars</span>
+        <span class="text-green-600 font-medium">Saved: <strong id="jsSaved">0%</strong></span>
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Input JavaScript</label>
+        <textarea id="jsInput" rows="16" placeholder="function hello(name) {&#10;  // Greeting function&#10;  console.log('Hello, ' + name + '!');&#10;  return true;&#10;}" class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Output</label>
+        <pre id="jsOutput" class="w-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg overflow-auto min-h-[400px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const jsInput = document.getElementById('jsInput') as HTMLTextAreaElement;
+    const jsOutput = document.getElementById('jsOutput')!;
+
+    function showStats(orig: string, result: string): void {
+      document.getElementById('jsStats')!.classList.remove('hidden');
+      document.getElementById('jsOrigSize')!.textContent = orig.length.toString();
+      document.getElementById('jsNewSize')!.textContent = result.length.toString();
+      const saved = orig.length > 0 ? Math.round((1 - result.length / orig.length) * 100) : 0;
+      document.getElementById('jsSaved')!.textContent = saved + '%';
+    }
+
+    function minifyJS(js: string): string {
+      // Remove single-line comments (but not URLs)
+      let result = js.replace(/(?<![:"'])\/\/.*$/gm, '');
+      // Remove multi-line comments
+      result = result.replace(/\/\*[\s\S]*?\*\//g, '');
+      // Collapse whitespace
+      result = result.replace(/\s+/g, ' ');
+      // Remove spaces around operators
+      result = result.replace(/\s*([{}();,=<>!&|?:+\-*/])\s*/g, '$1');
+      // Fix negative cases
+      result = result.replace(/return(\w)/g, 'return $1');
+      result = result.replace(/var(\w)/g, 'var $1');
+      result = result.replace(/let(\w)/g, 'let $1');
+      result = result.replace(/const(\w)/g, 'const $1');
+      result = result.replace(/function(\w)/g, 'function $1');
+      result = result.replace(/else(\{)/g, 'else $1');
+      result = result.replace(/else(if)/g, 'else $1');
+      result = result.replace(/new(\w)/g, 'new $1');
+      result = result.replace(/typeof(\w)/g, 'typeof $1');
+      result = result.replace(/instanceof(\w)/g, 'instanceof $1');
+      result = result.replace(/in(\{)/g, 'in $1');
+      return result.trim();
+    }
+
+    function beautifyJS(js: string): string {
+      let result = '';
+      let indent = 0;
+      const tab = '  ';
+      let inString = false;
+      let stringChar = '';
+      let i = 0;
+
+      // Remove comments first
+      js = js.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').trim();
+
+      while (i < js.length) {
+        const c = js[i];
+
+        if (inString) {
+          result += c;
+          if (c === stringChar && js[i-1] !== '\\') inString = false;
+          i++; continue;
+        }
+
+        if (c === '"' || c === "'" || c === '`') {
+          inString = true;
+          stringChar = c;
+          result += c;
+        } else if (c === '{') {
+          indent++;
+          result += ' {\n' + tab.repeat(indent);
+        } else if (c === '}') {
+          indent = Math.max(0, indent - 1);
+          result = result.trimEnd() + '\n' + tab.repeat(indent) + '}';
+          if (js[i+1] && js[i+1] !== ';' && js[i+1] !== ',' && js[i+1] !== ')' && js[i+1] !== '}' && js[i+1] !== 'e') {
+            result += '\n' + tab.repeat(indent);
+          }
+        } else if (c === ';') {
+          result += ';\n' + tab.repeat(indent);
+        } else if (c === ',' && indent > 0) {
+          result += ',\n' + tab.repeat(indent);
+        } else {
+          result += c;
+        }
+        i++;
+      }
+      return result.replace(/\n\s*\n/g, '\n').trim();
+    }
+
+    document.getElementById('minifyJS')!.addEventListener('click', () => {
+      const input = jsInput.value;
+      const result = minifyJS(input);
+      jsOutput.textContent = result;
+      showStats(input, result);
+    });
+
+    document.getElementById('beautifyJS')!.addEventListener('click', () => {
+      const input = jsInput.value;
+      const result = beautifyJS(input);
+      jsOutput.textContent = result;
+      showStats(input, result);
+    });
+
+    document.getElementById('copyJS')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(jsOutput.textContent || '');
+    });
+
+    document.getElementById('clearJS')!.addEventListener('click', () => {
+      jsInput.value = '';
+      jsOutput.textContent = '';
+      document.getElementById('jsStats')!.classList.add('hidden');
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JavaScript Minifier and Beautifier</h2>
+    <p>Minify JavaScript to reduce file size for production, or beautify compressed JS code for readability. Removes comments, whitespace and unnecessary characters.</p>
+    <h3>Benefits of Minification</h3>
+    <ul>
+      <li>Reduce JavaScript file size by 30-50%</li>
+      <li>Faster page load times</li>
+      <li>Lower bandwidth usage</li>
+      <li>Better Core Web Vitals scores</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

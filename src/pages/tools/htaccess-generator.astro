@@ -1,0 +1,183 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title=".htaccess Generator"
+  description="Generate Apache .htaccess files. Redirects, HTTPS forcing, GZIP compression, caching headers, security headers. Free htaccess tool."
+  category="developer"
+  icon="⚙"
+>
+  <div>
+    <!-- Options -->
+    <div class="space-y-4 mb-6">
+      <h3 class="text-sm font-medium text-gray-700">Select features:</h3>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htHttps" class="mt-1 accent-blue-600" checked />
+        <div><div class="text-sm font-medium">Force HTTPS</div><div class="text-xs text-gray-400">Redirect all HTTP requests to HTTPS</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htWww" class="mt-1 accent-blue-600" />
+        <div>
+          <div class="text-sm font-medium">WWW Redirect</div>
+          <div class="flex gap-2 mt-1">
+            <label class="text-xs"><input type="radio" name="htWwwDir" value="add" class="accent-blue-600" checked /> Add www</label>
+            <label class="text-xs"><input type="radio" name="htWwwDir" value="remove" class="accent-blue-600" /> Remove www</label>
+          </div>
+        </div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htGzip" class="mt-1 accent-blue-600" checked />
+        <div><div class="text-sm font-medium">GZIP Compression</div><div class="text-xs text-gray-400">Compress HTML, CSS, JS, fonts</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htCache" class="mt-1 accent-blue-600" checked />
+        <div><div class="text-sm font-medium">Browser Caching</div><div class="text-xs text-gray-400">Set cache expiration for static assets</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htSecurity" class="mt-1 accent-blue-600" checked />
+        <div><div class="text-sm font-medium">Security Headers</div><div class="text-xs text-gray-400">X-Frame-Options, X-Content-Type, XSS Protection, HSTS</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htSlash" class="mt-1 accent-blue-600" />
+        <div><div class="text-sm font-medium">Trailing Slash</div><div class="text-xs text-gray-400">Add trailing slash to URLs</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htIndex" class="mt-1 accent-blue-600" />
+        <div><div class="text-sm font-medium">Disable Directory Listing</div><div class="text-xs text-gray-400">Prevent browsing directory contents</div></div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
+        <input type="checkbox" id="htError" class="mt-1 accent-blue-600" />
+        <div>
+          <div class="text-sm font-medium">Custom Error Pages</div>
+          <div class="text-xs text-gray-400">Set custom 404, 403, 500 pages</div>
+          <div class="mt-1">
+            <input type="text" id="htErrorPath" value="/error" placeholder="/error" class="px-2 py-1 text-xs border rounded w-32" />
+          </div>
+        </div>
+      </label>
+
+      <!-- Custom redirect -->
+      <div class="p-3 bg-gray-50 rounded-lg">
+        <div class="text-sm font-medium mb-2">Custom 301 Redirect</div>
+        <div class="flex gap-2 mb-1">
+          <input type="text" id="htRedFrom" placeholder="/old-page" class="flex-1 px-2 py-1 text-xs border rounded font-mono" />
+          <span class="text-xs text-gray-400 self-center">→</span>
+          <input type="text" id="htRedTo" placeholder="/new-page" class="flex-1 px-2 py-1 text-xs border rounded font-mono" />
+          <button id="htRedAdd" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Add</button>
+        </div>
+        <div id="htRedList" class="space-y-1 mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">.htaccess Output</label>
+        <button id="htCopy" class="text-xs text-blue-600 hover:text-blue-800">Copy</button>
+      </div>
+      <pre id="htCode" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-xs overflow-auto max-h-[500px] whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    let redirects: { from: string; to: string }[] = [];
+
+    function generate(): void {
+      let code = '# Generated by FreeToolBox.io\n\n';
+
+      if ((document.getElementById('htHttps') as HTMLInputElement).checked) {
+        code += '# Force HTTPS\nRewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]\n\n';
+      }
+
+      if ((document.getElementById('htWww') as HTMLInputElement).checked) {
+        const dir = (document.querySelector('input[name="htWwwDir"]:checked') as HTMLInputElement).value;
+        if (dir === 'add') {
+          code += '# Add www\nRewriteEngine On\nRewriteCond %{HTTP_HOST} !^www\\. [NC]\nRewriteRule ^(.*)$ https://www.%{HTTP_HOST}/$1 [R=301,L]\n\n';
+        } else {
+          code += '# Remove www\nRewriteEngine On\nRewriteCond %{HTTP_HOST} ^www\\.(.+)$ [NC]\nRewriteRule ^(.*)$ https://%1/$1 [R=301,L]\n\n';
+        }
+      }
+
+      if ((document.getElementById('htGzip') as HTMLInputElement).checked) {
+        code += '# GZIP Compression\n<IfModule mod_deflate.c>\n  AddOutputFilterByType DEFLATE text/html text/plain text/css\n  AddOutputFilterByType DEFLATE text/javascript application/javascript application/json\n  AddOutputFilterByType DEFLATE application/xml text/xml\n  AddOutputFilterByType DEFLATE image/svg+xml\n  AddOutputFilterByType DEFLATE font/ttf font/otf font/woff font/woff2\n</IfModule>\n\n';
+      }
+
+      if ((document.getElementById('htCache') as HTMLInputElement).checked) {
+        code += '# Browser Caching\n<IfModule mod_expires.c>\n  ExpiresActive On\n  ExpiresByType text/html "access plus 1 hour"\n  ExpiresByType text/css "access plus 1 month"\n  ExpiresByType application/javascript "access plus 1 month"\n  ExpiresByType image/jpeg "access plus 1 year"\n  ExpiresByType image/png "access plus 1 year"\n  ExpiresByType image/gif "access plus 1 year"\n  ExpiresByType image/svg+xml "access plus 1 year"\n  ExpiresByType image/webp "access plus 1 year"\n  ExpiresByType font/woff2 "access plus 1 year"\n  ExpiresByType font/woff "access plus 1 year"\n</IfModule>\n\n';
+      }
+
+      if ((document.getElementById('htSecurity') as HTMLInputElement).checked) {
+        code += '# Security Headers\n<IfModule mod_headers.c>\n  Header set X-Content-Type-Options "nosniff"\n  Header set X-Frame-Options "SAMEORIGIN"\n  Header set X-XSS-Protection "1; mode=block"\n  Header set Referrer-Policy "strict-origin-when-cross-origin"\n  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"\n  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"\n</IfModule>\n\n';
+      }
+
+      if ((document.getElementById('htSlash') as HTMLInputElement).checked) {
+        code += '# Add Trailing Slash\nRewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteCond %{REQUEST_URI} !(.*)/$ \nRewriteRule ^(.*)$ %{REQUEST_URI}/ [L,R=301]\n\n';
+      }
+
+      if ((document.getElementById('htIndex') as HTMLInputElement).checked) {
+        code += '# Disable Directory Listing\nOptions -Indexes\n\n';
+      }
+
+      if ((document.getElementById('htError') as HTMLInputElement).checked) {
+        const path = (document.getElementById('htErrorPath') as HTMLInputElement).value || '/error';
+        code += `# Custom Error Pages\nErrorDocument 404 ${path}/404.html\nErrorDocument 403 ${path}/403.html\nErrorDocument 500 ${path}/500.html\n\n`;
+      }
+
+      if (redirects.length > 0) {
+        code += '# Custom Redirects\n';
+        redirects.forEach(r => { code += `Redirect 301 ${r.from} ${r.to}\n`; });
+        code += '\n';
+      }
+
+      document.getElementById('htCode')!.textContent = code.trim();
+    }
+
+    document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
+      el.addEventListener('change', generate);
+    });
+    document.getElementById('htErrorPath')!.addEventListener('input', generate);
+
+    document.getElementById('htRedAdd')!.addEventListener('click', () => {
+      const from = (document.getElementById('htRedFrom') as HTMLInputElement).value.trim();
+      const to = (document.getElementById('htRedTo') as HTMLInputElement).value.trim();
+      if (!from || !to) return;
+      redirects.push({ from, to });
+      (document.getElementById('htRedFrom') as HTMLInputElement).value = '';
+      (document.getElementById('htRedTo') as HTMLInputElement).value = '';
+      renderRedirects();
+      generate();
+    });
+
+    function renderRedirects(): void {
+      const list = document.getElementById('htRedList')!;
+      list.innerHTML = redirects.map((r, i) => `<div class="flex items-center gap-2 text-xs"><span class="font-mono">${r.from} → ${r.to}</span><button class="ht-del text-red-400 hover:text-red-600" data-i="${i}">✕</button></div>`).join('');
+      list.querySelectorAll('.ht-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          redirects.splice(parseInt((btn as HTMLElement).dataset.i!), 1);
+          renderRedirects();
+          generate();
+        });
+      });
+    }
+
+    document.getElementById('htCopy')!.addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('htCode')!.textContent || '');
+    });
+
+    generate();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free .htaccess Generator</h2>
+    <p>Generate Apache .htaccess configuration files. Includes HTTPS redirect, GZIP compression, browser caching, security headers, custom error pages and 301 redirects.</p>
+  </Fragment>
+</ToolLayout>

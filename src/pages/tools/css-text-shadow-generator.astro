@@ -1,0 +1,338 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="CSS Text Shadow Generator"
+  description="Create CSS text-shadow effects visually with live preview. Multiple shadow layers, presets for neon, emboss, retro, 3D, fire and outline effects. Free text shadow generator."
+  category="developer"
+  icon="🔤"
+>
+  <div>
+    <!-- Preview -->
+    <div class="mb-6 p-8 rounded-xl border-2 border-dashed border-gray-300 min-h-[150px] flex items-center justify-center" id="previewBg" style="background-color: #1a1a2e;">
+      <div id="previewText" contenteditable="true" class="text-5xl font-bold outline-none cursor-text text-center" style="color: #ffffff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);" spellcheck="false">
+        Preview Text
+      </div>
+    </div>
+
+    <!-- Text & Background Settings -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Text Color</label>
+        <input type="color" id="textColor" value="#ffffff" class="w-full h-10 rounded border cursor-pointer" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Background</label>
+        <input type="color" id="bgColor" value="#1a1a2e" class="w-full h-10 rounded border cursor-pointer" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Font Size</label>
+        <input type="number" id="fontSize" value="48" min="12" max="120" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Font</label>
+        <select id="fontFamily" class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white">
+          <option value="sans-serif">Sans-serif</option>
+          <option value="serif">Serif</option>
+          <option value="monospace">Monospace</option>
+          <option value="cursive">Cursive</option>
+          <option value="fantasy">Fantasy</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Presets</h3>
+      <div class="flex flex-wrap gap-2" id="presetButtons">
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="neon">Neon Glow</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="emboss">Emboss</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="retro">Retro</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="threed">3D</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="fire">Fire</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="outline">Outline</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="vintage">Vintage</button>
+        <button class="preset-btn px-3 py-2 bg-gray-50 hover:bg-blue-50 border rounded text-xs font-medium" data-preset="glitch">Glitch</button>
+      </div>
+    </div>
+
+    <!-- Shadow Layers -->
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-sm font-medium text-gray-700">Shadow Layers</h3>
+      <button id="addLayer" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">+ Add Layer</button>
+    </div>
+    <div id="layersContainer" class="space-y-3 mb-6"></div>
+
+    <!-- CSS Output -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">CSS Code</label>
+        <button id="copyBtn" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Copy CSS</button>
+      </div>
+      <pre id="cssOutput" class="p-4 bg-gray-900 text-green-400 rounded-lg font-mono text-sm whitespace-pre-wrap"></pre>
+    </div>
+
+    <!-- Copy notification -->
+    <div id="copyNotif" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+      Copied!
+    </div>
+  </div>
+
+  <script>
+    interface ShadowLayer {
+      id: number;
+      x: number;
+      y: number;
+      blur: number;
+      color: string;
+      opacity: number;
+    }
+
+    let layers: ShadowLayer[] = [
+      { id: 1, x: 2, y: 2, blur: 4, color: "#000000", opacity: 50 }
+    ];
+    let nextId = 2;
+
+    const previewText = document.getElementById("previewText")!;
+    const previewBg = document.getElementById("previewBg")!;
+    const layersContainer = document.getElementById("layersContainer")!;
+    const cssOutput = document.getElementById("cssOutput")!;
+    const copyNotif = document.getElementById("copyNotif")!;
+
+    function hexToRgba(hex: string, opacity: number): string {
+      hex = hex.replace("#", "");
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${(opacity / 100).toFixed(2)})`;
+    }
+
+    function buildShadowString(): string {
+      return layers.map(l => `${l.x}px ${l.y}px ${l.blur}px ${hexToRgba(l.color, l.opacity)}`).join(",\n    ");
+    }
+
+    function updatePreview(): void {
+      const shadow = layers.map(l => `${l.x}px ${l.y}px ${l.blur}px ${hexToRgba(l.color, l.opacity)}`).join(", ");
+      previewText.style.textShadow = shadow;
+      cssOutput.textContent = `text-shadow: ${buildShadowString()};`;
+    }
+
+    function renderLayers(): void {
+      layersContainer.innerHTML = layers.map((l, i) => `
+        <div class="p-4 bg-gray-50 rounded-lg border" data-layer-id="${l.id}">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-700">Layer ${i + 1}</span>
+            <button class="remove-layer text-xs text-red-500 hover:text-red-700" data-id="${l.id}" ${layers.length <= 1 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>Remove</button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">X: <span class="lx-val">${l.x}</span>px</label>
+              <input type="range" class="layer-x w-full accent-blue-600" data-id="${l.id}" min="-50" max="50" value="${l.x}" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Y: <span class="ly-val">${l.y}</span>px</label>
+              <input type="range" class="layer-y w-full accent-blue-600" data-id="${l.id}" min="-50" max="50" value="${l.y}" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Blur: <span class="lb-val">${l.blur}</span>px</label>
+              <input type="range" class="layer-blur w-full accent-blue-600" data-id="${l.id}" min="0" max="100" value="${l.blur}" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Opacity: <span class="lo-val">${l.opacity}</span>%</label>
+              <input type="range" class="layer-opacity w-full accent-blue-600" data-id="${l.id}" min="0" max="100" value="${l.opacity}" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Color</label>
+              <input type="color" class="layer-color w-full h-8 rounded border cursor-pointer" data-id="${l.id}" value="${l.color}" />
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      // Bind events
+      layersContainer.querySelectorAll(".layer-x").forEach(el => {
+        el.addEventListener("input", (e) => {
+          const id = Number((e.target as HTMLElement).dataset.id);
+          const val = Number((e.target as HTMLInputElement).value);
+          const layer = layers.find(l => l.id === id);
+          if (layer) { layer.x = val; el.closest("div")!.querySelector(".lx-val")!.textContent = val.toString(); updatePreview(); }
+        });
+      });
+      layersContainer.querySelectorAll(".layer-y").forEach(el => {
+        el.addEventListener("input", (e) => {
+          const id = Number((e.target as HTMLElement).dataset.id);
+          const val = Number((e.target as HTMLInputElement).value);
+          const layer = layers.find(l => l.id === id);
+          if (layer) { layer.y = val; el.closest("div")!.querySelector(".ly-val")!.textContent = val.toString(); updatePreview(); }
+        });
+      });
+      layersContainer.querySelectorAll(".layer-blur").forEach(el => {
+        el.addEventListener("input", (e) => {
+          const id = Number((e.target as HTMLElement).dataset.id);
+          const val = Number((e.target as HTMLInputElement).value);
+          const layer = layers.find(l => l.id === id);
+          if (layer) { layer.blur = val; el.closest("div")!.querySelector(".lb-val")!.textContent = val.toString(); updatePreview(); }
+        });
+      });
+      layersContainer.querySelectorAll(".layer-opacity").forEach(el => {
+        el.addEventListener("input", (e) => {
+          const id = Number((e.target as HTMLElement).dataset.id);
+          const val = Number((e.target as HTMLInputElement).value);
+          const layer = layers.find(l => l.id === id);
+          if (layer) { layer.opacity = val; el.closest("div")!.querySelector(".lo-val")!.textContent = val.toString(); updatePreview(); }
+        });
+      });
+      layersContainer.querySelectorAll(".layer-color").forEach(el => {
+        el.addEventListener("input", (e) => {
+          const id = Number((e.target as HTMLElement).dataset.id);
+          const val = (e.target as HTMLInputElement).value;
+          const layer = layers.find(l => l.id === id);
+          if (layer) { layer.color = val; updatePreview(); }
+        });
+      });
+      layersContainer.querySelectorAll(".remove-layer").forEach(el => {
+        el.addEventListener("click", (e) => {
+          if (layers.length <= 1) return;
+          const id = Number((e.target as HTMLElement).dataset.id);
+          layers = layers.filter(l => l.id !== id);
+          renderLayers();
+          updatePreview();
+        });
+      });
+    }
+
+    document.getElementById("addLayer")!.addEventListener("click", () => {
+      layers.push({ id: nextId++, x: 0, y: 0, blur: 10, color: "#0066ff", opacity: 70 });
+      renderLayers();
+      updatePreview();
+    });
+
+    // Text & bg settings
+    document.getElementById("textColor")!.addEventListener("input", (e) => {
+      previewText.style.color = (e.target as HTMLInputElement).value;
+    });
+    document.getElementById("bgColor")!.addEventListener("input", (e) => {
+      previewBg.style.backgroundColor = (e.target as HTMLInputElement).value;
+    });
+    document.getElementById("fontSize")!.addEventListener("input", (e) => {
+      previewText.style.fontSize = (e.target as HTMLInputElement).value + "px";
+    });
+    document.getElementById("fontFamily")!.addEventListener("change", (e) => {
+      previewText.style.fontFamily = (e.target as HTMLSelectElement).value;
+    });
+
+    // Presets
+    interface PresetConfig {
+      layers: Omit<ShadowLayer, "id">[];
+      textColor: string;
+      bgColor: string;
+    }
+    const presets: Record<string, PresetConfig> = {
+      neon: {
+        layers: [
+          { x: 0, y: 0, blur: 7, color: "#00ffff", opacity: 100 },
+          { x: 0, y: 0, blur: 10, color: "#00ffff", opacity: 100 },
+          { x: 0, y: 0, blur: 21, color: "#00ffff", opacity: 100 },
+          { x: 0, y: 0, blur: 42, color: "#0000ff", opacity: 100 },
+        ],
+        textColor: "#ffffff",
+        bgColor: "#0a0a1a",
+      },
+      emboss: {
+        layers: [
+          { x: -1, y: -1, blur: 0, color: "#ffffff", opacity: 80 },
+          { x: 1, y: 1, blur: 0, color: "#000000", opacity: 30 },
+        ],
+        textColor: "#999999",
+        bgColor: "#999999",
+      },
+      retro: {
+        layers: [
+          { x: 3, y: 3, blur: 0, color: "#ff6b6b", opacity: 100 },
+          { x: 6, y: 6, blur: 0, color: "#feca57", opacity: 100 },
+          { x: 9, y: 9, blur: 0, color: "#48dbfb", opacity: 100 },
+        ],
+        textColor: "#2d3436",
+        bgColor: "#f5f5dc",
+      },
+      threed: {
+        layers: [
+          { x: 1, y: 1, blur: 0, color: "#4a4a4a", opacity: 100 },
+          { x: 2, y: 2, blur: 0, color: "#5a5a5a", opacity: 100 },
+          { x: 3, y: 3, blur: 0, color: "#6a6a6a", opacity: 100 },
+          { x: 4, y: 4, blur: 0, color: "#7a7a7a", opacity: 100 },
+          { x: 5, y: 5, blur: 0, color: "#8a8a8a", opacity: 100 },
+        ],
+        textColor: "#333333",
+        bgColor: "#eeeeee",
+      },
+      fire: {
+        layers: [
+          { x: 0, y: 0, blur: 4, color: "#ffc107", opacity: 100 },
+          { x: 0, y: -5, blur: 4, color: "#ff9800", opacity: 100 },
+          { x: 2, y: -10, blur: 6, color: "#ff5722", opacity: 100 },
+          { x: -2, y: -15, blur: 11, color: "#d50000", opacity: 80 },
+        ],
+        textColor: "#ffeb3b",
+        bgColor: "#1a1a1a",
+      },
+      outline: {
+        layers: [
+          { x: -1, y: -1, blur: 0, color: "#000000", opacity: 100 },
+          { x: 1, y: -1, blur: 0, color: "#000000", opacity: 100 },
+          { x: -1, y: 1, blur: 0, color: "#000000", opacity: 100 },
+          { x: 1, y: 1, blur: 0, color: "#000000", opacity: 100 },
+        ],
+        textColor: "#ffffff",
+        bgColor: "#4a90d9",
+      },
+      vintage: {
+        layers: [
+          { x: 2, y: 2, blur: 0, color: "#8b4513", opacity: 80 },
+          { x: 4, y: 4, blur: 2, color: "#654321", opacity: 40 },
+        ],
+        textColor: "#daa520",
+        bgColor: "#f5f0e1",
+      },
+      glitch: {
+        layers: [
+          { x: -2, y: 0, blur: 0, color: "#ff0000", opacity: 80 },
+          { x: 2, y: 0, blur: 0, color: "#00ffff", opacity: 80 },
+        ],
+        textColor: "#ffffff",
+        bgColor: "#111111",
+      },
+    };
+
+    document.querySelectorAll(".preset-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = (btn as HTMLElement).dataset.preset!;
+        const p = presets[key];
+        if (!p) return;
+        layers = p.layers.map((l, i) => ({ ...l, id: nextId++ }));
+        previewText.style.color = p.textColor;
+        previewBg.style.backgroundColor = p.bgColor;
+        (document.getElementById("textColor") as HTMLInputElement).value = p.textColor;
+        (document.getElementById("bgColor") as HTMLInputElement).value = p.bgColor;
+        renderLayers();
+        updatePreview();
+      });
+    });
+
+    // Copy
+    document.getElementById("copyBtn")!.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(cssOutput.textContent || "");
+      copyNotif.style.opacity = "1";
+      setTimeout(() => { copyNotif.style.opacity = "0"; }, 1500);
+    });
+
+    renderLayers();
+    updatePreview();
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free CSS Text Shadow Generator</h2>
+    <p>Create stunning text shadow effects with this visual CSS text-shadow generator. Support for multiple shadow layers, neon glow, emboss, retro, 3D, fire, and outline presets. Edit preview text live, adjust colors and backgrounds, and copy the CSS code instantly.</p>
+  </Fragment>
+</ToolLayout>

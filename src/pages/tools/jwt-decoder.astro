@@ -1,0 +1,155 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JWT Decoder"
+  description="Decode and inspect JSON Web Tokens (JWT) online. View header, payload, signature and expiration. Free JWT decoder and debugger."
+  category="developer"
+  icon="JWT"
+>
+  <div>
+    <!-- Input -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Paste JWT Token</label>
+      <textarea id="jwtInput" rows="4" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full p-4 font-mono text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y break-all"></textarea>
+    </div>
+
+    <button id="jwtDecode" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors mb-6">
+      Decode
+    </button>
+
+    <!-- Status -->
+    <div id="jwtStatus" class="mb-4 hidden">
+      <div id="jwtStatusMsg" class="p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+
+    <!-- Decoded Output -->
+    <div class="grid gap-4 lg:grid-cols-2">
+      <!-- Header -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+          <span class="w-2 h-2 bg-red-500 rounded-full"></span> Header
+        </h3>
+        <pre id="jwtHeader" class="p-4 bg-red-50 border border-red-200 rounded-lg font-mono text-sm min-h-[100px] whitespace-pre-wrap overflow-auto">—</pre>
+      </div>
+      <!-- Payload -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+          <span class="w-2 h-2 bg-purple-500 rounded-full"></span> Payload
+        </h3>
+        <pre id="jwtPayload" class="p-4 bg-purple-50 border border-purple-200 rounded-lg font-mono text-sm min-h-[100px] whitespace-pre-wrap overflow-auto">—</pre>
+      </div>
+    </div>
+
+    <!-- Token Info -->
+    <div id="jwtInfo" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Token Info</h3>
+      <div class="grid gap-2 sm:grid-cols-2 text-sm">
+        <div><strong>Algorithm:</strong> <span id="jwtAlgo">—</span></div>
+        <div><strong>Type:</strong> <span id="jwtType">—</span></div>
+        <div><strong>Issued At:</strong> <span id="jwtIat">—</span></div>
+        <div><strong>Expires:</strong> <span id="jwtExp">—</span></div>
+        <div><strong>Not Before:</strong> <span id="jwtNbf">—</span></div>
+        <div><strong>Subject:</strong> <span id="jwtSub">—</span></div>
+        <div><strong>Issuer:</strong> <span id="jwtIss">—</span></div>
+        <div id="jwtExpStatus" class="font-medium"></div>
+      </div>
+    </div>
+
+    <!-- Signature -->
+    <div class="mt-4">
+      <h3 class="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+        <span class="w-2 h-2 bg-blue-500 rounded-full"></span> Signature
+      </h3>
+      <div id="jwtSig" class="p-3 bg-blue-50 border border-blue-200 rounded-lg font-mono text-xs break-all">—</div>
+      <p class="text-xs text-gray-400 mt-1">Signature verification requires the secret key (not done client-side for security).</p>
+    </div>
+  </div>
+
+  <script>
+    function base64UrlDecode(str: string): string {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    function formatDate(ts: number): string {
+      return new Date(ts * 1000).toLocaleString() + ' (' + new Date(ts * 1000).toISOString() + ')';
+    }
+
+    function decode(): void {
+      const token = (document.getElementById('jwtInput') as HTMLTextAreaElement).value.trim();
+      const statusEl = document.getElementById('jwtStatus')!;
+      const statusMsg = document.getElementById('jwtStatusMsg')!;
+
+      if (!token) return;
+
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        statusEl.classList.remove('hidden');
+        statusMsg.textContent = 'Invalid JWT: must have 3 parts (header.payload.signature)';
+        statusMsg.className = 'p-3 rounded-lg text-sm font-medium bg-red-50 text-red-700';
+        return;
+      }
+
+      try {
+        const header = JSON.parse(base64UrlDecode(parts[0]));
+        const payload = JSON.parse(base64UrlDecode(parts[1]));
+
+        document.getElementById('jwtHeader')!.textContent = JSON.stringify(header, null, 2);
+        document.getElementById('jwtPayload')!.textContent = JSON.stringify(payload, null, 2);
+        document.getElementById('jwtSig')!.textContent = parts[2];
+
+        const info = document.getElementById('jwtInfo')!;
+        info.classList.remove('hidden');
+        document.getElementById('jwtAlgo')!.textContent = header.alg || '—';
+        document.getElementById('jwtType')!.textContent = header.typ || '—';
+        document.getElementById('jwtIat')!.textContent = payload.iat ? formatDate(payload.iat) : '—';
+        document.getElementById('jwtExp')!.textContent = payload.exp ? formatDate(payload.exp) : '—';
+        document.getElementById('jwtNbf')!.textContent = payload.nbf ? formatDate(payload.nbf) : '—';
+        document.getElementById('jwtSub')!.textContent = payload.sub || '—';
+        document.getElementById('jwtIss')!.textContent = payload.iss || '—';
+
+        const expStatus = document.getElementById('jwtExpStatus')!;
+        if (payload.exp) {
+          const now = Math.floor(Date.now() / 1000);
+          if (now > payload.exp) {
+            expStatus.innerHTML = '<span class="text-red-600">⚠ Token EXPIRED</span>';
+          } else {
+            const remaining = payload.exp - now;
+            const hours = Math.floor(remaining / 3600);
+            const mins = Math.floor((remaining % 3600) / 60);
+            expStatus.innerHTML = `<span class="text-green-600">✓ Valid (expires in ${hours}h ${mins}m)</span>`;
+          }
+        }
+
+        statusEl.classList.remove('hidden');
+        statusMsg.textContent = 'JWT decoded successfully';
+        statusMsg.className = 'p-3 rounded-lg text-sm font-medium bg-green-50 text-green-700';
+      } catch (e: any) {
+        statusEl.classList.remove('hidden');
+        statusMsg.textContent = 'Error decoding JWT: ' + e.message;
+        statusMsg.className = 'p-3 rounded-lg text-sm font-medium bg-red-50 text-red-700';
+      }
+    }
+
+    document.getElementById('jwtDecode')!.addEventListener('click', decode);
+    (document.getElementById('jwtInput') as HTMLTextAreaElement).addEventListener('input', decode);
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JWT Decoder Online</h2>
+    <p>Decode and inspect JSON Web Tokens (JWT) directly in your browser. View the header, payload and signature. Check token expiration and claims.</p>
+    <h3>What is a JWT?</h3>
+    <p>JSON Web Tokens (JWT) are compact, URL-safe tokens used for securely transmitting information between parties. They consist of three Base64URL-encoded parts: header, payload, and signature.</p>
+    <h3>Common JWT Claims</h3>
+    <ul>
+      <li><strong>iss</strong> - Issuer of the token</li>
+      <li><strong>sub</strong> - Subject (usually user ID)</li>
+      <li><strong>exp</strong> - Expiration time</li>
+      <li><strong>iat</strong> - Issued at time</li>
+      <li><strong>aud</strong> - Audience (intended recipient)</li>
+    </ul>
+  </Fragment>
+</ToolLayout>

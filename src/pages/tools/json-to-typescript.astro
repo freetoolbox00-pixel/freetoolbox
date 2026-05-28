@@ -1,0 +1,141 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="JSON to TypeScript Interface"
+  description="Generate TypeScript interfaces from JSON data automatically. Convert API responses to typed interfaces. Free JSON to TS converter."
+  category="developer"
+  icon="TS"
+>
+  <div>
+    <!-- Options -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Root Name</label>
+        <input type="text" id="tsRootName" value="Root" class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
+      <label class="flex items-end gap-2 text-sm pb-2">
+        <input type="checkbox" id="tsOptional" class="accent-blue-600" /> All optional (?)
+      </label>
+      <label class="flex items-end gap-2 text-sm pb-2">
+        <input type="checkbox" id="tsExport" checked class="accent-blue-600" /> Export
+      </label>
+      <label class="flex items-end gap-2 text-sm pb-2">
+        <input type="checkbox" id="tsReadonly" class="accent-blue-600" /> Readonly
+      </label>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button id="convertTs" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Convert</button>
+      <button id="copyTs" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-sm font-medium rounded-lg transition-colors">Copy</button>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">JSON Input</label>
+        <textarea id="tsInput" rows="16" placeholder='{"id": 1, "name": "John", "email": "john@example.com", "age": 30, "active": true, "address": {"street": "123 Main St", "city": "NYC"}, "tags": ["admin", "user"]}' class="w-full p-4 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">TypeScript Interface</label>
+        <pre id="tsOutput" class="w-full p-4 font-mono text-sm bg-gray-900 text-green-400 rounded-lg overflow-auto min-h-[400px] whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const interfaces: Map<string, string> = new Map();
+
+    function capitalize(s: string): string {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function getType(value: any, key: string, depth: number): string {
+      if (value === null) return 'null';
+      if (Array.isArray(value)) {
+        if (value.length === 0) return 'any[]';
+        const types = new Set(value.map(v => getType(v, key, depth)));
+        if (types.size === 1) return `${[...types][0]}[]`;
+        return `(${[...types].join(' | ')})[]`;
+      }
+      if (typeof value === 'object') {
+        const name = capitalize(key);
+        generateInterface(value, name, depth + 1);
+        return name;
+      }
+      return typeof value;
+    }
+
+    function generateInterface(obj: any, name: string, depth: number): void {
+      const optional = (document.getElementById('tsOptional') as HTMLInputElement).checked;
+      const readonly = (document.getElementById('tsReadonly') as HTMLInputElement).checked;
+      const exportKw = (document.getElementById('tsExport') as HTMLInputElement).checked;
+
+      let lines: string[] = [];
+      lines.push(`${exportKw ? 'export ' : ''}interface ${name} {`);
+
+      for (const [key, value] of Object.entries(obj)) {
+        const type = getType(value, key, depth);
+        const opt = optional ? '?' : '';
+        const ro = readonly ? 'readonly ' : '';
+        const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `"${key}"`;
+        lines.push(`  ${ro}${safeKey}${opt}: ${type};`);
+      }
+
+      lines.push('}');
+      interfaces.set(name, lines.join('\n'));
+    }
+
+    function convert(): void {
+      const input = (document.getElementById('tsInput') as HTMLTextAreaElement).value;
+      const rootName = (document.getElementById('tsRootName') as HTMLInputElement).value || 'Root';
+      const output = document.getElementById('tsOutput')!;
+
+      try {
+        interfaces.clear();
+        const data = JSON.parse(input);
+
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+          generateInterface(data[0], rootName, 0);
+        } else if (typeof data === 'object' && data !== null) {
+          generateInterface(data, rootName, 0);
+        } else {
+          output.textContent = `type ${rootName} = ${typeof data};`;
+          return;
+        }
+
+        // Output in reverse order (nested first, root last)
+        const entries = [...interfaces.entries()].reverse();
+        output.textContent = entries.map(([, v]) => v).join('\n\n');
+      } catch (e: any) {
+        output.textContent = '// Error: ' + e.message;
+      }
+    }
+
+    document.getElementById('convertTs')!.addEventListener('click', convert);
+    document.getElementById('copyTs')!.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('tsOutput')!.textContent || '');
+    });
+
+    // Auto-convert on input
+    let timeout: ReturnType<typeof setTimeout>;
+    document.getElementById('tsInput')!.addEventListener('input', () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(convert, 500);
+    });
+  </script>
+
+  <Fragment slot="seo-content">
+    <h2>Free JSON to TypeScript Converter</h2>
+    <p>Automatically generate TypeScript interfaces from JSON data. Paste an API response and get properly typed interfaces instantly. Supports nested objects and arrays.</p>
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Nested objects</strong> - Creates separate interfaces for nested structures</li>
+      <li><strong>Arrays</strong> - Detects array element types automatically</li>
+      <li><strong>Options</strong> - Optional properties, export, readonly</li>
+      <li><strong>Auto-convert</strong> - Updates as you type</li>
+    </ul>
+    <h3>Use Case</h3>
+    <p>Copy an API response from your browser DevTools, paste it in, and get TypeScript interfaces ready to use in your codebase. No more manually writing types for API responses.</p>
+  </Fragment>
+</ToolLayout>

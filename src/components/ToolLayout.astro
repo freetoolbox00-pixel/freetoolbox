@@ -1,0 +1,117 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+}
+
+const { title, description, category, icon } = Astro.props;
+const pageTitle = `${title} - Free Online Tool | FreeToolBox`;
+const siteUrl = 'https://freetoolbox.io';
+const toolUrl = new URL(Astro.url.pathname, siteUrl).href;
+---
+
+<Layout title={pageTitle} description={description}>
+  <!-- JSON-LD WebApplication + BreadcrumbList -->
+  <Fragment slot="head-extra">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": title,
+      "description": description,
+      "url": toolUrl,
+      "applicationCategory": "BrowserApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "browserRequirements": "Requires JavaScript",
+      "provider": { "@type": "Organization", "name": "FreeToolBox", "url": siteUrl }
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+        { "@type": "ListItem", "position": 2, "name": `${category.charAt(0).toUpperCase() + category.slice(1)} Tools`, "item": `${siteUrl}/#${category}` },
+        { "@type": "ListItem", "position": 3, "name": title, "item": toolUrl }
+      ]
+    })} />
+  </Fragment>
+
+  <!-- 3-column layout: Left Ad | Tool | Right Ad -->
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex gap-6">
+
+      <!-- Left Sidebar Ad (hidden on mobile/tablet) -->
+      <aside class="hidden xl:block w-[160px] flex-shrink-0">
+        <div class="sticky top-24">
+          <div class="bg-gray-100 border border-dashed border-gray-300 rounded-lg p-2 text-center text-xs text-gray-400 min-h-[600px] flex items-center justify-center">
+            <!-- AdSense vertical 160x600 -->
+            Ad
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="flex-1 min-w-0 max-w-4xl mx-auto">
+        <!-- Breadcrumb -->
+        <nav class="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
+          <ol class="flex items-center gap-0" itemscope itemtype="https://schema.org/BreadcrumbList">
+            <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+              <a href="/" class="hover:text-blue-600" itemprop="item"><span itemprop="name">Home</span></a>
+              <meta itemprop="position" content="1" />
+            </li>
+            <li class="mx-2">/</li>
+            <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+              <a href={`/#${category}`} class="hover:text-blue-600 capitalize" itemprop="item"><span itemprop="name">{category} Tools</span></a>
+              <meta itemprop="position" content="2" />
+            </li>
+            <li class="mx-2">/</li>
+            <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+              <span class="text-gray-900" itemprop="name">{title}</span>
+              <meta itemprop="position" content="3" />
+            </li>
+          </ol>
+        </nav>
+
+        <!-- Tool Header -->
+        <div class="mb-8">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-4xl" aria-hidden="true">{icon}</span>
+            <h1 class="text-3xl font-bold text-gray-900">{title}</h1>
+          </div>
+          <p class="text-lg text-gray-600">{description}</p>
+        </div>
+
+        <!-- Tool Content -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 shadow-sm">
+          <slot />
+        </div>
+
+        <!-- Ad Slot Bottom (responsive banner) -->
+        <div class="mt-8 bg-gray-100 border border-dashed border-gray-300 rounded-lg p-4 text-center text-sm text-gray-400">
+          <!-- AdSense responsive banner 728x90 / mobile 320x100 -->
+          Ad Space
+        </div>
+
+        <!-- SEO Content Section -->
+        <div class="mt-12 prose prose-gray max-w-none">
+          <slot name="seo-content" />
+        </div>
+      </div>
+
+      <!-- Right Sidebar Ad (hidden on mobile/tablet) -->
+      <aside class="hidden xl:block w-[160px] flex-shrink-0">
+        <div class="sticky top-24">
+          <div class="bg-gray-100 border border-dashed border-gray-300 rounded-lg p-2 text-center text-xs text-gray-400 min-h-[600px] flex items-center justify-center">
+            <!-- AdSense vertical 160x600 -->
+            Ad
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</Layout>

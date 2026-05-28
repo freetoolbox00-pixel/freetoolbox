@@ -1,0 +1,85 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout title="JSON Diff Viewer" description="Compare two JSON objects and see the differences highlighted. Find added, removed and changed values." category="developer" icon="🔍">
+  <div>
+    <div class="grid gap-4 sm:grid-cols-2 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">JSON A (original)</label>
+        <textarea id="jdA" rows="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder='{"key": "value"}'></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">JSON B (modified)</label>
+        <textarea id="jdB" rows="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder='{"key": "new_value"}'></textarea>
+      </div>
+    </div>
+    <button id="jdCompare" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mb-4">Compare</button>
+    <div id="jdResult" class="hidden">
+      <div class="flex gap-3 mb-3">
+        <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Added</span>
+        <span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">Removed</span>
+        <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">Changed</span>
+        <span class="text-sm text-gray-500 ml-auto"><span id="jdCount">0</span> differences</span>
+      </div>
+      <div id="jdDiff" class="bg-gray-900 rounded-lg p-4 text-sm font-mono overflow-x-auto max-h-[500px] overflow-y-auto"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const aIn = document.getElementById('jdA') as HTMLTextAreaElement;
+  const bIn = document.getElementById('jdB') as HTMLTextAreaElement;
+  const compareBtn = document.getElementById('jdCompare')!;
+  const resultEl = document.getElementById('jdResult')!;
+  const diffEl = document.getElementById('jdDiff')!;
+  const countEl = document.getElementById('jdCount')!;
+
+  interface Diff { path: string; type: 'added' | 'removed' | 'changed'; oldVal?: string; newVal?: string; }
+
+  function findDiffs(a: any, b: any, path = ''): Diff[] {
+    const diffs: Diff[] = [];
+    if (a === b) return diffs;
+    if (a === null || b === null || typeof a !== typeof b || typeof a !== 'object') {
+      diffs.push({ path: path || '(root)', type: 'changed', oldVal: JSON.stringify(a), newVal: JSON.stringify(b) });
+      return diffs;
+    }
+    if (Array.isArray(a) !== Array.isArray(b)) {
+      diffs.push({ path: path || '(root)', type: 'changed', oldVal: JSON.stringify(a), newVal: JSON.stringify(b) });
+      return diffs;
+    }
+    const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of allKeys) {
+      const p = path ? `${path}.${key}` : key;
+      if (!(key in a)) diffs.push({ path: p, type: 'added', newVal: JSON.stringify(b[key]) });
+      else if (!(key in b)) diffs.push({ path: p, type: 'removed', oldVal: JSON.stringify(a[key]) });
+      else diffs.push(...findDiffs(a[key], b[key], p));
+    }
+    return diffs;
+  }
+
+  compareBtn.addEventListener('click', () => {
+    let a, b;
+    try { a = JSON.parse(aIn.value); } catch { alert('Invalid JSON A'); return; }
+    try { b = JSON.parse(bIn.value); } catch { alert('Invalid JSON B'); return; }
+
+    const diffs = findDiffs(a, b);
+    countEl.textContent = String(diffs.length);
+
+    if (diffs.length === 0) {
+      diffEl.innerHTML = '<div class="text-green-400">No differences found. The JSON objects are identical.</div>';
+    } else {
+      const colors = { added: 'text-green-400', removed: 'text-red-400', changed: 'text-yellow-400' };
+      const bgs = { added: 'bg-green-900/30', removed: 'bg-red-900/30', changed: 'bg-yellow-900/30' };
+      const icons = { added: '+', removed: '-', changed: '~' };
+      diffEl.innerHTML = diffs.map(d => {
+        let line = `<span class="text-gray-500">${icons[d.type]}</span> <span class="text-blue-300">${d.path}</span>`;
+        if (d.type === 'added') line += `: <span class="text-green-400">${d.newVal}</span>`;
+        else if (d.type === 'removed') line += `: <span class="text-red-400">${d.oldVal}</span>`;
+        else line += `: <span class="text-red-400 line-through">${d.oldVal}</span> → <span class="text-green-400">${d.newVal}</span>`;
+        return `<div class="px-2 py-1 ${bgs[d.type]} rounded mb-1">${line}</div>`;
+      }).join('');
+    }
+    resultEl.classList.remove('hidden');
+  });
+</script>
